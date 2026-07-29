@@ -98,4 +98,42 @@ export default function Profile() {
 
       {tab === "tabs" && (
         <div className="text-center py-12 text-brand-muted space-y-3">
-          <Music size={40}
+          <Music size={40} className="mx-auto opacity-50" />
+          <p className="text-lg">No saved tabs yet</p>
+          <p className="text-sm">Start browsing and save your favorite tabs!</p>
+          <Link
+            href="/browse"
+            className="inline-block mt-4 bg-brand-gold text-black px-6 py-3 rounded-full font-bold hover:scale-105 transition"
+          >
+            Browse Tabs
+          </Link>
+        </div>
+      )}
+
+      {tab === "settings" && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold">Account Settings</h2>
+          <div className="bg-brand-card rounded-xl border border-white/5 divide-y divide-white/5">
+            {[
+              { icon: User, label: "Edit Profile" },
+              { icon: CreditCard, label: "Payment Methods" },
+              { icon: Settings, label: "Preferences" },
+            ].map((item, i) => (
+              <div key={i} className="flex items-center justify-between p-4 hover:bg-white/5 cursor-pointer transition">
+                <div className="flex items-center gap-3">
+                  <item.icon size={18} className="text-brand-muted" />
+                  <span>{item.label}</span>
+                </div>
+                <ChevronRight size={16} className="text-brand-muted" />
+              </div>
+            ))}
+          </div>
+          <button className="flex items-center gap-2 text-red-400 hover:text-red-300 transition mt-6">
+            <LogOut size={18} />
+            <span>Sign Out</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
