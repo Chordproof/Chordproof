@@ -4,13 +4,16 @@
 
 :root {
   --foreground-rgb: 224, 224, 224;
-  --background-start-rgb: 15, 15, 15;
+  --background-start-rgb: 18, 18, 18;
   --background-end-rgb: 10, 10, 10;
 }
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(to bottom, transparent, rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
+  background: linear-gradient(to bottom,
+    rgb(var(--background-start-rgb)),
+    rgb(var(--background-end-rgb))
+  );
   min-height: 100vh;
 }
 
@@ -23,31 +26,21 @@ body {
 }
 
 .chord {
-  color: #f0b429;
+  color: #1ED760;
   font-weight: 700;
   cursor: pointer;
 }
 
-.gold-seal-anim {
-  animation: pulse-gold 2s infinite;
-}
-
-@keyframes pulse-gold {
-  0% { filter: drop-shadow(0 0 2px #f0b429); }
-  50% { filter: drop-shadow(0 0 8px #f0b429); }
-  100% { filter: drop-shadow(0 0 2px #f0b429); }
-}
-
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0f0f0f;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: #333;
-  border-radius: 4px;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #f0b429;
+  background: #1ED760;
 }
