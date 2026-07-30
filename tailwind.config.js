@@ -10,14 +10,19 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          gold: "#f0b429",
-          dark: "#0f0f0f",
-          card: "#1a1a2e",
-          text: "#e0e0e0",
-          muted: "#9E9E9E",
+          accent: "#1ED760",
+          dark: "#121212",
+          elevated: "#1A1A1A",
+          tinted: "#282828",
+          text: "#E0E0E0",
+          muted: "#A7A7A7",
+          disabled: "#6A6A6A",
+          error: "#CF6679",
+          warning: "#FFA42B",
         },
       },
       fontFamily: {
+        display: ['Space Grotesk', 'sans-serif'],
         mono: ['JetBrains Mono', 'Menlo', 'monospace'],
       },
     },
