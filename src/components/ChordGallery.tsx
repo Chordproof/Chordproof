@@ -5,7 +5,7 @@ interface ChordGalleryProps {
 }
 
 export default function ChordGallery({ chords }: ChordGalleryProps) {
-  const uniqueChords = [...new Set(chords)];
+  const uniqueChords = Array.from(new Set(chords));
 
   return (
     <div className="bg-[#1A1A1A] rounded-2xl p-6 md:p-8 border border-white/[0.06]">
