@@ -1,0 +1,117 @@
+interface ChordDiagramProps {
+  chord: string;
+  frets: number[];
+  fingers: number[];
+  barre?: { from: number; to: number; fret: number };
+}
+
+const chordData: Record<string, { frets: number[]; fingers: number[] }> = {
+  "Em7":     { frets: [0,2,0,0,0,0], fingers: [0,2,0,0,0,0] },
+  "G":       { frets: [3,2,0,0,0,3], fingers: [2,1,0,0,0,3] },
+  "D4":      { frets: [0,0,0,2,3,0], fingers: [0,0,0,1,2,0] },
+  "A7(4)":   { frets: [0,0,2,0,2,0], fingers: [0,0,2,0,1,0] },
+  "C9":      { frets: [0,3,2,0,3,0], fingers: [0,2,1,0,3,0] },
+  "D":       { frets: [0,0,0,2,3,2], fingers: [0,0,0,1,2,1] },
+  "Em":      { frets: [0,2,2,0,0,0], fingers: [0,1,2,0,0,0] },
+  "D11/F#":  { frets: [2,0,0,2,3,0], fingers: [1,0,0,2,3,0] },
+  "Am":      { frets: [0,0,2,2,1,0], fingers: [0,0,2,3,1,0] },
+  "C":       { frets: [0,1,0,2,3,0], fingers: [0,1,0,2,3,0] },
+  "F":       { frets: [1,1,2,3,3,1], fingers: [1,1,2,3,4,1] },
+  "F#m":     { frets: [2,4,4,2,2,2], fingers: [1,3,4,1,1,1] },
+  "Bm":      { frets: [0,2,4,4,3,2], fingers: [0,1,3,4,2,1] },
+  "A":       { frets: [0,0,2,2,2,0], fingers: [0,0,1,2,3,0] },
+};
+
+export default function ChordDiagram({ chord, frets, fingers, barre }: ChordDiagramProps) {
+  const data = chordData[chord] || { frets: [0,0,0,0,0,0], fingers: [0,0,0,0,0,0] };
+  const f = frets || data.frets;
+  const fin = fingers || data.fingers;
+
+  const stringNames = ["E", "A", "D", "G", "B", "E"];
+  const maxFret = Math.max(...f.filter(n => n > 0), 0);
+  const fretStart = maxFret > 4 ? Math.max(maxFret - 3, 1) : 1;
+  const displayFrets = maxFret > 4
+    ? [fretStart, fretStart + 1, fretStart + 2, fretStart + 3]
+    : [1, 2, 3, 4];
+
+  return (
+    <div className="inline-flex flex-col items-center bg-[#1A1A1A] rounded-xl p-3 border border-white/[0.06] shadow-xl min-w-[120px]">
+      <span className="text-xs font-bold text-brand-accent mb-2">{chord}</span>
+      <svg width="100" height="120" viewBox="0 0 100 120" className="shrink-0">
+        {/* Nut or fret marker */}
+        {maxFret <= 4 ? (
+          <rect x="10" y="8" width="80" height="4" rx="1" fill="#888" />
+        ) : (
+          <text x="50" y="14" textAnchor="middle" fill="#A7A7A7" fontSize="8">{fretStart}ª</text>
+        )}
+
+        {/* Frets */}
+        {[0, 1, 2, 3].map((i) => (
+          <line key={`fret-${i}`} x1="14" y1={24 + i * 22} x2="86" y2={24 + i * 22} stroke="#444" strokeWidth="1" />
+        ))}
+
+        {/* Strings */}
+        {[0, 1, 2, 3, 4, 5].map((i) => {
+          const x = 18 + i * 12;
+          const fretPos = f[i];
+          const finger = fin[i];
+
+          return (
+            <g key={`string-${i}`}>
+              <line x1={x} y1="12" x2={x} y2="108" stroke={fretPos > 0 ? "#888" : "#555"} strokeWidth={1.5} />
+              {/* Muted string */}
+              {fretPos === -1 && (
+                <text x={x} y="20" textAnchor="middle" fill="#CF6679" fontSize="10" fontWeight="bold">X</text>
+              )}
+              {/* Open string */}
+              {fretPos === 0 && (
+                <circle cx={x} cy="20" r="4" fill="none" stroke="#1ED760" strokeWidth="1.5" />
+              )}
+              {/* Fretted note */}
+              {fretPos > 0 && finger > 0 && (
+                <>
+                  <circle
+                    cx={x}
+                    cy={24 + (fretPos - fretStart) * 22 + 11}
+                    r="7"
+                    fill="#1ED760"
+                  />
+                  <text
+                    x={x}
+                    y={24 + (fretPos - fretStart) * 22 + 15}
+                    textAnchor="middle"
+                    fill="#000"
+                    fontSize="8"
+                    fontWeight="bold"
+                  >
+                    {finger}
+                  </text>
+                </>
+              )}
+            </g>
+          );
+        })}
+
+        {/* Barre */}
+        {barre && (
+          <rect
+            x={18 + (barre.from - 1) * 12}
+            y={24 + (barre.fret - fretStart) * 22 + 5}
+            width={(barre.to - barre.from + 1) * 12}
+            height="14"
+            rx="7"
+            fill="#1ED760"
+            opacity="0.8"
+          />
+        )}
+      </svg>
+      <div className="flex gap-1 mt-1">
+        {stringNames.map((name, i) => (
+          <span key={i} className="text-[8px] text-brand-muted uppercase" style={{ width: 12, textAlign: 'center' }}>
+            {name}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
