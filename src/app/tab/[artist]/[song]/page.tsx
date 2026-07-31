@@ -1,11 +1,24 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import ChordHover from "@/components/ChordHover";
 import ChordGallery from "@/components/ChordGallery";
-import { BadgeCheck, Bookmark, Share2, Play, Pause, ChevronDown, Plus, Minus, ChevronUp } from "lucide-react";
+import { BadgeCheck, Bookmark, Share2, Play, Pause, Plus, Minus, ChevronUp, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { createClientSupabaseClient } from "@/lib/supabase-client";
+import { recordAction } from "@/lib/gamification";
 
-const chordsUsed = ["Em7", "G", "D4", "A7(4)", "C9", "D", "D11/F#", "Em"];
+interface TabRow {
+  id: string;
+  song: string;
+  artist: string;
+  slug_artist: string;
+  slug_song: string;
+  difficulty: "Beginner" | "Intermediate" | "Advanced";
+  is_verified: boolean;
+  key_sig: string;
+  capo: string | null;
+  content: string;
+}
 
 const transposeMap: Record<string, string> = {
   "C": "C#", "C#": "D", "D": "D#", "D#": "E", "E": "F",
@@ -29,6 +42,9 @@ const transposeMap: Record<string, string> = {
   "F11/A": "F#11/A#", "F#11/A#": "G11/B", "G11/B": "G#11/C",
   "G#11/C": "A11/C#", "A11/C#": "A#11/D", "A#11/D": "B11/D#",
   "B11/D#": "C11/E", "C11/E": "C#11/F", "C#11/F": "D11/F#",
+  "Bm": "Cm", "F#": "G", "A": "A#", "E": "F", "G": "G#",
+  "D": "D#", "Em": "Fm", "F#m": "Gm", "B": "C",
+  "Cm": "C#m", "Ab": "A", "Am": "A#m", "E7": "F7", "C7": "C#7",
 };
 
 function transposeChord(chord: string, semitones: number): string {
@@ -50,8 +66,7 @@ function renderChordLine(line: string, semitones: number) {
     if (match.index > lastIndex) {
       parts.push({ text: line.slice(lastIndex, match.index), isChord: false });
     }
-    const transposed = transposeChord(match[1], semitones);
-    parts.push({ text: transposed, isChord: true });
+    parts.push({ text: transposeChord(match[1], semitones), isChord: true });
     lastIndex = match.index + match[0].length;
   }
   if (lastIndex < line.length) {
@@ -74,13 +89,53 @@ function renderChordLine(line: string, semitones: number) {
 }
 
 export default function TabDetail({ params }: { params: { artist: string; song: string } }) {
+  const [tab, setTab] = useState<TabRow | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+
   const [autoScroll, setAutoScroll] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(5);
   const [semitones, setSemitones] = useState(0);
   const [showFloating, setShowFloating] = useState(false);
+  const [saved, setSaved] = useState(false);
+
   const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const cifraRef = useRef<HTMLDivElement>(null);
+  const openedRef = useRef(false);
+  const completedRef = useRef(false);
+  const transposedRef = useRef(false);
 
+  // Buscar cifra no Supabase + XP de abertura
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      const supabase = createClientSupabaseClient();
+      const { data, error } = await supabase
+        .from("tabs")
+        .select("*")
+        .eq("slug_artist", params.artist)
+        .eq("slug_song", params.song)
+        .maybeSingle();
+
+      if (!active) return;
+      if (error || !data) {
+        setNotFound(true);
+      } else {
+        setTab(data as TabRow);
+        if (!openedRef.current) {
+          openedRef.current = true;
+          recordAction("OPEN_TAB");
+        }
+      }
+      setLoading(false);
+    }
+    load();
+    return () => {
+      active = false;
+    };
+  }, [params.artist, params.song]);
+
+  // Auto-scroll
   useEffect(() => {
     if (autoScroll) {
       scrollIntervalRef.current = setInterval(() => {
@@ -97,57 +152,70 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
     };
   }, [autoScroll, scrollSpeed]);
 
-  // Detect scroll position to show/hide floating button
+  // Mostrar botões flutuantes + detectar conclusão (XP de completar)
   useEffect(() => {
-    const handleScroll = () => {
+    if (!tab) return;
+    const handler = () => {
       if (cifraRef.current) {
         const rect = cifraRef.current.getBoundingClientRect();
         setShowFloating(rect.top < window.innerHeight && rect.bottom > 0);
+        if (!completedRef.current && rect.bottom < window.innerHeight * 0.85) {
+          completedRef.current = true;
+          recordAction("COMPLETE_TAB");
+        }
       }
     };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+    window.addEventListener("scroll", handler);
+    handler();
+    return () => window.removeEventListener("scroll", handler);
+  }, [tab]);
+
+  // XP de transposição (apenas a primeira por sessão)
+  useEffect(() => {
+    if (semitones !== 0 && !transposedRef.current) {
+      transposedRef.current = true;
+      recordAction("TRANSPOSE");
+    }
+  }, [semitones]);
+
+  const chordsUsed = useMemo(() => {
+    if (!tab) return [];
+    const re = /\*\*([^*]+)\*\*/g;
+    const set = new Set<string>();
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(tab.content)) !== null) set.add(m[1]);
+    return Array.from(set);
+  }, [tab]);
 
   const speedLabel =
     scrollSpeed <= 3 ? "Slow" :
     scrollSpeed <= 6 ? "Normal" :
     scrollSpeed <= 8 ? "Fast" : "Very Fast";
 
-  const cifraContent = `[Intro] **Em7**  **G**  **D4**  **A7(4)**
-        **Em7**  **G**  **D4**  **A7(4)**
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-32 text-brand-muted">
+        <Loader2 className="animate-spin mr-2" size={20} />
+        <p>Loading tab...</p>
+      </div>
+    );
+  }
 
-[Primeira Parte]
+  if (notFound || !tab) {
+    return (
+      <div className="text-center py-24 space-y-4">
+        <p className="text-2xl font-display font-bold">Tab not found</p>
+        <p className="text-brand-muted">This song isn't in our library yet.</p>
+        <Link href="/browse" className="inline-block mt-2 bg-brand-accent text-black px-6 py-3 rounded-full font-bold hover:brightness-110 transition-all duration-200">
+          Browse Tabs
+        </Link>
+      </div>
+    );
+  }
 
- **Em7**           **G**
-    Today is gonna be the day
-             **D4**
-That they're gonna
-                  **A7(4)**
-Throw it back to you
- **Em7**              **G**
-    By now you should've somehow
-   **D4**                   **A7(4)**
-Realized what you gotta do
- **Em7**                  **G**
-I don't believe that anybody
- **D4**              **A7(4)**
-Feels the way I do
-           **C9**  **D4**  **A7(4)**
-About you now
-
-[Refrão]
-
-         **C9**   **Em7**  **G**
-Because maybe
-        **Em7**
-You're gonna be the one
-      **C9**      **Em7**  **G**
-That saves me
-   **Em7**   **C9**  **Em7**  **G**
-And after all
-           **Em7**   **C9**  **Em7**  **G**  **Em7**  **A7(4)**
-You're my wonderwall`;
+  const difficultyColor =
+    tab.difficulty === "Beginner" ? "text-green-400" :
+    tab.difficulty === "Intermediate" ? "text-yellow-400" : "text-red-400";
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -157,12 +225,12 @@ You're my wonderwall`;
           <li><Link href="/" className="hover:text-white transition-colors">Home</Link></li>
           <li>/</li>
           <li>
-            <Link href={`/artist/${params.artist}`} className="hover:text-white transition-colors capitalize">
-              {params.artist.replace(/-/g, " ")}
+            <Link href={`/artist/${tab.slug_artist}`} className="hover:text-white transition-colors capitalize">
+              {tab.artist}
             </Link>
           </li>
           <li>/</li>
-          <li className="text-white/60 capitalize">{params.song.replace(/-/g, " ")}</li>
+          <li className="text-white/60">{tab.song}</li>
         </ol>
       </nav>
 
@@ -170,22 +238,39 @@ You're my wonderwall`;
       <div className="flex flex-col md:flex-row justify-between items-start gap-6 pb-6 border-b border-white/[0.06]">
         <div className="space-y-3">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-3xl md:text-4xl font-display font-bold capitalize">
-              {params.song.replace(/-/g, " ")}
-            </h1>
-            <span className="flex items-center gap-1 bg-brand-accent/10 text-brand-accent px-3 py-1 rounded-full text-xs font-bold">
-              <BadgeCheck size={14} /> VERIFIED
-            </span>
+            <h1 className="text-3xl md:text-4xl font-display font-bold">{tab.song}</h1>
+            {tab.is_verified && (
+              <span className="flex items-center gap-1 bg-brand-accent/10 text-brand-accent px-3 py-1 rounded-full text-xs font-bold">
+                <BadgeCheck size={14} /> VERIFIED
+              </span>
+            )}
           </div>
-          <p className="text-lg text-brand-muted capitalize">{params.artist.replace(/-/g, " ")}</p>
+          <p className="text-lg text-brand-muted">{tab.artist}</p>
           <div className="flex gap-3 text-sm flex-wrap">
-            <span className="bg-white/[0.06] px-3 py-1.5 rounded-lg">Key: <strong>F#m</strong></span>
-            <span className="bg-white/[0.06] px-3 py-1.5 rounded-lg">Difficulty: <strong className="text-green-400">Beginner</strong></span>
-            <span className="bg-white/[0.06] px-3 py-1.5 rounded-lg">Capo: <strong>2ª casa</strong></span>
+            <span className="bg-white/[0.06] px-3 py-1.5 rounded-lg">
+              Key: <strong>{tab.key_sig}</strong>
+            </span>
+            <span className="bg-white/[0.06] px-3 py-1.5 rounded-lg">
+              Difficulty: <strong className={difficultyColor}>{tab.difficulty}</strong>
+            </span>
+            {tab.capo && (
+              <span className="bg-white/[0.06] px-3 py-1.5 rounded-lg">
+                Capo: <strong>{tab.capo}</strong>
+              </span>
+            )}
           </div>
         </div>
         <div className="flex gap-2">
-          <button className="p-3 bg-white/[0.06] rounded-xl hover:bg-white/10 transition-colors">
+          <button
+            onClick={() => {
+              const next = !saved;
+              setSaved(next);
+              if (next) recordAction("SAVE_TAB");
+            }}
+            className={`p-3 rounded-xl transition-colors ${
+              saved ? "bg-brand-accent text-black" : "bg-white/[0.06] hover:bg-white/10"
+            }`}
+          >
             <Bookmark size={18} />
           </button>
           <button className="p-3 bg-white/[0.06] rounded-xl hover:bg-white/10 transition-colors">
@@ -199,27 +284,30 @@ You're my wonderwall`;
         {/* Transpose */}
         <div className="p-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-brand-muted">Tom:</span>
-            <span className="text-sm font-bold text-brand-accent">F#m</span>
+            <span className="text-sm text-brand-muted">Key:</span>
+            <span className="text-sm font-bold text-brand-accent">{tab.key_sig}</span>
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setSemitones(Math.max(-5, semitones - 1))}
+              onClick={() => setSemitones((s) => Math.max(-5, s - 1))}
               className="p-2 bg-white/[0.06] rounded-lg hover:bg-white/10 transition-colors"
             >
               <Minus size={16} />
             </button>
-            <span className="text-sm font-bold min-w-[60px] text-center">
-              {semitones === 0 ? "Original" : `${semitones > 0 ? "+" : ""}${semitones} half`}
+            <span className="text-sm font-bold min-w-[70px] text-center">
+              {semitones === 0 ? "Original" : `${semitones > 0 ? "+" : ""}${semitones}`}
             </span>
             <button
-              onClick={() => setSemitones(Math.min(5, semitones + 1))}
+              onClick={() => setSemitones((s) => Math.min(5, s + 1))}
               className="p-2 bg-white/[0.06] rounded-lg hover:bg-white/10 transition-colors"
             >
               <Plus size={16} />
             </button>
             {semitones !== 0 && (
-              <button onClick={() => setSemitones(0)} className="text-xs text-brand-accent hover:underline ml-2">
+              <button
+                onClick={() => setSemitones(0)}
+                className="text-xs text-brand-accent hover:underline ml-2"
+              >
                 Reset
               </button>
             )}
@@ -267,10 +355,10 @@ You're my wonderwall`;
         </div>
       </div>
 
-      {/* Cifra Content */}
+      {/* Cifra Content (do banco) */}
       <div ref={cifraRef} className="bg-[#1A1A1A] rounded-2xl p-6 md:p-8 border border-white/[0.06]">
         <div className="cifra-content text-brand-text/90 leading-relaxed space-y-4">
-          {cifraContent.split("\n").map((line, i) => {
+          {tab.content.split("\n").map((line, i) => {
             if (line.startsWith("[") && line.endsWith("]")) {
               return (
                 <p key={i} className="text-sm font-bold text-brand-accent uppercase tracking-wider mt-6 mb-3">
@@ -287,7 +375,7 @@ You're my wonderwall`;
       {/* Chord Gallery */}
       <ChordGallery chords={chordsUsed} />
 
-      {/* Floating Auto Scroll Button (mobile friendly) */}
+      {/* Floating Auto Scroll */}
       {showFloating && (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
           {autoScroll && (
@@ -321,7 +409,7 @@ You're my wonderwall`;
         </div>
       )}
 
-      {/* Scroll to top button */}
+      {/* Scroll to top */}
       {showFloating && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
