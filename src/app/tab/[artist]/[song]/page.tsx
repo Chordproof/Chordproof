@@ -340,7 +340,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
             <input
               type="range"
               min="1"
-              max="10"
+              max="6"
               value={scrollSpeed}
               onChange={(e) => setScrollSpeed(Number(e.target.value))}
               className="w-full h-1.5 bg-white/[0.1] rounded-full appearance-none cursor-pointer
