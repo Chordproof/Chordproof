@@ -35,11 +35,21 @@ export default function Browse() {
 
       if (error) {
         console.error("Error loading tabs:", error);
+        setLoading(false);
         return;
       }
 
       if (data) {
-        setTabs(data as Tab[]);
+        setTabs(
+          data.map((t) => ({
+            id: t.id,
+            song: t.song,
+            artist: t.artist,
+            difficulty: t.difficulty,
+            isVerified: t.is_verified,
+            key_sig: t.key_sig,
+          }))
+        );
       }
       setLoading(false);
     }
