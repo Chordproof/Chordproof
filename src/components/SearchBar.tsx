@@ -6,18 +6,24 @@ import { useState } from "react";
 interface SearchBarProps {
   large?: boolean;
   onSearch?: (query: string) => void;
+  initialValue?: string;
 }
 
-export default function SearchBar({ large, onSearch }: SearchBarProps) {
-  const [query, setQuery] = useState("");
+export default function SearchBar({ large, onSearch, initialValue = "" }: SearchBarProps) {
+  const [query, setQuery] = useState(initialValue);
   const router = useRouter();
 
-  const handleSearch = () => {
+  // Busca ao vivo: a cada tecla digitada, dispara o filtro
+  const handleChange = (value: string) => {
+    setQuery(value);
+    if (onSearch) onSearch(value);
+  };
+
+  // Enter: navega para /browse?q= (usado na home, onde não há onSearch)
+  const handleSubmit = () => {
     const q = query.trim();
     if (!q) return;
-    if (onSearch) {
-      onSearch(q);
-    } else {
+    if (!onSearch) {
       router.push(`/browse?q=${encodeURIComponent(q)}`);
     }
   };
@@ -29,9 +35,9 @@ export default function SearchBar({ large, onSearch }: SearchBarProps) {
         type="text"
         placeholder="Search songs, artists, or chords..."
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        onChange={(e) => handleChange(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter") handleSearch();
+          if (e.key === "Enter") handleSubmit();
         }}
         className={`w-full bg-white/5 border border-white/10 rounded-full pl-12 pr-6 text-white placeholder-brand-muted focus:outline-none focus:border-brand-accent transition ${
           large ? "py-4 text-lg" : "py-3 text-sm"
