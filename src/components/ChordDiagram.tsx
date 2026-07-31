@@ -1,12 +1,11 @@
 interface ChordDiagramProps {
   chord: string;
-  frets: number[];
-  fingers: number[];
+  frets?: number[];
+  fingers?: number[];
   barre?: { from: number; to: number; fret: number };
 }
 
 const chordData: Record<string, { frets: number[]; fingers: number[] }> = {
-  // Maiores
   "C":       { frets: [0,1,0,2,3,0], fingers: [0,1,0,2,3,0] },
   "C#":      { frets: [4,4,6,6,6,4], fingers: [1,1,2,3,4,1] },
   "Db":      { frets: [4,4,6,6,6,4], fingers: [1,1,2,3,4,1] },
@@ -24,8 +23,6 @@ const chordData: Record<string, { frets: number[]; fingers: number[] }> = {
   "A#":      { frets: [6,6,8,8,8,6], fingers: [1,1,2,3,4,1] },
   "Bb":      { frets: [6,6,8,8,8,6], fingers: [1,1,2,3,4,1] },
   "B":       { frets: [2,2,4,4,4,2], fingers: [1,1,2,3,4,1] },
-
-  // Menores
   "Cm":      { frets: [3,3,5,5,4,3], fingers: [1,1,2,3,4,1] },
   "C#m":     { frets: [4,4,6,6,5,4], fingers: [1,1,2,3,4,1] },
   "Dbm":     { frets: [4,4,6,6,5,4], fingers: [1,1,2,3,4,1] },
@@ -43,8 +40,6 @@ const chordData: Record<string, { frets: number[]; fingers: number[] }> = {
   "A#m":     { frets: [6,6,8,8,7,6], fingers: [1,1,2,3,4,1] },
   "Bbm":     { frets: [6,6,8,8,7,6], fingers: [1,1,2,3,4,1] },
   "Bm":      { frets: [0,2,4,4,3,2], fingers: [0,1,3,4,2,1] },
-
-  // Sétimas
   "C7":      { frets: [0,1,0,2,3,0], fingers: [0,1,0,2,3,0] },
   "D7":      { frets: [0,0,0,2,1,2], fingers: [0,0,0,2,1,3] },
   "E7":      { frets: [0,2,0,1,0,0], fingers: [0,2,0,1,0,0] },
@@ -59,8 +54,6 @@ const chordData: Record<string, { frets: number[]; fingers: number[] }> = {
   "Gm7":     { frets: [3,3,5,3,3,3], fingers: [1,1,3,1,1,1] },
   "Am7":     { frets: [0,0,2,0,1,0], fingers: [0,0,2,0,1,0] },
   "Bm7":     { frets: [0,2,4,2,3,2], fingers: [0,1,3,1,2,1] },
-
-  // Sétima maior
   "Cmaj7":   { frets: [0,1,0,0,0,0], fingers: [0,1,0,0,0,0] },
   "Dmaj7":   { frets: [0,0,0,2,2,2], fingers: [0,0,0,1,2,3] },
   "Emaj7":   { frets: [0,2,1,1,0,0], fingers: [0,3,1,2,0,0] },
@@ -68,8 +61,6 @@ const chordData: Record<string, { frets: number[]; fingers: number[] }> = {
   "Gmaj7":   { frets: [3,2,0,0,0,2], fingers: [2,1,0,0,0,3] },
   "Amaj7":   { frets: [0,0,2,1,2,0], fingers: [0,0,2,1,3,0] },
   "Bmaj7":   { frets: [2,2,4,3,4,2], fingers: [1,1,3,2,4,1] },
-
-  // Sétima diminuta e meia-diminuta
   "Cdim":    { frets: [0,1,2,0,1,2], fingers: [0,1,2,0,1,3] },
   "Ddim":    { frets: [0,0,1,2,1,2], fingers: [0,0,1,2,1,3] },
   "Edim":    { frets: [0,1,2,0,0,0], fingers: [0,1,2,0,0,0] },
@@ -78,8 +69,6 @@ const chordData: Record<string, { frets: number[]; fingers: number[] }> = {
   "Cm7b5":   { frets: [3,3,5,3,4,3], fingers: [1,1,3,1,2,1] },
   "Dm7b5":   { frets: [0,0,1,2,1,1], fingers: [0,0,1,3,1,1] },
   "Gm7b5":   { frets: [3,3,5,3,4,3], fingers: [1,1,3,1,2,1] },
-
-  // Suspensos
   "Csus2":   { frets: [0,1,0,2,3,0], fingers: [0,1,0,2,3,0] },
   "Csus4":   { frets: [0,1,0,2,3,1], fingers: [0,1,0,2,3,1] },
   "Dsus2":   { frets: [0,0,0,2,3,0], fingers: [0,0,0,1,2,0] },
@@ -88,22 +77,16 @@ const chordData: Record<string, { frets: number[]; fingers: number[] }> = {
   "Gsus4":   { frets: [3,2,0,0,1,3], fingers: [2,1,0,0,3,4] },
   "Asus2":   { frets: [0,0,2,2,0,0], fingers: [0,0,1,2,0,0] },
   "Asus4":   { frets: [0,0,2,2,3,0], fingers: [0,0,1,2,3,0] },
-
-  // Com quarta
   "C4":      { frets: [0,1,0,2,3,1], fingers: [0,1,0,2,3,1] },
   "D4":      { frets: [0,0,0,2,3,0], fingers: [0,0,0,1,2,0] },
   "E4":      { frets: [0,2,2,2,0,0], fingers: [0,1,2,3,0,0] },
   "G4":      { frets: [3,2,0,0,1,3], fingers: [2,1,0,0,3,4] },
   "A4":      { frets: [0,0,2,2,3,0], fingers: [0,0,1,2,3,0] },
-
-  // Nona
   "C9":      { frets: [0,3,2,0,3,0], fingers: [0,2,1,0,3,0] },
   "D9":      { frets: [0,0,0,2,1,2], fingers: [0,0,0,2,1,3] },
   "E9":      { frets: [0,2,0,1,0,2], fingers: [0,2,0,1,0,3] },
   "G9":      { frets: [3,2,0,0,0,2], fingers: [2,1,0,0,0,3] },
   "A9":      { frets: [0,0,2,2,0,2], fingers: [0,0,1,2,0,3] },
-
-  // Com baixo alterado
   "C/E":     { frets: [0,0,0,2,3,0], fingers: [0,0,0,1,2,0] },
   "D/F#":    { frets: [2,0,0,2,3,2], fingers: [1,0,0,2,3,1] },
   "D11/F#":  { frets: [2,0,0,2,3,0], fingers: [1,0,0,2,3,0] },
@@ -115,15 +98,15 @@ const chordData: Record<string, { frets: number[]; fingers: number[] }> = {
 
 export default function ChordDiagram({ chord, frets, fingers, barre }: ChordDiagramProps) {
   const data = chordData[chord] || { frets: [0,0,0,0,0,0], fingers: [0,0,0,0,0,0] };
-  const f = frets || data.frets;
-  const fin = fingers || data.fingers;
+
+  // FIX: só usa os arrays recebidos se tiverem as 6 cordas.
+  // Array vazio ([]) é "truthy" e estava sobrescrevendo o dicionário!
+  const f = frets && frets.length === 6 ? frets : data.frets;
+  const fin = fingers && fingers.length === 6 ? fingers : data.fingers;
 
   const stringNames = ["E", "A", "D", "G", "B", "E"];
   const maxFret = Math.max(...f.filter(n => n > 0), 0);
   const fretStart = maxFret > 4 ? Math.max(maxFret - 3, 1) : 1;
-  const displayFrets = maxFret > 4
-    ? [fretStart, fretStart + 1, fretStart + 2, fretStart + 3]
-    : [1, 2, 3, 4];
 
   return (
     <div className="inline-flex flex-col items-center bg-[#1A1A1A] rounded-xl p-3 border border-white/[0.06] shadow-xl min-w-[120px]">
