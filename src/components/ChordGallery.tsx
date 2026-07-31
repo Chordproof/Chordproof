@@ -12,7 +12,7 @@ export default function ChordGallery({ chords }: ChordGalleryProps) {
       <h3 className="text-lg font-display font-bold mb-6">Chords used in this song</h3>
       <div className="flex flex-wrap gap-4 justify-center">
         {uniqueChords.map((chord) => (
-          <ChordDiagram key={chord} chord={chord} frets={[]} fingers={[]} />
+          <ChordDiagram key={chord} chord={chord} />
         ))}
       </div>
     </div>
