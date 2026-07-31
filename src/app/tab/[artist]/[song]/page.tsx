@@ -188,10 +188,12 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
     return Array.from(set);
   }, [tab]);
 
-  const speedLabel =
-    scrollSpeed <= 3 ? "Slow" :
-    scrollSpeed <= 6 ? "Normal" :
-    scrollSpeed <= 8 ? "Fast" : "Very Fast";
+    const speedLabel =
+    scrollSpeed === 1 ? "Slowest" :
+    scrollSpeed === 2 ? "Slower" :
+    scrollSpeed === 3 ? "Slow" :
+    scrollSpeed === 4 ? "Medium" :
+    scrollSpeed === 5 ? "Fast" : "Fastest";
 
   if (loading) {
     return (
