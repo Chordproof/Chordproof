@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import SearchBar from "@/components/SearchBar";
 import TabCard from "@/components/TabCard";
+import ArtistAvatar from "@/components/ArtistAvatar";
 import { SlidersHorizontal, Music, Users, ChevronRight } from "lucide-react";
 import { createClientSupabaseClient } from "@/lib/supabase-client";
 import Link from "next/link";
@@ -23,6 +24,7 @@ interface Artist {
   name: string;
   slug: string;
   genre: string;
+  image_url: string | null;
   tab_count: number;
   monthly_listeners: number;
 }
@@ -37,12 +39,12 @@ export default function Browse() {
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"tabs" | "artists">("tabs");
 
-  // Ler o parâmetro ?q= da URL (ex.: vindo da busca da home)
+  // Ler o parâmetro ?q= da URL (vindo da busca da home)
+  const [initialQuery] = useState(() => new URLSearchParams(window.location.search).get("q") || "");
+
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const q = params.get("q");
-    if (q) setSearch(q);
-  }, []);
+    if (initialQuery) setSearch(initialQuery);
+  }, [initialQuery]);
 
   useEffect(() => {
     async function loadData() {
@@ -104,7 +106,7 @@ export default function Browse() {
 
       <div className="flex gap-3 items-start">
         <div className="flex-1">
-          <SearchBar onSearch={setSearch} />
+          <SearchBar onSearch={setSearch} initialValue={initialQuery} />
         </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
@@ -224,9 +226,7 @@ export default function Browse() {
                 className="block bg-[#1A1A1A] rounded-2xl p-5 border border-white/[0.06] hover:bg-[#242424] transition-all duration-300 group"
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-brand-accent to-emerald-700 flex items-center justify-center text-xl font-bold shrink-0">
-                    {artist.name.charAt(0)}
-                  </div>
+                  <ArtistAvatar name={artist.name} slug={artist.slug} imageUrl={artist.image_url} />
                   <div className="flex-1 min-w-0">
                     <h3 className="font-bold group-hover:text-brand-accent transition-colors truncate">
                       {artist.name}
