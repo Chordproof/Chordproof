@@ -1,42 +1,52 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SearchBar from "@/components/SearchBar";
 import TabCard from "@/components/TabCard";
-import { Filter, SlidersHorizontal, X } from "lucide-react";
-
-const allTabs = [
-  { song: "Wonderwall", artist: "Oasis", difficulty: "Beginner" as const, isVerified: true, key_sig: "F#m" },
-  { song: "Hotel California", artist: "Eagles", difficulty: "Advanced" as const, isVerified: true, key_sig: "Bm" },
-  { song: "Perfect", artist: "Ed Sheeran", difficulty: "Beginner" as const, isVerified: true, key_sig: "Ab" },
-  { song: "Hallelujah", artist: "Jeff Buckley", difficulty: "Intermediate" as const, isVerified: true, key_sig: "C" },
-  { song: "Creep", artist: "Radiohead", difficulty: "Beginner" as const, isVerified: true, key_sig: "G" },
-  { song: "Stairway to Heaven", artist: "Led Zeppelin", difficulty: "Advanced" as const, isVerified: true, key_sig: "Am" },
-  { song: "Nothing Else Matters", artist: "Metallica", difficulty: "Intermediate" as const, isVerified: true, key_sig: "Em" },
-  { song: "Knockin' on Heaven's Door", artist: "Bob Dylan", difficulty: "Beginner" as const, isVerified: true, key_sig: "G" },
-  { song: "Sweet Child O' Mine", artist: "Guns N' Roses", difficulty: "Advanced" as const, isVerified: true, key_sig: "D" },
-  { song: "Tears in Heaven", artist: "Eric Clapton", difficulty: "Intermediate" as const, isVerified: true, key_sig: "A" },
-  { song: "Come as You Are", artist: "Nirvana", difficulty: "Beginner" as const, isVerified: true, key_sig: "F#m" },
-  { song: "Under the Bridge", artist: "Red Hot Chili Peppers", difficulty: "Intermediate" as const, isVerified: true, key_sig: "F" },
-  { song: "Smoke on the Water", artist: "Deep Purple", difficulty: "Beginner" as const, isVerified: true, key_sig: "G" },
-  { song: "Back in Black", artist: "AC/DC", difficulty: "Intermediate" as const, isVerified: true, key_sig: "E" },
-  { song: "Bohemian Rhapsody", artist: "Queen", difficulty: "Advanced" as const, isVerified: true, key_sig: "Bb" },
-  { song: "Imagine", artist: "John Lennon", difficulty: "Beginner" as const, isVerified: true, key_sig: "C" },
-  { song: "Yesterday", artist: "The Beatles", difficulty: "Beginner" as const, isVerified: true, key_sig: "F" },
-  { song: "Purple Rain", artist: "Prince", difficulty: "Intermediate" as const, isVerified: true, key_sig: "A" },
-  { song: "Wish You Were Here", artist: "Pink Floyd", difficulty: "Intermediate" as const, isVerified: true, key_sig: "G" },
-  { song: "Californication", artist: "Red Hot Chili Peppers", difficulty: "Intermediate" as const, isVerified: true, key_sig: "Am" },
-];
+import { SlidersHorizontal } from "lucide-react";
+import { createClientSupabaseClient } from "@/lib/supabase-client";
 
 const difficulties = ["All", "Beginner", "Intermediate", "Advanced"];
 const keys = ["All", "C", "D", "E", "F", "G", "A", "B", "Am", "Em", "F#m", "Bm", "Bb"];
+
+interface Tab {
+  id: string;
+  song: string;
+  artist: string;
+  difficulty: "Beginner" | "Intermediate" | "Advanced";
+  isVerified: boolean;
+  key_sig: string;
+}
 
 export default function Browse() {
   const [search, setSearch] = useState("");
   const [difficulty, setDifficulty] = useState("All");
   const [key, setKey] = useState("All");
   const [showFilters, setShowFilters] = useState(false);
+  const [tabs, setTabs] = useState<Tab[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = allTabs.filter((tab) => {
+  useEffect(() => {
+    async function loadTabs() {
+      const supabase = createClientSupabaseClient();
+      const { data, error } = await supabase
+        .from("tabs")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error loading tabs:", error);
+        return;
+      }
+
+      if (data) {
+        setTabs(data as Tab[]);
+      }
+      setLoading(false);
+    }
+    loadTabs();
+  }, []);
+
+  const filtered = tabs.filter((tab) => {
     const matchSearch =
       tab.song.toLowerCase().includes(search.toLowerCase()) ||
       tab.artist.toLowerCase().includes(search.toLowerCase());
@@ -47,17 +57,11 @@ export default function Browse() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div className="space-y-4">
-        <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">
-          Browse Tabs
-        </h1>
-        <p className="text-brand-muted">
-          Search through our collection of verified guitar tabs.
-        </p>
+        <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">Browse Tabs</h1>
+        <p className="text-brand-muted">Search through our collection of verified guitar tabs.</p>
       </div>
 
-      {/* Search + Filter Toggle */}
       <div className="flex gap-3 items-start">
         <div className="flex-1">
           <SearchBar />
@@ -72,7 +76,6 @@ export default function Browse() {
         </button>
       </div>
 
-      {/* Filters */}
       {showFilters && (
         <div className="bg-[#1A1A1A] rounded-xl p-5 border border-white/[0.06] space-y-4">
           <div className="flex items-center justify-between">
@@ -125,22 +128,29 @@ export default function Browse() {
         </div>
       )}
 
-      {/* Results */}
       <div className="space-y-4">
-        <p className="text-sm text-brand-muted">
-          {filtered.length} {filtered.length === 1 ? "result" : "results"} found
-        </p>
-        {filtered.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtered.map((tab) => (
-              <TabCard key={`${tab.artist}-${tab.song}`} {...tab} />
-            ))}
+        {loading ? (
+          <div className="text-center py-16 text-brand-muted">
+            <p>Loading tabs...</p>
           </div>
         ) : (
-          <div className="text-center py-16 text-brand-muted space-y-3">
-            <p className="text-lg">No tabs found</p>
-            <p className="text-sm">Try adjusting your search or filters</p>
-          </div>
+          <>
+            <p className="text-sm text-brand-muted">
+              {filtered.length} {filtered.length === 1 ? "result" : "results"} found
+            </p>
+            {filtered.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filtered.map((tab) => (
+                  <TabCard key={tab.id} {...tab} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-16 text-brand-muted space-y-3">
+                <p className="text-lg">No tabs found</p>
+                <p className="text-sm">Try adjusting your search or filters</p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
