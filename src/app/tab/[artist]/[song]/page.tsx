@@ -89,4 +89,336 @@ function renderChordLine(line: string, semitones: number) {
   );
 }
 
-export default function TabDetail({ params }: { params: { artist:
+export default function TabDetail({ params }: { params: { artist: string; song: string } }) {
+  const [tab, setTab] = useState<TabRow | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+
+  const [autoScroll, setAutoScroll] = useState(false);
+  const [scrollSpeed, setScrollSpeed] = useState(5);
+  const [semitones, setSemitones] = useState(0);
+  const [showFloating, setShowFloating] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const cifraRef = useRef<HTMLDivElement>(null);
+  const openedRef = useRef(false);
+  const completedRef = useRef(false);
+  const transposedRef = useRef(false);
+
+  // Buscar cifra no Supabase + XP de abertura
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      const supabase = createClientSupabaseClient();
+      const { data, error } = await supabase
+        .from("tabs")
+        .select("*")
+        .eq("slug_artist", params.artist)
+        .eq("slug_song", params.song)
+        .maybeSingle();
+
+      if (!active) return;
+      if (error || !data) {
+        setNotFound(true);
+      } else {
+        setTab(data as TabRow);
+        if (!openedRef.current) {
+          openedRef.current = true;
+          recordAction("OPEN_TAB");
+        }
+      }
+      setLoading(false);
+    }
+    load();
+    return () => {
+      active = false;
+    };
+  }, [params.artist, params.song]);
+
+  // Auto-scroll
+  useEffect(() => {
+    if (autoScroll) {
+      scrollIntervalRef.current = setInterval(() => {
+        window.scrollBy(0, scrollSpeed * 0.4);
+      }, 30);
+    } else {
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+        scrollIntervalRef.current = null;
+      }
+    }
+    return () => {
+      if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
+    };
+  }, [autoScroll, scrollSpeed]);
+
+  // Mostrar botões flutuantes + detectar conclusão (XP de completar)
+  useEffect(() => {
+    if (!tab) return;
+    const handler = () => {
+      if (cifraRef.current) {
+        const rect = cifraRef.current.getBoundingClientRect();
+        setShowFloating(rect.top < window.innerHeight && rect.bottom > 0);
+        if (!completedRef.current && rect.bottom < window.innerHeight * 0.85) {
+          completedRef.current = true;
+          recordAction("COMPLETE_TAB");
+        }
+      }
+    };
+    window.addEventListener("scroll", handler);
+    handler();
+    return () => window.removeEventListener("scroll", handler);
+  }, [tab]);
+
+  // XP de transposição (apenas a primeira por sessão)
+  useEffect(() => {
+    if (semitones !== 0 && !transposedRef.current) {
+      transposedRef.current = true;
+      recordAction("TRANSPOSE");
+    }
+  }, [semitones]);
+
+  const chordsUsed = useMemo(() => {
+    if (!tab) return [];
+    const re = /\*\*([^*]+)\*\*/g;
+    const set = new Set<string>();
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(tab.content)) !== null) set.add(m[1]);
+    return Array.from(set);
+  }, [tab]);
+
+  const speedLabel =
+    scrollSpeed <= 3 ? "Slow" :
+    scrollSpeed <= 6 ? "Normal" :
+    scrollSpeed <= 8 ? "Fast" : "Very Fast";
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-32 text-brand-muted">
+        <Loader2 className="animate-spin mr-2" size={20} />
+        <p>Loading tab...</p>
+      </div>
+    );
+  }
+
+  if (notFound || !tab) {
+    return (
+      <div className="text-center py-24 space-y-4">
+        <p className="text-2xl font-display font-bold">Tab not found</p>
+        <p className="text-brand-muted">This song isn't in our library yet.</p>
+        <Link href="/browse" className="inline-block mt-2 bg-brand-accent text-black px-6 py-3 rounded-full font-bold hover:brightness-110 transition-all duration-200">
+          Browse Tabs
+        </Link>
+      </div>
+    );
+  }
+
+  const difficultyColor =
+    tab.difficulty === "Beginner" ? "text-green-400" :
+    tab.difficulty === "Intermediate" ? "text-yellow-400" : "text-red-400";
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Breadcrumbs */}
+      <nav className="text-sm text-brand-muted">
+        <ol className="flex gap-2">
+          <li><Link href="/" className="hover:text-white transition-colors">Home</Link></li>
+          <li>/</li>
+          <li>
+            <Link href={`/artist/${tab.slug_artist}`} className="hover:text-white transition-colors capitalize">
+              {tab.artist}
+            </Link>
+          </li>
+          <li>/</li>
+          <li className="text-white/60">{tab.song}</li>
+        </ol>
+      </nav>
+
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start gap-6 pb-6 border-b border-white/[0.06]">
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-3xl md:text-4xl font-display font-bold">{tab.song}</h1>
+            {tab.is_verified && (
+              <span className="flex items-center gap-1 bg-brand-accent/10 text-brand-accent px-3 py-1 rounded-full text-xs font-bold">
+                <BadgeCheck size={14} /> VERIFIED
+              </span>
+            )}
+          </div>
+          <p className="text-lg text-brand-muted">{tab.artist}</p>
+          <div className="flex gap-3 text-sm flex-wrap">
+            <span className="bg-white/[0.06] px-3 py-1.5 rounded-lg">
+              Key: <strong>{tab.key_sig}</strong>
+            </span>
+            <span className="bg-white/[0.06] px-3 py-1.5 rounded-lg">
+              Difficulty: <strong className={difficultyColor}>{tab.difficulty}</strong>
+            </span>
+            {tab.capo && (
+              <span className="bg-white/[0.06] px-3 py-1.5 rounded-lg">
+                Capo: <strong>{tab.capo}</strong>
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              const next = !saved;
+              setSaved(next);
+              if (next) recordAction("SAVE_TAB");
+            }}
+            className={`p-3 rounded-xl transition-colors ${
+              saved ? "bg-brand-accent text-black" : "bg-white/[0.06] hover:bg-white/10"
+            }`}
+          >
+            <Bookmark size={18} />
+          </button>
+          <button className="p-3 bg-white/[0.06] rounded-xl hover:bg-white/10 transition-colors">
+            <Share2 size={18} />
+          </button>
+        </div>
+      </div>
+
+      {/* Toolbar */}
+      <div className="bg-[#1A1A1A] rounded-xl border border-white/[0.06] divide-y divide-white/[0.06]">
+        {/* Transpose */}
+        <div className="p-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-brand-muted">Key:</span>
+            <span className="text-sm font-bold text-brand-accent">{tab.key_sig}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSemitones((s) => Math.max(-5, s - 1))}
+              className="p-2 bg-white/[0.06] rounded-lg hover:bg-white/10 transition-colors"
+            >
+              <Minus size={16} />
+            </button>
+            <span className="text-sm font-bold min-w-[70px] text-center">
+              {semitones === 0 ? "Original" : `${semitones > 0 ? "+" : ""}${semitones}`}
+            </span>
+            <button
+              onClick={() => setSemitones((s) => Math.min(5, s + 1))}
+              className="p-2 bg-white/[0.06] rounded-lg hover:bg-white/10 transition-colors"
+            >
+              <Plus size={16} />
+            </button>
+            {semitones !== 0 && (
+              <button
+                onClick={() => setSemitones(0)}
+                className="text-xs text-brand-accent hover:underline ml-2"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Auto Scroll */}
+        <div className="p-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setAutoScroll(!autoScroll)}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${
+                autoScroll
+                  ? "bg-brand-accent text-black"
+                  : "bg-white/[0.06] text-brand-muted hover:bg-white/10"
+              }`}
+            >
+              {autoScroll ? <Pause size={16} /> : <Play size={16} />}
+              {autoScroll ? "Pause" : "Auto Scroll"}
+            </button>
+            <span className="text-xs text-brand-muted px-2 py-1 bg-white/[0.04] rounded-lg font-medium">
+              {speedLabel}
+            </span>
+          </div>
+          <div className="flex items-center gap-3 flex-1 max-w-xs">
+            <span className="text-xs text-brand-muted shrink-0">Slow</span>
+            <input
+              type="range"
+              min="1"
+              max="10"
+              value={scrollSpeed}
+              onChange={(e) => setScrollSpeed(Number(e.target.value))}
+              className="w-full h-1.5 bg-white/[0.1] rounded-full appearance-none cursor-pointer
+                [&::-webkit-slider-thumb]:appearance-none
+                [&::-webkit-slider-thumb]:w-4
+                [&::-webkit-slider-thumb]:h-4
+                [&::-webkit-slider-thumb]:rounded-full
+                [&::-webkit-slider-thumb]:bg-brand-accent
+                [&::-webkit-slider-thumb]:shadow-lg
+                [&::-webkit-slider-thumb]:transition-transform
+                [&::-webkit-slider-thumb]:hover:scale-125"
+            />
+            <span className="text-xs text-brand-muted shrink-0">Fast</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Cifra Content (do banco) */}
+      <div ref={cifraRef} className="bg-[#1A1A1A] rounded-2xl p-6 md:p-8 border border-white/[0.06]">
+        <div className="cifra-content text-brand-text/90 leading-relaxed space-y-4">
+          {tab.content.split("\n").map((line, i) => {
+            if (line.startsWith("[") && line.endsWith("]")) {
+              return (
+                <p key={i} className="text-sm font-bold text-brand-accent uppercase tracking-wider mt-6 mb-3">
+                  {line}
+                </p>
+              );
+            }
+            if (line.trim() === "") return <div key={i} className="h-2" />;
+            return <div key={i}>{renderChordLine(line, semitones)}</div>;
+          })}
+        </div>
+      </div>
+
+      {/* Chord Gallery */}
+      <ChordGallery chords={chordsUsed} />
+
+      {/* Floating Auto Scroll */}
+      {showFloating && (
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+          {autoScroll && (
+            <div className="bg-[#1A1A1A] border border-white/[0.06] rounded-xl p-3 shadow-xl flex items-center gap-3">
+              <span className="text-xs text-brand-muted">{speedLabel}</span>
+              <input
+                type="range"
+                min="1"
+                max="10"
+                value={scrollSpeed}
+                onChange={(e) => setScrollSpeed(Number(e.target.value))}
+                className="w-20 h-1.5 bg-white/[0.1] rounded-full appearance-none cursor-pointer
+                  [&::-webkit-slider-thumb]:appearance-none
+                  [&::-webkit-slider-thumb]:w-3
+                  [&::-webkit-slider-thumb]:h-3
+                  [&::-webkit-slider-thumb]:rounded-full
+                  [&::-webkit-slider-thumb]:bg-brand-accent"
+              />
+            </div>
+          )}
+          <button
+            onClick={() => setAutoScroll(!autoScroll)}
+            className={`p-4 rounded-full shadow-xl transition-all duration-200 ${
+              autoScroll
+                ? "bg-brand-accent text-black hover:brightness-110"
+                : "bg-[#1A1A1A] text-brand-muted hover:bg-white/10 border border-white/[0.06]"
+            }`}
+          >
+            {autoScroll ? <Pause size={20} /> : <Play size={20} />}
+          </button>
+        </div>
+      )}
+
+      {/* Scroll to top */}
+      {showFloating && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="fixed bottom-6 left-6 z-50 p-3 bg-[#1A1A1A] border border-white/[0.06] rounded-full shadow-xl hover:bg-white/10 transition-colors"
+        >
+          <ChevronUp size={18} className="text-brand-muted" />
+        </button>
+      )}
+    </div>
+  );
+}
