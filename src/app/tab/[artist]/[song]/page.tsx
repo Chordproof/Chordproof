@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import ChordHover from "@/components/ChordHover";
 import ChordGallery from "@/components/ChordGallery";
-import { BadgeCheck, Bookmark, Share2, Play, Pause, ChevronDown, Plus, Minus } from "lucide-react";
+import { BadgeCheck, Bookmark, Share2, Play, Pause, ChevronDown, Plus, Minus, ChevronUp } from "lucide-react";
 import Link from "next/link";
 
 const chordsUsed = ["Em7", "G", "D4", "A7(4)", "C9", "D", "D11/F#", "Em"];
@@ -77,8 +77,9 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const [autoScroll, setAutoScroll] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(5);
   const [semitones, setSemitones] = useState(0);
-  const [showChords, setShowChords] = useState(true);
+  const [showFloating, setShowFloating] = useState(false);
   const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const cifraRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (autoScroll) {
@@ -95,6 +96,18 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
     };
   }, [autoScroll, scrollSpeed]);
+
+  // Detect scroll position to show/hide floating button
+  useEffect(() => {
+    const handleScroll = () => {
+      if (cifraRef.current) {
+        const rect = cifraRef.current.getBoundingClientRect();
+        setShowFloating(rect.top < window.innerHeight && rect.bottom > 0);
+      }
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const speedLabel =
     scrollSpeed <= 3 ? "Slow" :
@@ -181,9 +194,9 @@ You're my wonderwall`;
         </div>
       </div>
 
-      {/* Toolbar - Transpose + Auto Scroll */}
+      {/* Toolbar */}
       <div className="bg-[#1A1A1A] rounded-xl border border-white/[0.06] divide-y divide-white/[0.06]">
-        {/* Transpose Controls */}
+        {/* Transpose */}
         <div className="p-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <span className="text-sm text-brand-muted">Tom:</span>
@@ -206,17 +219,14 @@ You're my wonderwall`;
               <Plus size={16} />
             </button>
             {semitones !== 0 && (
-              <button
-                onClick={() => setSemitones(0)}
-                className="text-xs text-brand-accent hover:underline ml-2"
-              >
+              <button onClick={() => setSemitones(0)} className="text-xs text-brand-accent hover:underline ml-2">
                 Reset
               </button>
             )}
           </div>
         </div>
 
-        {/* Auto Scroll Controls */}
+        {/* Auto Scroll */}
         <div className="p-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button
@@ -258,7 +268,7 @@ You're my wonderwall`;
       </div>
 
       {/* Cifra Content */}
-      <div className="bg-[#1A1A1A] rounded-2xl p-6 md:p-8 border border-white/[0.06]">
+      <div ref={cifraRef} className="bg-[#1A1A1A] rounded-2xl p-6 md:p-8 border border-white/[0.06]">
         <div className="cifra-content text-brand-text/90 leading-relaxed space-y-4">
           {cifraContent.split("\n").map((line, i) => {
             if (line.startsWith("[") && line.endsWith("]")) {
@@ -274,14 +284,51 @@ You're my wonderwall`;
         </div>
       </div>
 
-      {/* Chord Gallery - Todos os acordes usados */}
+      {/* Chord Gallery */}
       <ChordGallery chords={chordsUsed} />
 
-      {/* Auto Scroll Indicator */}
-      {autoScroll && (
-        <div className="fixed bottom-6 right-6 bg-brand-accent text-black px-4 py-2 rounded-xl text-xs font-bold shadow-lg animate-pulse">
-          Auto Scrolling...
+      {/* Floating Auto Scroll Button (mobile friendly) */}
+      {showFloating && (
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+          {autoScroll && (
+            <div className="bg-[#1A1A1A] border border-white/[0.06] rounded-xl p-3 shadow-xl flex items-center gap-3">
+              <span className="text-xs text-brand-muted">{speedLabel}</span>
+              <input
+                type="range"
+                min="1"
+                max="10"
+                value={scrollSpeed}
+                onChange={(e) => setScrollSpeed(Number(e.target.value))}
+                className="w-20 h-1.5 bg-white/[0.1] rounded-full appearance-none cursor-pointer
+                  [&::-webkit-slider-thumb]:appearance-none
+                  [&::-webkit-slider-thumb]:w-3
+                  [&::-webkit-slider-thumb]:h-3
+                  [&::-webkit-slider-thumb]:rounded-full
+                  [&::-webkit-slider-thumb]:bg-brand-accent"
+              />
+            </div>
+          )}
+          <button
+            onClick={() => setAutoScroll(!autoScroll)}
+            className={`p-4 rounded-full shadow-xl transition-all duration-200 ${
+              autoScroll
+                ? "bg-brand-accent text-black hover:brightness-110"
+                : "bg-[#1A1A1A] text-brand-muted hover:bg-white/10 border border-white/[0.06]"
+            }`}
+          >
+            {autoScroll ? <Pause size={20} /> : <Play size={20} />}
+          </button>
         </div>
+      )}
+
+      {/* Scroll to top button */}
+      {showFloating && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="fixed bottom-6 left-6 z-50 p-3 bg-[#1A1A1A] border border-white/[0.06] rounded-full shadow-xl hover:bg-white/10 transition-colors"
+        >
+          <ChevronUp size={18} className="text-brand-muted" />
+        </button>
       )}
     </div>
   );
