@@ -9,6 +9,9 @@ interface TabCardProps {
   key_sig: string;
 }
 
+const slugify = (s: string) =>
+  s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
 export default function TabCard({ song, artist, difficulty, isVerified, key_sig }: TabCardProps) {
   const difficultyColor =
     difficulty === "Beginner" ? "text-green-400" :
@@ -16,7 +19,7 @@ export default function TabCard({ song, artist, difficulty, isVerified, key_sig 
 
   return (
     <Link
-      href={`/tab/${artist.toLowerCase().replace(/\s+/g, "-")}/${song.toLowerCase().replace(/\s+/g, "-")}`}
+      href={`/tab/${slugify(artist)}/${slugify(song)}`}
       className="block bg-[#1A1A1A] rounded-2xl p-6 md:p-7 hover:bg-[#242424] transition-all duration-300 group"
     >
       <div className="flex justify-between items-start mb-5">
