@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Music, Users, Globe, ChevronRight, Loader2, ArrowLeft } from "lucide-react";
 import { createClientSupabaseClient } from "@/lib/supabase-client";
 import TabCard from "@/components/TabCard";
+import ArtistAvatar from "@/components/ArtistAvatar";
 
 interface Artist {
   id: string;
@@ -12,6 +13,7 @@ interface Artist {
   genre: string;
   country: string;
   bio: string;
+  image_url: string | null;
   tab_count: number;
   monthly_listeners: number;
 }
@@ -51,7 +53,6 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
     async function load() {
       const supabase = createClientSupabaseClient();
 
-      // Buscar artista
       const { data: artistData, error: artistError } = await supabase
         .from("artists")
         .select("*")
@@ -68,7 +69,6 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
 
       setArtist(artistData as Artist);
 
-      // Buscar tabs desse artista
       const { data: tabsData } = await supabase
         .from("tabs")
         .select("*")
@@ -139,10 +139,7 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
       {/* Artist Header */}
       <div className="bg-[#1A1A1A] rounded-3xl p-8 md:p-10 border border-white/[0.06]">
         <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
-          {/* Avatar */}
-          <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-br from-brand-accent to-emerald-700 flex items-center justify-center text-5xl md:text-6xl font-black shrink-0 shadow-2xl">
-            {artist.name.charAt(0)}
-          </div>
+          <ArtistAvatar name={artist.name} slug={artist.slug} imageUrl={artist.image_url} size="lg" />
 
           <div className="text-center md:text-left flex-1 space-y-4">
             <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tight">
