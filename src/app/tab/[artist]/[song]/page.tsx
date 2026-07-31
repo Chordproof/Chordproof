@@ -15,11 +15,6 @@ interface TabRow {
   slug_song: string;
   difficulty: "Beginner" | "Intermediate" | "Advanced";
   is_verified: boolean;
-  key_sig: string;
-  capo: string | null;
-  content: string;
-}
-
 const transposeMap: Record<string, string> = {
   "C": "C#", "C#": "D", "D": "D#", "D#": "E", "E": "F",
   "F": "F#", "F#": "G", "G": "G#", "G#": "A", "A": "A#",
@@ -42,9 +37,10 @@ const transposeMap: Record<string, string> = {
   "F11/A": "F#11/A#", "F#11/A#": "G11/B", "G11/B": "G#11/C",
   "G#11/C": "A11/C#", "A11/C#": "A#11/D", "A#11/D": "B11/D#",
   "B11/D#": "C11/E", "C11/E": "C#11/F", "C#11/F": "D11/F#",
-  "Bm": "Cm", "F#": "G", "A": "A#", "E": "F", "G": "G#",
-  "D": "D#", "Em": "Fm", "F#m": "Gm", "B": "C",
-  "Cm": "C#m", "Ab": "A", "Am": "A#m", "E7": "F7", "C7": "C#7",
+  "E7": "F7", "F7": "F#7", "F#7": "G7", "G7": "G#7",
+  "G#7": "A7", "A7": "A#7", "A#7": "B7", "B7": "C7",
+  "C7": "C#7", "C#7": "D7", "D7": "D#7", "D#7": "E7",
+  "Ab": "A", "Bb": "B", "Db": "D", "Eb": "E", "Gb": "G",
 };
 
 function transposeChord(chord: string, semitones: number): string {
