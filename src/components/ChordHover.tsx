@@ -19,7 +19,7 @@ export default function ChordHover({ chord, children }: ChordHoverProps) {
       <span className="chord">{children}</span>
       {show && (
         <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2">
-          <ChordDiagram chord={chord} frets={[]} fingers={[]} />
+          <ChordDiagram chord={chord} />
         </div>
       )}
     </span>
