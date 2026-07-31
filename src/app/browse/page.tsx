@@ -40,11 +40,14 @@ export default function Browse() {
   const [view, setView] = useState<"tabs" | "artists">("tabs");
   const [initialQuery, setInitialQuery] = useState("");
 
-  // Ler o parâmetro ?q= da URL (apenas no cliente)
+  // Ler parâmetros da URL
   useEffect(() => {
-    const q = new URLSearchParams(window.location.search).get("q") || "";
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("q") || "";
+    const v = params.get("view");
     setInitialQuery(q);
     if (q) setSearch(q);
+    if (v === "artists") setView("artists");
   }, []);
 
   useEffect(() => {
@@ -53,7 +56,7 @@ export default function Browse() {
 
       const [tabsResult, artistsResult] = await Promise.all([
         supabase.from("tabs").select("*").order("created_at", { ascending: false }),
-        supabase.from("artists").select("*").order("monthly_listeners", { ascending: false }).limit(50),
+        supabase.from("artists").select("*").order("monthly_listeners", { ascending: false }).limit(200),
       ]);
 
       if (tabsResult.data) {
@@ -219,34 +222,41 @@ export default function Browse() {
           <p className="text-sm text-brand-muted">
             {filteredArtists.length} {filteredArtists.length === 1 ? "artist" : "artists"} found
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredArtists.map((artist) => (
-              <Link
-                key={artist.id}
-                href={`/artist/${artist.slug}`}
-                className="block bg-[#1A1A1A] rounded-2xl p-5 border border-white/[0.06] hover:bg-[#242424] transition-all duration-300 group"
-              >
-                <div className="flex items-center gap-4">
-                  <ArtistAvatar name={artist.name} slug={artist.slug} imageUrl={artist.image_url} />
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold group-hover:text-brand-accent transition-colors truncate">
-                      {artist.name}
-                    </h3>
-                    <p className="text-xs text-brand-muted">{artist.genre}</p>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-brand-muted">
-                      <span className="flex items-center gap-1">
-                        <Music size={12} /> {artist.tab_count} tabs
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Users size={12} /> {formatListeners(artist.monthly_listeners)}
-                      </span>
+          {filteredArtists.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredArtists.map((artist) => (
+                <Link
+                  key={artist.id}
+                  href={`/artist/${artist.slug}`}
+                  className="block bg-[#1A1A1A] rounded-2xl p-5 border border-white/[0.06] hover:bg-[#242424] transition-all duration-300 group"
+                >
+                  <div className="flex items-center gap-4">
+                    <ArtistAvatar name={artist.name} slug={artist.slug} imageUrl={artist.image_url} />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold group-hover:text-brand-accent transition-colors truncate">
+                        {artist.name}
+                      </h3>
+                      <p className="text-xs text-brand-muted">{artist.genre}</p>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-brand-muted">
+                        <span className="flex items-center gap-1">
+                          <Music size={12} /> {artist.tab_count} tabs
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Users size={12} /> {formatListeners(artist.monthly_listeners)}
+                        </span>
+                      </div>
                     </div>
+                    <ChevronRight size={18} className="text-brand-muted group-hover:text-brand-accent transition-colors shrink-0" />
                   </div>
-                  <ChevronRight size={18} className="text-brand-muted group-hover:text-brand-accent transition-colors shrink-0" />
-                </div>
-              </Link>
-            ))}
-          </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16 text-brand-muted space-y-3">
+              <p className="text-lg">No artists found</p>
+              <p className="text-sm">Try adjusting your search</p>
+            </div>
+          )}
         </div>
       )}
     </div>
