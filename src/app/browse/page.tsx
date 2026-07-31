@@ -40,11 +40,14 @@ export default function Browse() {
   const [view, setView] = useState<"tabs" | "artists">("tabs");
 
   // Ler o parâmetro ?q= da URL (vindo da busca da home)
-  const [initialQuery] = useState(() => new URLSearchParams(window.location.search).get("q") || "");
+   // Ler o parâmetro ?q= da URL (vindo da busca da home) — apenas no cliente
+  const [initialQuery, setInitialQuery] = useState("");
 
   useEffect(() => {
-    if (initialQuery) setSearch(initialQuery);
-  }, [initialQuery]);
+    const q = new URLSearchParams(window.location.search).get("q") || "";
+    setInitialQuery(q);
+    if (q) setSearch(q);
+  }, []);
 
   useEffect(() => {
     async function loadData() {
