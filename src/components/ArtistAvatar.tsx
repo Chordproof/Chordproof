@@ -15,19 +15,25 @@ const sizeClasses = {
 };
 
 export default function ArtistAvatar({ name, slug, imageUrl, size = "sm" }: ArtistAvatarProps) {
-  // Avatar gerado com as iniciais do artista (DiceBear, sem API key)
-  const fallbackUrl = `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(name)}`;
+  const fallbackUrl = `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=1ED760,22c55e,059669&textColor=000000`;
   const [src, setSrc] = useState<string>(imageUrl || fallbackUrl);
+  const [hasError, setHasError] = useState(false);
+
+  if (hasError || !src) {
+    return (
+      <div className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-brand-accent to-emerald-700 flex items-center justify-center font-black shrink-0`}>
+        {name.charAt(0)}
+      </div>
+    );
+  }
 
   return (
-    <div
-      className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-brand-accent to-emerald-700 flex items-center justify-center font-black shrink-0 overflow-hidden`}
-    >
+    <div className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-brand-accent to-emerald-700 flex items-center justify-center font-black shrink-0 overflow-hidden`}>
       <img
         src={src}
         alt={name}
         className="w-full h-full object-cover"
-        onError={() => setSrc(fallbackUrl)}
+        onError={() => setHasError(true)}
       />
     </div>
   );
