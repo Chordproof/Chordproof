@@ -38,11 +38,9 @@ export default function Browse() {
   const [artists, setArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"tabs" | "artists">("tabs");
-
-  // Ler o parâmetro ?q= da URL (vindo da busca da home)
-   // Ler o parâmetro ?q= da URL (vindo da busca da home) — apenas no cliente
   const [initialQuery, setInitialQuery] = useState("");
 
+  // Ler o parâmetro ?q= da URL (apenas no cliente)
   useEffect(() => {
     const q = new URLSearchParams(window.location.search).get("q") || "";
     setInitialQuery(q);
