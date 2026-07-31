@@ -2,8 +2,9 @@
 import { useState, useEffect } from "react";
 import SearchBar from "@/components/SearchBar";
 import TabCard from "@/components/TabCard";
-import { SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal, Music, Users, ChevronRight } from "lucide-react";
 import { createClientSupabaseClient } from "@/lib/supabase-client";
+import Link from "next/link";
 
 const difficulties = ["All", "Beginner", "Intermediate", "Advanced"];
 const keys = ["All", "C", "D", "E", "F", "G", "A", "B", "Am", "Em", "F#m", "Bm", "Bb"];
@@ -17,31 +18,37 @@ interface Tab {
   key_sig: string;
 }
 
+interface Artist {
+  id: string;
+  name: string;
+  slug: string;
+  genre: string;
+  tab_count: number;
+  monthly_listeners: number;
+}
+
 export default function Browse() {
   const [search, setSearch] = useState("");
   const [difficulty, setDifficulty] = useState("All");
   const [key, setKey] = useState("All");
   const [showFilters, setShowFilters] = useState(false);
   const [tabs, setTabs] = useState<Tab[]>([]);
+  const [artists, setArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<"tabs" | "artists">("tabs");
 
   useEffect(() => {
-    async function loadTabs() {
+    async function loadData() {
       const supabase = createClientSupabaseClient();
-      const { data, error } = await supabase
-        .from("tabs")
-        .select("*")
-        .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error loading tabs:", error);
-        setLoading(false);
-        return;
-      }
+      const [tabsResult, artistsResult] = await Promise.all([
+        supabase.from("tabs").select("*").order("created_at", { ascending: false }),
+        supabase.from("artists").select("*").order("monthly_listeners", { ascending: false }).limit(50),
+      ]);
 
-      if (data) {
+      if (tabsResult.data) {
         setTabs(
-          data.map((t) => ({
+          tabsResult.data.map((t) => ({
             id: t.id,
             song: t.song,
             artist: t.artist,
@@ -51,12 +58,17 @@ export default function Browse() {
           }))
         );
       }
+
+      if (artistsResult.data) {
+        setArtists(artistsResult.data as Artist[]);
+      }
+
       setLoading(false);
     }
-    loadTabs();
+    loadData();
   }, []);
 
-  const filtered = tabs.filter((tab) => {
+  const filteredTabs = tabs.filter((tab) => {
     const matchSearch =
       tab.song.toLowerCase().includes(search.toLowerCase()) ||
       tab.artist.toLowerCase().includes(search.toLowerCase());
@@ -65,11 +77,22 @@ export default function Browse() {
     return matchSearch && matchDifficulty && matchKey;
   });
 
+  const filteredArtists = artists.filter((a) =>
+    a.name.toLowerCase().includes(search.toLowerCase()) ||
+    a.genre.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const formatListeners = (n: number) => {
+    if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
+    return n.toString();
+  };
+
   return (
     <div className="space-y-8">
       <div className="space-y-4">
-        <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">Browse Tabs</h1>
-        <p className="text-brand-muted">Search through our collection of verified guitar tabs.</p>
+        <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">Browse</h1>
+        <p className="text-brand-muted">Search through our collection of verified guitar tabs and artists.</p>
       </div>
 
       <div className="flex gap-3 items-start">
@@ -86,7 +109,27 @@ export default function Browse() {
         </button>
       </div>
 
-      {showFilters && (
+      {/* View Toggle */}
+      <div className="flex gap-1 bg-white/[0.06] rounded-xl p-1 max-w-xs">
+        <button
+          onClick={() => setView("tabs")}
+          className={`flex-1 py-2 rounded-lg text-sm font-bold transition ${
+            view === "tabs" ? "bg-brand-accent text-black" : "hover:bg-white/10"
+          }`}
+        >
+          Tabs
+        </button>
+        <button
+          onClick={() => setView("artists")}
+          className={`flex-1 py-2 rounded-lg text-sm font-bold transition ${
+            view === "artists" ? "bg-brand-accent text-black" : "hover:bg-white/10"
+          }`}
+        >
+          Artists
+        </button>
+      </div>
+
+      {showFilters && view === "tabs" && (
         <div className="bg-[#1A1A1A] rounded-xl p-5 border border-white/[0.06] space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold">Filters</h3>
@@ -138,31 +181,66 @@ export default function Browse() {
         </div>
       )}
 
-      <div className="space-y-4">
-        {loading ? (
-          <div className="text-center py-16 text-brand-muted">
-            <p>Loading tabs...</p>
+      {/* Content */}
+      {loading ? (
+        <div className="text-center py-16 text-brand-muted">
+          <p>Loading...</p>
+        </div>
+      ) : view === "tabs" ? (
+        <div className="space-y-4">
+          <p className="text-sm text-brand-muted">
+            {filteredTabs.length} {filteredTabs.length === 1 ? "result" : "results"} found
+          </p>
+          {filteredTabs.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredTabs.map((tab) => (
+                <TabCard key={tab.id} {...tab} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16 text-brand-muted space-y-3">
+              <p className="text-lg">No tabs found</p>
+              <p className="text-sm">Try adjusting your search or filters</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <p className="text-sm text-brand-muted">
+            {filteredArtists.length} {filteredArtists.length === 1 ? "artist" : "artists"} found
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredArtists.map((artist) => (
+              <Link
+                key={artist.id}
+                href={`/artist/${artist.slug}`}
+                className="bg-[#1A1A1A] rounded-2xl p-5 border border-white/[0.06] hover:bg-[#242424] transition-all duration-300 group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-brand-accent to-emerald-700 flex items-center justify-center text-xl font-bold shrink-0">
+                    {artist.name.charAt(0)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold group-hover:text-brand-accent transition-colors truncate">
+                      {artist.name}
+                    </h3>
+                    <p className="text-xs text-brand-muted">{artist.genre}</p>
+                    <div className="flex items-center gap-3 mt-1 text-xs text-brand-muted">
+                      <span className="flex items-center gap-1">
+                        <Music size={12} /> {artist.tab_count} tabs
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Users size={12} /> {formatListeners(artist.monthly_listeners)}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} className="text-brand-muted group-hover:text-brand-accent transition-colors shrink-0" />
+                </div>
+              </Link>
+            ))}
           </div>
-        ) : (
-          <>
-            <p className="text-sm text-brand-muted">
-              {filtered.length} {filtered.length === 1 ? "result" : "results"} found
-            </p>
-            {filtered.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filtered.map((tab) => (
-                  <TabCard key={tab.id} {...tab} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-16 text-brand-muted space-y-3">
-                <p className="text-lg">No tabs found</p>
-                <p className="text-sm">Try adjusting your search or filters</p>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
