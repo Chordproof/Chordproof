@@ -37,6 +37,13 @@ export default function Browse() {
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"tabs" | "artists">("tabs");
 
+  // Ler o parâmetro ?q= da URL (ex.: vindo da busca da home)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("q");
+    if (q) setSearch(q);
+  }, []);
+
   useEffect(() => {
     async function loadData() {
       const supabase = createClientSupabaseClient();
@@ -97,7 +104,7 @@ export default function Browse() {
 
       <div className="flex gap-3 items-start">
         <div className="flex-1">
-          <SearchBar />
+          <SearchBar onSearch={setSearch} />
         </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
@@ -214,7 +221,7 @@ export default function Browse() {
               <Link
                 key={artist.id}
                 href={`/artist/${artist.slug}`}
-                className="bg-[#1A1A1A] rounded-2xl p-5 border border-white/[0.06] hover:bg-[#242424] transition-all duration-300 group"
+                className="block bg-[#1A1A1A] rounded-2xl p-5 border border-white/[0.06] hover:bg-[#242424] transition-all duration-300 group"
               >
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 rounded-full bg-gradient-to-br from-brand-accent to-emerald-700 flex items-center justify-center text-xl font-bold shrink-0">
