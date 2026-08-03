@@ -28,6 +28,7 @@ interface Tab {
   difficulty: "Beginner" | "Intermediate" | "Advanced";
   isVerified: boolean;
   key_sig: string;
+  views: number;
 }
 
 const countryNames: Record<string, string> = {
@@ -72,11 +73,12 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
 
       setArtist(artistData as Artist);
 
+      // Tabs ordenadas pelas mais vistas (campo views)
       const { data: tabsData } = await supabase
         .from("tabs")
         .select("*")
         .eq("slug_artist", params.artist)
-        .order("created_at", { ascending: false });
+        .order("views", { ascending: false });
 
       if (active && tabsData) {
         setTabs(
@@ -87,6 +89,7 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
             difficulty: t.difficulty,
             isVerified: t.is_verified,
             key_sig: t.key_sig,
+            views: t.views || 0,
           }))
         );
       }
@@ -113,7 +116,10 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
       <div className="text-center py-24 space-y-4">
         <p className="text-2xl font-display font-bold">Artist not found</p>
         <p className="text-brand-muted">This artist isn't in our database yet.</p>
-        <Link href="/browse" className="inline-block mt-2 bg-brand-accent text-black px-6 py-3 rounded-full font-bold hover:brightness-110 transition-all duration-200">
+        <Link
+          href="/browse"
+          className="inline-block mt-2 bg-brand-accent text-black px-6 py-3 rounded-full font-bold hover:brightness-110 transition-all duration-200"
+        >
           Browse Artists
         </Link>
       </div>
@@ -187,7 +193,7 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
         </div>
       </div>
 
-      {/* Popular Tabs — 3 mais acessadas */}
+      {/* Popular Tabs — 3 mais acessadas (por views) */}
       {popularTabs.length > 0 && (
         <section className="space-y-6">
           <div className="flex items-center gap-3">
@@ -207,7 +213,7 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
                 <div className="flex-1 min-w-0">
                   <p className="font-bold truncate group-hover:text-brand-accent transition-colors">{tab.song}</p>
                   <p className="text-sm text-brand-muted truncate">
-                    {tab.difficulty} · Key {tab.key_sig}
+                    {tab.difficulty} · Key {tab.key_sig} · {tab.views.toLocaleString()} views
                   </p>
                 </div>
                 {tab.isVerified && (
