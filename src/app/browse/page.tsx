@@ -37,6 +37,8 @@ export default function Browse() {
   const [showFilters, setShowFilters] = useState(false);
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [artists, setArtists] = useState<Artist[]>([]);
+  const [searchedArtists, setSearchedArtists] = useState<Artist[] | null>(null);
+  const [searchingArtists, setSearchingArtists] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingArtists, setLoadingArtists] = useState(false);
   const [hasMoreArtists, setHasMoreArtists] = useState(true);
@@ -101,7 +103,34 @@ export default function Browse() {
     loadFirstPage();
   }, []);
 
-  // Carregar a próxima página de artistas
+  // Busca de artistas DIRETO NO BANCO (encontra artistas ainda não carregados)
+  useEffect(() => {
+    if (view !== "artists" || !search.trim()) {
+      setSearchedArtists(null);
+      setSearchingArtists(false);
+      return;
+    }
+
+    const q = search.trim();
+    setSearchingArtists(true);
+
+    const timer = setTimeout(async () => {
+      const supabase = createClientSupabaseClient();
+      const { data } = await supabase
+        .from("artists")
+        .select("*")
+        .or(`name.ilike.%${q}%,genre.ilike.%${q}%`)
+        .order("monthly_listeners", { ascending: false })
+        .limit(100);
+
+      if (data) setSearchedArtists(data as Artist[]);
+      setSearchingArtists(false);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [view, search]);
+
+  // Carregar a próxima página de artistas (scroll infinito)
   const loadMoreArtists = async () => {
     if (loadingArtists) return;
     setLoadingArtists(true);
@@ -120,7 +149,7 @@ export default function Browse() {
     setLoadingArtists(false);
   };
 
-  // Scroll infinito automático: quando o sentinel entra na tela, carrega mais
+  // Scroll infinito automático (desativado durante a busca)
   useEffect(() => {
     if (!hasMoreArtists || search.trim()) return;
     const el = sentinelRef.current;
@@ -149,10 +178,8 @@ export default function Browse() {
     return matchSearch && matchDifficulty && matchKey;
   });
 
-  const filteredArtists = artists.filter((a) =>
-    a.name.toLowerCase().includes(search.toLowerCase()) ||
-    a.genre.toLowerCase().includes(search.toLowerCase())
-  );
+  // Lista exibida: resultados do banco quando buscando, senão os carregados
+  const filteredArtists = searchedArtists !== null ? searchedArtists : artists;
 
   const formatListeners = (n: number) => {
     if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
@@ -278,9 +305,19 @@ export default function Browse() {
         </div>
       ) : (
         <div className="space-y-4">
-          <p className="text-sm text-brand-muted">
-            {filteredArtists.length} {filteredArtists.length === 1 ? "artist" : "artists"} found
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="text-sm text-brand-muted">
+              {searchingArtists ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 size={14} className="animate-spin" /> Searching artists...
+                </span>
+              ) : (
+                <>
+                  {filteredArtists.length} {filteredArtists.length === 1 ? "artist" : "artists"} found
+                </>
+              )}
+            </p>
+          </div>
           {filteredArtists.length > 0 ? (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -312,8 +349,8 @@ export default function Browse() {
                 ))}
               </div>
 
-              {/* Sentinel do scroll infinito + indicador de carregamento */}
-              {hasMoreArtists && !search.trim() && (
+              {/* Scroll infinito — só quando não há busca ativa */}
+              {!search.trim() && hasMoreArtists && (
                 <div ref={sentinelRef} className="flex items-center justify-center py-6 text-brand-muted">
                   {loadingArtists ? (
                     <>
@@ -326,17 +363,19 @@ export default function Browse() {
                 </div>
               )}
 
-              {!hasMoreArtists && !search.trim() && (
+              {!search.trim() && !hasMoreArtists && (
                 <p className="text-center text-xs text-brand-muted/60 py-4">
                   You've reached the end of the artist list.
                 </p>
               )}
             </>
           ) : (
-            <div className="text-center py-16 text-brand-muted space-y-3">
-              <p className="text-lg">No artists found</p>
-              <p className="text-sm">Try adjusting your search</p>
-            </div>
+            !searchingArtists && (
+              <div className="text-center py-16 text-brand-muted space-y-3">
+                <p className="text-lg">No artists found</p>
+                <p className="text-sm">Try adjusting your search</p>
+              </div>
+            )
           )}
         </div>
       )}
