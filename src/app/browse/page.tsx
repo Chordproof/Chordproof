@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import SearchBar from "@/components/SearchBar";
 import TabCard from "@/components/TabCard";
 import ArtistAvatar from "@/components/ArtistAvatar";
@@ -42,8 +42,9 @@ export default function Browse() {
   const [hasMoreArtists, setHasMoreArtists] = useState(true);
   const [view, setView] = useState<"tabs" | "artists">("tabs");
   const [initialQuery, setInitialQuery] = useState("");
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // Ler parâmetros da URL
+  // Ler parâmetros da URL (apenas no cliente)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const q = params.get("q") || "";
@@ -100,7 +101,7 @@ export default function Browse() {
     loadFirstPage();
   }, []);
 
-  // Load More: busca a próxima página de artistas
+  // Carregar a próxima página de artistas
   const loadMoreArtists = async () => {
     if (loadingArtists) return;
     setLoadingArtists(true);
@@ -118,6 +119,26 @@ export default function Browse() {
     }
     setLoadingArtists(false);
   };
+
+  // Scroll infinito automático: quando o sentinel entra na tela, carrega mais
+  useEffect(() => {
+    if (!hasMoreArtists || search.trim()) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loadingArtists) {
+          loadMoreArtists();
+        }
+      },
+      { rootMargin: "300px" }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasMoreArtists, search, loadingArtists, artists.length]);
 
   const filteredTabs = tabs.filter((tab) => {
     const matchSearch =
@@ -291,18 +312,24 @@ export default function Browse() {
                 ))}
               </div>
 
-              {/* Load More */}
+              {/* Sentinel do scroll infinito + indicador de carregamento */}
               {hasMoreArtists && !search.trim() && (
-                <div className="text-center pt-4">
-                  <button
-                    onClick={loadMoreArtists}
-                    disabled={loadingArtists}
-                    className="inline-flex items-center gap-2 bg-white/[0.06] hover:bg-white/10 text-white font-bold px-8 py-3 rounded-full transition-colors disabled:opacity-50"
-                  >
-                    {loadingArtists && <Loader2 size={16} className="animate-spin" />}
-                    Load more artists
-                  </button>
+                <div ref={sentinelRef} className="flex items-center justify-center py-6 text-brand-muted">
+                  {loadingArtists ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin mr-2" />
+                      <span className="text-sm">Loading more artists...</span>
+                    </>
+                  ) : (
+                    <span className="text-xs text-brand-muted/50">Scroll for more</span>
+                  )}
                 </div>
+              )}
+
+              {!hasMoreArtists && !search.trim() && (
+                <p className="text-center text-xs text-brand-muted/60 py-4">
+                  You've reached the end of the artist list.
+                </p>
               )}
             </>
           ) : (
