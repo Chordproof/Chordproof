@@ -1,10 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Music, Users, Globe, Loader2, ArrowLeft } from "lucide-react";
+import { Music, Users, Globe, Flame, Loader2, ArrowLeft } from "lucide-react";
 import { createClientSupabaseClient } from "@/lib/supabase-client";
 import TabCard from "@/components/TabCard";
 import ArtistAvatar from "@/components/ArtistAvatar";
+
+const slugify = (s: string) =>
+  s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
 interface Artist {
   id: string;
@@ -53,7 +56,6 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
     async function load() {
       const supabase = createClientSupabaseClient();
 
-      // Buscar artista por slug
       const { data: artistData, error: artistError } = await supabase
         .from("artists")
         .select("*")
@@ -70,7 +72,6 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
 
       setArtist(artistData as Artist);
 
-      // Buscar tabs desse artista
       const { data: tabsData } = await supabase
         .from("tabs")
         .select("*")
@@ -125,6 +126,8 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
     return n.toString();
   };
 
+  const popularTabs = tabs.slice(0, 3);
+
   return (
     <div className="max-w-5xl mx-auto space-y-8">
       {/* Breadcrumbs */}
@@ -164,7 +167,6 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
               </p>
             )}
 
-            {/* Stats */}
             <div className="flex flex-wrap justify-center md:justify-start gap-6 pt-2">
               <div className="flex items-center gap-2">
                 <Music size={18} className="text-brand-accent" />
@@ -185,11 +187,45 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
         </div>
       </div>
 
-      {/* Tabs Section */}
+      {/* Popular Tabs — 3 mais acessadas */}
+      {popularTabs.length > 0 && (
+        <section className="space-y-6">
+          <div className="flex items-center gap-3">
+            <Flame size={22} className="text-brand-accent" />
+            <h2 className="text-2xl font-display font-bold">Popular Tabs</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {popularTabs.map((tab, index) => (
+              <Link
+                key={tab.id}
+                href={`/tab/${artist.slug}/${slugify(tab.song)}`}
+                className="flex items-center gap-4 bg-[#1A1A1A] rounded-xl p-4 hover:bg-[#242424] transition-all duration-200 group border border-white/[0.03]"
+              >
+                <span className="text-2xl font-black text-brand-muted w-8 text-right shrink-0">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold truncate group-hover:text-brand-accent transition-colors">{tab.song}</p>
+                  <p className="text-sm text-brand-muted truncate">
+                    {tab.difficulty} · Key {tab.key_sig}
+                  </p>
+                </div>
+                {tab.isVerified && (
+                  <span className="text-[10px] bg-brand-accent/10 text-brand-accent px-2 py-0.5 rounded font-bold shrink-0">
+                    ✓
+                  </span>
+                )}
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* All Tabs Section */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-display font-bold">
-            {artist.name} Tabs
+            All {artist.name} Tabs
           </h2>
           <span className="text-sm text-brand-muted">
             {tabs.length} {tabs.length === 1 ? "tab" : "tabs"} available
