@@ -9,6 +9,8 @@ import ArtistAvatar from "@/components/ArtistAvatar";
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
+const ARTISTS_PAGE_SIZE = 24;
+
 interface TabItem {
   id: string;
   song: string;
@@ -32,6 +34,7 @@ interface ArtistItem {
 export default function Home() {
   const [trendingTabs, setTrendingTabs] = useState<TabItem[]>([]);
   const [popularArtists, setPopularArtists] = useState<ArtistItem[]>([]);
+  const [visibleArtists, setVisibleArtists] = useState(ARTISTS_PAGE_SIZE);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -45,7 +48,7 @@ export default function Home() {
       const supabase = createClientSupabaseClient();
 
       const [tabsResult, artistsResult] = await Promise.all([
-        supabase.from("tabs").select("*").order("created_at", { ascending: false }).limit(15),
+        supabase.from("tabs").select("*").order("views", { ascending: false }).limit(15),
         supabase.from("artists").select("*").order("monthly_listeners", { ascending: false }).limit(1000),
       ]);
 
@@ -127,7 +130,7 @@ export default function Home() {
 
   return (
     <div className="space-y-12">
-      {/* 🔍 Search Bar (topo, estilo CifraClub) */}
+      {/* Search Bar */}
       <div className="relative" ref={dropdownRef}>
         <div className="relative max-w-2xl mx-auto">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted" size={20} />
@@ -176,7 +179,7 @@ export default function Home() {
         )}
       </div>
 
-      {/* 📈 Trending Tabs — "Músicas em alta" estilo CifraClub */}
+      {/* Trending Tabs */}
       <section>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -215,7 +218,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🎤 Popular Artists — "Artistas populares" estilo CifraClub */}
+      {/* Popular Artists com Load More */}
       <section>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -228,7 +231,7 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
-          {popularArtists.map((artist) => (
+          {popularArtists.slice(0, visibleArtists).map((artist) => (
             <Link
               key={artist.id}
               href={`/artist/${artist.slug}`}
@@ -242,6 +245,17 @@ export default function Home() {
             </Link>
           ))}
         </div>
+
+        {visibleArtists < popularArtists.length && (
+          <div className="text-center pt-6">
+            <button
+              onClick={() => setVisibleArtists((v) => v + ARTISTS_PAGE_SIZE)}
+              className="bg-white/[0.06] hover:bg-white/10 text-white font-bold px-8 py-3 rounded-full transition-colors"
+            >
+              Load more
+            </button>
+          </div>
+        )}
       </section>
     </div>
   );
