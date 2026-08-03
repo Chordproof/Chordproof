@@ -45,7 +45,6 @@ export default function Home() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  // Carregar tabs + primeira página de artistas
   useEffect(() => {
     async function load() {
       const supabase = createClientSupabaseClient();
@@ -69,7 +68,6 @@ export default function Home() {
     load();
   }, []);
 
-  // Carregar próxima página de artistas
   const loadMoreArtists = async () => {
     if (loadingArtists) return;
     setLoadingArtists(true);
@@ -88,7 +86,6 @@ export default function Home() {
     setLoadingArtists(false);
   };
 
-  // Scroll infinito automático na seção Popular Artists
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el || !hasMoreArtists) return;
@@ -107,7 +104,6 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMoreArtists, loadingArtists, popularArtists.length]);
 
-  // Busca ao vivo (dropdown)
   useEffect(() => {
     if (!query.trim()) {
       setSearchResults([]);
@@ -227,7 +223,7 @@ export default function Home() {
         )}
       </div>
 
-      {/* Trending Tabs */}
+      {/* Trending Tabs — com artista clicável */}
       <section>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -241,17 +237,28 @@ export default function Home() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {trendingTabs.map((tab, index) => (
-            <Link
+            <div
               key={tab.id}
-              href={`/tab/${tab.slug_artist}/${tab.slug_song}`}
               className="flex items-center gap-4 bg-[#1A1A1A] rounded-xl p-4 hover:bg-[#242424] transition-all duration-200 group border border-white/[0.03]"
             >
               <span className="text-2xl font-black text-brand-muted w-8 text-right shrink-0">
                 {String(index + 1).padStart(2, "0")}
               </span>
               <div className="flex-1 min-w-0">
-                <p className="font-bold truncate group-hover:text-brand-accent transition-colors">{tab.song}</p>
-                <p className="text-sm text-brand-muted truncate">{tab.artist}</p>
+                {/* Título → página da cifra */}
+                <Link
+                  href={`/tab/${tab.slug_artist}/${tab.slug_song}`}
+                  className="font-bold truncate block group-hover:text-brand-accent transition-colors"
+                >
+                  {tab.song}
+                </Link>
+                {/* Artista → página do artista */}
+                <Link
+                  href={`/artist/${tab.slug_artist}`}
+                  className="text-sm text-brand-muted truncate block hover:text-brand-accent hover:underline transition-colors"
+                >
+                  {tab.artist}
+                </Link>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {tab.is_verified && (
@@ -261,7 +268,7 @@ export default function Home() {
                   {tab.difficulty}
                 </span>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       </section>
