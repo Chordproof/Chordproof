@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { createClientSupabaseClient } from "@/lib/supabase-client";
 {/* Breadcrumbs */}
 <nav className="text-sm text-brand-muted">
   <ol className="flex gap-2 items-center">
