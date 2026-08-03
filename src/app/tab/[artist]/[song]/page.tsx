@@ -120,7 +120,15 @@ And after all, you're my wonderwall`;
               </div>
             )}
           </div>
-          <p className="text-xl text-brand-muted capitalize">{artistName}</p>
+
+          {/* Nome do artista clicável → redireciona para a página do artista */}
+          <Link
+            href={`/artist/${params.artist}`}
+            className="inline-block text-xl text-brand-muted capitalize hover:text-brand-accent hover:underline transition-colors"
+          >
+            {artistName}
+          </Link>
+
           <div className="flex gap-4 pt-2">
             <span className="bg-white/5 px-3 py-1 rounded text-sm">
               Key: <strong>{keySig}</strong>
