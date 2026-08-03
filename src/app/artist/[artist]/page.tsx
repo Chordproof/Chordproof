@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Music, Users, Globe, ChevronRight, Loader2, ArrowLeft } from "lucide-react";
+import { Music, Users, Globe, Loader2, ArrowLeft } from "lucide-react";
 import { createClientSupabaseClient } from "@/lib/supabase-client";
 import TabCard from "@/components/TabCard";
 import ArtistAvatar from "@/components/ArtistAvatar";
@@ -53,6 +53,7 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
     async function load() {
       const supabase = createClientSupabaseClient();
 
+      // Buscar artista por slug
       const { data: artistData, error: artistError } = await supabase
         .from("artists")
         .select("*")
@@ -69,6 +70,7 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
 
       setArtist(artistData as Artist);
 
+      // Buscar tabs desse artista
       const { data: tabsData } = await supabase
         .from("tabs")
         .select("*")
