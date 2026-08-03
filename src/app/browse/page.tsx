@@ -56,7 +56,7 @@ export default function Browse() {
 
       const [tabsResult, artistsResult] = await Promise.all([
         supabase.from("tabs").select("*").order("created_at", { ascending: false }),
-        supabase.from("artists").select("*").order("monthly_listeners", { ascending: false }).limit(200),
+        supabase.from("artists").select("*").order("monthly_listeners", { ascending: false }).limit(1000),
       ]);
 
       if (tabsResult.data) {
