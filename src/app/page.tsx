@@ -223,7 +223,7 @@ export default function Home() {
         )}
       </div>
 
-      {/* Trending Tabs — com artista clicável */}
+      {/* Trending Tabs — com foto do artista */}
       <section>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -244,15 +244,17 @@ export default function Home() {
               <span className="text-2xl font-black text-brand-muted w-8 text-right shrink-0">
                 {String(index + 1).padStart(2, "0")}
               </span>
+
+              {/* Foto do artista */}
+              <ArtistAvatar name={tab.artist} slug={tab.slug_artist} size="sm" />
+
               <div className="flex-1 min-w-0">
-                {/* Título → página da cifra */}
                 <Link
                   href={`/tab/${tab.slug_artist}/${tab.slug_song}`}
                   className="font-bold truncate block group-hover:text-brand-accent transition-colors"
                 >
                   {tab.song}
                 </Link>
-                {/* Artista → página do artista */}
                 <Link
                   href={`/artist/${tab.slug_artist}`}
                   className="text-sm text-brand-muted truncate block hover:text-brand-accent hover:underline transition-colors"
