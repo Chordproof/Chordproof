@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import TransposeControls from "@/components/TransposeControls";
+import ArtistAvatar from "@/components/ArtistAvatar";
 import {
   BadgeCheck,
   History,
@@ -12,6 +13,7 @@ import {
   ChevronDown,
   MousePointer2,
   Loader2,
+  Music2,
 } from "lucide-react";
 import { createClientSupabaseClient } from "@/lib/supabase-client";
 
@@ -27,6 +29,12 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const [autoScroll, setAutoScroll] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(5);
   const [version, setVersion] = useState("2.1");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [audioLoading, setAudioLoading] = useState(true);
+
+  const songName = tab?.song || params.song.replace(/-/g, " ");
+  const artistName = tab?.artist || params.artist.replace(/-/g, " ");
+  const artistSlug = tab?.slug_artist || params.artist;
 
   // Carregar a cifra do Supabase
   useEffect(() => {
@@ -61,6 +69,29 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       });
   }, [params.artist, params.song]);
 
+  // Buscar preview de áudio da música (iTunes, 30s, sem chave)
+  useEffect(() => {
+    if (!songName || !artistName) return;
+    let active = true;
+    setAudioLoading(true);
+    const term = `${songName} ${artistName}`;
+    fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&limit=1`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("nf"))))
+      .then((d) => {
+        if (active) {
+          setPreviewUrl(d?.results?.[0]?.previewUrl || null);
+          setAudioLoading(false);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setPreviewUrl(null);
+          setAudioLoading(false);
+        }
+      });
+    return () => { active = false; };
+  }, [songName, artistName]);
+
   // Auto-scroll
   useEffect(() => {
     if (!autoScroll) return;
@@ -70,8 +101,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
     return () => clearInterval(id);
   }, [autoScroll, scrollSpeed]);
 
-  const songName = tab?.song || params.song.replace(/-/g, " ");
-  const artistName = tab?.artist || params.artist.replace(/-/g, " ");
   const keySig = tab?.key_sig || "F#m";
   const difficulty = tab?.difficulty || "Beginner";
   const isVerified = tab?.is_verified !== false;
@@ -100,7 +129,7 @@ And after all, you're my wonderwall`;
           <li><Link href="/browse" className="hover:text-white transition-colors">Browse</Link></li>
           <li>/</li>
           <li>
-            <Link href={`/artist/${params.artist}`} className="hover:text-white capitalize">
+            <Link href={`/artist/${artistSlug}`} className="hover:text-white capitalize">
               {artistName}
             </Link>
           </li>
@@ -121,12 +150,15 @@ And after all, you're my wonderwall`;
             )}
           </div>
 
-          {/* Nome do artista clicável → redireciona para a página do artista */}
+          {/* Foto do artista + nome clicável → página do artista */}
           <Link
-            href={`/artist/${params.artist}`}
-            className="inline-block text-xl text-brand-muted capitalize hover:text-brand-accent hover:underline transition-colors"
+            href={`/artist/${artistSlug}`}
+            className="inline-flex items-center gap-3 group"
           >
-            {artistName}
+            <ArtistAvatar name={artistName} slug={artistSlug} size="sm" />
+            <span className="text-xl text-brand-muted capitalize group-hover:text-brand-accent group-hover:underline transition-colors">
+              {artistName}
+            </span>
           </Link>
 
           <div className="flex gap-4 pt-2">
@@ -156,6 +188,27 @@ And after all, you're my wonderwall`;
           </button>
         </div>
       </div>
+
+      {/* Player de áudio — ouça a música */}
+      {audioLoading ? (
+        <div className="flex items-center gap-2 text-sm text-brand-muted bg-[#1A1A1A] rounded-xl px-4 py-3 border border-white/[0.06]">
+          <Loader2 size={16} className="animate-spin" />
+          <span>Looking for the audio preview...</span>
+        </div>
+      ) : previewUrl ? (
+        <div className="bg-[#1A1A1A] rounded-xl p-4 border border-white/[0.06] space-y-3">
+          <div className="flex items-center gap-2 text-sm font-bold">
+            <Music2 size={16} className="text-brand-accent" />
+            Listen
+          </div>
+          <audio controls src={previewUrl} className="w-full" preload="none">
+            Your browser does not support the audio element.
+          </audio>
+          <p className="text-[10px] text-brand-muted">
+            30-second preview via iTunes — full song available on your favorite streaming service.
+          </p>
+        </div>
+      ) : null}
 
       {/* Controles */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
