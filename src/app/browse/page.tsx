@@ -3,12 +3,13 @@ import { useState, useEffect } from "react";
 import SearchBar from "@/components/SearchBar";
 import TabCard from "@/components/TabCard";
 import ArtistAvatar from "@/components/ArtistAvatar";
-import { SlidersHorizontal, Music, Users, ChevronRight } from "lucide-react";
+import { SlidersHorizontal, Music, Users, ChevronRight, Loader2 } from "lucide-react";
 import { createClientSupabaseClient } from "@/lib/supabase-client";
 import Link from "next/link";
 
 const difficulties = ["All", "Beginner", "Intermediate", "Advanced"];
 const keys = ["All", "C", "D", "E", "F", "G", "A", "B", "Am", "Em", "F#m", "Bm", "Bb"];
+const ARTISTS_PAGE_SIZE = 50;
 
 interface Tab {
   id: string;
@@ -37,6 +38,8 @@ export default function Browse() {
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingArtists, setLoadingArtists] = useState(false);
+  const [hasMoreArtists, setHasMoreArtists] = useState(true);
   const [view, setView] = useState<"tabs" | "artists">("tabs");
   const [initialQuery, setInitialQuery] = useState("");
 
@@ -50,18 +53,18 @@ export default function Browse() {
     if (v === "artists") setView("artists");
   }, []);
 
+  // Carregar todas as tabs (uma vez)
   useEffect(() => {
-    async function loadData() {
+    async function loadTabs() {
       const supabase = createClientSupabaseClient();
+      const { data } = await supabase
+        .from("tabs")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-      const [tabsResult, artistsResult] = await Promise.all([
-        supabase.from("tabs").select("*").order("created_at", { ascending: false }),
-        supabase.from("artists").select("*").order("monthly_listeners", { ascending: false }).limit(1000),
-      ]);
-
-      if (tabsResult.data) {
+      if (data) {
         setTabs(
-          tabsResult.data.map((t) => ({
+          data.map((t) => ({
             id: t.id,
             song: t.song,
             artist: t.artist,
@@ -71,15 +74,50 @@ export default function Browse() {
           }))
         );
       }
-
-      if (artistsResult.data) {
-        setArtists(artistsResult.data as Artist[]);
-      }
-
       setLoading(false);
     }
-    loadData();
+    loadTabs();
   }, []);
+
+  // Carregar primeira página de artistas
+  useEffect(() => {
+    async function loadFirstPage() {
+      setLoadingArtists(true);
+      const supabase = createClientSupabaseClient();
+      const { data } = await supabase
+        .from("artists")
+        .select("*")
+        .order("monthly_listeners", { ascending: false })
+        .range(0, ARTISTS_PAGE_SIZE - 1);
+
+      if (data) {
+        setArtists(data as Artist[]);
+        setHasMoreArtists(data.length === ARTISTS_PAGE_SIZE);
+      }
+      setLoadingArtists(false);
+      setLoading(false);
+    }
+    loadFirstPage();
+  }, []);
+
+  // Load More: busca a próxima página de artistas
+  const loadMoreArtists = async () => {
+    if (loadingArtists) return;
+    setLoadingArtists(true);
+    const supabase = createClientSupabaseClient();
+    const start = artists.length;
+    const { data } = await supabase
+      .from("artists")
+      .select("*")
+      .order("monthly_listeners", { ascending: false })
+      .range(start, start + ARTISTS_PAGE_SIZE - 1);
+
+    if (data) {
+      setArtists((prev) => [...prev, ...(data as Artist[])]);
+      setHasMoreArtists(data.length === ARTISTS_PAGE_SIZE);
+    }
+    setLoadingArtists(false);
+  };
 
   const filteredTabs = tabs.filter((tab) => {
     const matchSearch =
@@ -223,34 +261,50 @@ export default function Browse() {
             {filteredArtists.length} {filteredArtists.length === 1 ? "artist" : "artists"} found
           </p>
           {filteredArtists.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredArtists.map((artist) => (
-                <Link
-                  key={artist.id}
-                  href={`/artist/${artist.slug}`}
-                  className="block bg-[#1A1A1A] rounded-2xl p-5 border border-white/[0.06] hover:bg-[#242424] transition-all duration-300 group"
-                >
-                  <div className="flex items-center gap-4">
-                    <ArtistAvatar name={artist.name} slug={artist.slug} imageUrl={artist.image_url} />
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold group-hover:text-brand-accent transition-colors truncate">
-                        {artist.name}
-                      </h3>
-                      <p className="text-xs text-brand-muted">{artist.genre}</p>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-brand-muted">
-                        <span className="flex items-center gap-1">
-                          <Music size={12} /> {artist.tab_count} tabs
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Users size={12} /> {formatListeners(artist.monthly_listeners)}
-                        </span>
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredArtists.map((artist) => (
+                  <Link
+                    key={artist.id}
+                    href={`/artist/${artist.slug}`}
+                    className="block bg-[#1A1A1A] rounded-2xl p-5 border border-white/[0.06] hover:bg-[#242424] transition-all duration-300 group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <ArtistAvatar name={artist.name} slug={artist.slug} imageUrl={artist.image_url} />
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold group-hover:text-brand-accent transition-colors truncate">
+                          {artist.name}
+                        </h3>
+                        <p className="text-xs text-brand-muted">{artist.genre}</p>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-brand-muted">
+                          <span className="flex items-center gap-1">
+                            <Music size={12} /> {artist.tab_count} tabs
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Users size={12} /> {formatListeners(artist.monthly_listeners)}
+                          </span>
+                        </div>
                       </div>
+                      <ChevronRight size={18} className="text-brand-muted group-hover:text-brand-accent transition-colors shrink-0" />
                     </div>
-                    <ChevronRight size={18} className="text-brand-muted group-hover:text-brand-accent transition-colors shrink-0" />
-                  </div>
-                </Link>
-              ))}
-            </div>
+                  </Link>
+                ))}
+              </div>
+
+              {/* Load More */}
+              {hasMoreArtists && !search.trim() && (
+                <div className="text-center pt-4">
+                  <button
+                    onClick={loadMoreArtists}
+                    disabled={loadingArtists}
+                    className="inline-flex items-center gap-2 bg-white/[0.06] hover:bg-white/10 text-white font-bold px-8 py-3 rounded-full transition-colors disabled:opacity-50"
+                  >
+                    {loadingArtists && <Loader2 size={16} className="animate-spin" />}
+                    Load more artists
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
             <div className="text-center py-16 text-brand-muted space-y-3">
               <p className="text-lg">No artists found</p>
