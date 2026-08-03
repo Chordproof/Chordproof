@@ -46,7 +46,7 @@ export default function Home() {
 
       const [tabsResult, artistsResult] = await Promise.all([
         supabase.from("tabs").select("*").order("created_at", { ascending: false }).limit(15),
-        supabase.from("artists").select("*").order("monthly_listeners", { ascending: false }).limit(30),
+        supabase.from("artists").select("*").order("monthly_listeners", { ascending: false }).limit(1000),
       ]);
 
       if (tabsResult.data) setTrendingTabs(tabsResult.data as TabItem[]);
