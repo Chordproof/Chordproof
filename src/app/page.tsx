@@ -34,8 +34,10 @@ interface ArtistItem {
 export default function Home() {
   const [trendingTabs, setTrendingTabs] = useState<TabItem[]>([]);
   const [popularArtists, setPopularArtists] = useState<ArtistItem[]>([]);
-  const [visibleArtists, setVisibleArtists] = useState(ARTISTS_PAGE_SIZE);
   const [loading, setLoading] = useState(true);
+  const [loadingArtists, setLoadingArtists] = useState(false);
+  const [hasMoreArtists, setHasMoreArtists] = useState(true);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -43,23 +45,69 @@ export default function Home() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
+  // Carregar tabs + primeira página de artistas
   useEffect(() => {
     async function load() {
       const supabase = createClientSupabaseClient();
 
       const [tabsResult, artistsResult] = await Promise.all([
         supabase.from("tabs").select("*").order("views", { ascending: false }).limit(15),
-        supabase.from("artists").select("*").order("monthly_listeners", { ascending: false }).limit(1000),
+        supabase
+          .from("artists")
+          .select("*")
+          .order("monthly_listeners", { ascending: false })
+          .range(0, ARTISTS_PAGE_SIZE - 1),
       ]);
 
       if (tabsResult.data) setTrendingTabs(tabsResult.data as TabItem[]);
-      if (artistsResult.data) setPopularArtists(artistsResult.data as ArtistItem[]);
+      if (artistsResult.data) {
+        setPopularArtists(artistsResult.data as ArtistItem[]);
+        setHasMoreArtists(artistsResult.data.length === ARTISTS_PAGE_SIZE);
+      }
       setLoading(false);
     }
     load();
   }, []);
 
-  // Busca ao vivo
+  // Carregar próxima página de artistas
+  const loadMoreArtists = async () => {
+    if (loadingArtists) return;
+    setLoadingArtists(true);
+    const supabase = createClientSupabaseClient();
+    const start = popularArtists.length;
+    const { data } = await supabase
+      .from("artists")
+      .select("*")
+      .order("monthly_listeners", { ascending: false })
+      .range(start, start + ARTISTS_PAGE_SIZE - 1);
+
+    if (data) {
+      setPopularArtists((prev) => [...prev, ...(data as ArtistItem[])]);
+      setHasMoreArtists(data.length === ARTISTS_PAGE_SIZE);
+    }
+    setLoadingArtists(false);
+  };
+
+  // Scroll infinito automático na seção Popular Artists
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMoreArtists) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loadingArtists) {
+          loadMoreArtists();
+        }
+      },
+      { rootMargin: "300px" }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasMoreArtists, loadingArtists, popularArtists.length]);
+
+  // Busca ao vivo (dropdown)
   useEffect(() => {
     if (!query.trim()) {
       setSearchResults([]);
@@ -130,7 +178,7 @@ export default function Home() {
 
   return (
     <div className="space-y-12">
-      {/* Search Bar */}
+      {/* Search Bar com dropdown ao vivo */}
       <div className="relative" ref={dropdownRef}>
         <div className="relative max-w-2xl mx-auto">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted" size={20} />
@@ -218,7 +266,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Popular Artists com Load More */}
+      {/* Popular Artists com scroll infinito */}
       <section>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -231,7 +279,7 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
-          {popularArtists.slice(0, visibleArtists).map((artist) => (
+          {popularArtists.map((artist) => (
             <Link
               key={artist.id}
               href={`/artist/${artist.slug}`}
@@ -246,15 +294,23 @@ export default function Home() {
           ))}
         </div>
 
-        {visibleArtists < popularArtists.length && (
-          <div className="text-center pt-6">
-            <button
-              onClick={() => setVisibleArtists((v) => v + ARTISTS_PAGE_SIZE)}
-              className="bg-white/[0.06] hover:bg-white/10 text-white font-bold px-8 py-3 rounded-full transition-colors"
-            >
-              Load more
-            </button>
+        {hasMoreArtists && (
+          <div ref={sentinelRef} className="flex items-center justify-center py-6 text-brand-muted">
+            {loadingArtists ? (
+              <>
+                <Loader2 size={18} className="animate-spin mr-2" />
+                <span className="text-sm">Loading more artists...</span>
+              </>
+            ) : (
+              <span className="text-xs text-brand-muted/50">Scroll for more</span>
+            )}
           </div>
+        )}
+
+        {!hasMoreArtists && (
+          <p className="text-center text-xs text-brand-muted/60 py-4">
+            You've reached the end of the artist list.
+          </p>
         )}
       </section>
     </div>
