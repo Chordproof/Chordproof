@@ -14,6 +14,7 @@ import {
   MousePointer2,
   Loader2,
   Music2,
+  Youtube,
 } from "lucide-react";
 import { createClientSupabaseClient } from "@/lib/supabase-client";
 
@@ -29,8 +30,12 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const [autoScroll, setAutoScroll] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(5);
   const [version, setVersion] = useState("2.1");
+
+  // Player: YouTube (vídeo completo) com fallback para iTunes (preview 30s)
+  const [youtubeId, setYoutubeId] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [audioLoading, setAudioLoading] = useState(true);
+  const [playerLoading, setPlayerLoading] = useState(true);
+  const [playerSource, setPlayerSource] = useState<"youtube" | "itunes" | null>(null);
 
   const songName = tab?.song || params.song.replace(/-/g, " ");
   const artistName = tab?.artist || params.artist.replace(/-/g, " ");
@@ -69,27 +74,48 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       });
   }, [params.artist, params.song]);
 
-  // Buscar preview de áudio da música (iTunes, 30s, sem chave)
+  // Buscar a música: 1º YouTube (completo), 2º iTunes (preview 30s)
   useEffect(() => {
     if (!songName || !artistName) return;
     let active = true;
-    setAudioLoading(true);
+    setPlayerLoading(true);
     const term = `${songName} ${artistName}`;
-    fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&limit=1`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("nf"))))
+
+    fetch(`/api/youtube-search?q=${encodeURIComponent(term)}`)
+      .then((r) => r.json())
       .then((d) => {
-        if (active) {
-          setPreviewUrl(d?.results?.[0]?.previewUrl || null);
-          setAudioLoading(false);
+        if (!active) return;
+        if (d?.videoId) {
+          setYoutubeId(d.videoId);
+          setPlayerSource("youtube");
+          setPlayerLoading(false);
+        } else {
+          // Fallback: preview iTunes de 30 segundos
+          return fetch(
+            `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&limit=1`
+          )
+            .then((r) => (r.ok ? r.json() : Promise.reject(new Error("nf"))))
+            .then((it) => {
+              if (active) {
+                setPreviewUrl(it?.results?.[0]?.previewUrl || null);
+                setPlayerSource(it?.results?.[0]?.previewUrl ? "itunes" : null);
+                setPlayerLoading(false);
+              }
+            });
         }
       })
       .catch(() => {
         if (active) {
+          setYoutubeId(null);
           setPreviewUrl(null);
-          setAudioLoading(false);
+          setPlayerSource(null);
+          setPlayerLoading(false);
         }
       });
-    return () => { active = false; };
+
+    return () => {
+      active = false;
+    };
   }, [songName, artistName]);
 
   // Auto-scroll
@@ -189,23 +215,40 @@ And after all, you're my wonderwall`;
         </div>
       </div>
 
-      {/* Player de áudio — ouça a música */}
-      {audioLoading ? (
+      {/* Player — música na íntegra via YouTube (fallback: iTunes) */}
+      {playerLoading ? (
         <div className="flex items-center gap-2 text-sm text-brand-muted bg-[#1A1A1A] rounded-xl px-4 py-3 border border-white/[0.06]">
           <Loader2 size={16} className="animate-spin" />
-          <span>Looking for the audio preview...</span>
+          <span>Looking for the full song...</span>
         </div>
-      ) : previewUrl ? (
+      ) : playerSource === "youtube" && youtubeId ? (
+        <div className="bg-[#1A1A1A] rounded-xl p-4 border border-white/[0.06] space-y-3">
+          <div className="flex items-center gap-2 text-sm font-bold">
+            <Youtube size={16} className="text-brand-accent" />
+            Listen — Full Song
+          </div>
+          <div className="relative w-full aspect-video overflow-hidden rounded-lg">
+            <iframe
+              className="absolute inset-0 w-full h-full"
+              src={`https://www.youtube.com/embed/${youtubeId}?autoplay=0&rel=0`}
+              title={`${songName} - ${artistName}`}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      ) : playerSource === "itunes" && previewUrl ? (
         <div className="bg-[#1A1A1A] rounded-xl p-4 border border-white/[0.06] space-y-3">
           <div className="flex items-center gap-2 text-sm font-bold">
             <Music2 size={16} className="text-brand-accent" />
-            Listen
+            Listen — Preview
           </div>
           <audio controls src={previewUrl} className="w-full" preload="none">
             Your browser does not support the audio element.
           </audio>
           <p className="text-[10px] text-brand-muted">
-            30-second preview via iTunes — full song available on your favorite streaming service.
+            30-second preview via iTunes — full song not found on YouTube.
           </p>
         </div>
       ) : null}
