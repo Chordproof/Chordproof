@@ -18,14 +18,23 @@ export default function TabCard({ song, artist, difficulty, isVerified, key_sig 
     difficulty === "Intermediate" ? "text-yellow-400" : "text-red-400";
 
   return (
-    <Link
-      href={`/tab/${slugify(artist)}/${slugify(song)}`}
-      className="block bg-[#1A1A1A] rounded-2xl p-6 md:p-7 hover:bg-[#242424] transition-all duration-300 group"
-    >
+    <div className="block bg-[#1A1A1A] rounded-2xl p-6 md:p-7 hover:bg-[#242424] transition-all duration-300 group">
       <div className="flex justify-between items-start mb-5">
         <div className="space-y-1.5">
-          <h3 className="text-lg font-bold group-hover:text-brand-accent transition-colors duration-200">{song}</h3>
-          <p className="text-brand-muted text-sm">{artist}</p>
+          {/* Título da música → página da cifra */}
+          <Link
+            href={`/tab/${slugify(artist)}/${slugify(song)}`}
+            className="text-lg font-bold group-hover:text-brand-accent transition-colors duration-200 block"
+          >
+            {song}
+          </Link>
+          {/* Nome do artista → página do artista */}
+          <Link
+            href={`/artist/${slugify(artist)}`}
+            className="text-brand-muted text-sm block hover:text-brand-accent hover:underline transition-colors"
+          >
+            {artist}
+          </Link>
         </div>
         {isVerified && (
           <BadgeCheck size={20} className="text-brand-accent shrink-0" />
@@ -35,6 +44,6 @@ export default function TabCard({ song, artist, difficulty, isVerified, key_sig 
         <span className="bg-white/[0.06] px-3 py-1.5 rounded-lg">{key_sig}</span>
         <span className={`bg-white/[0.06] px-3 py-1.5 rounded-lg ${difficultyColor}`}>{difficulty}</span>
       </div>
-    </Link>
+    </div>
   );
 }
