@@ -49,6 +49,7 @@ const countryNames: Record<string, string> = {
 export default function ArtistPage({ params }: { params: { artist: string } }) {
   const [artist, setArtist] = useState<Artist | null>(null);
   const [tabs, setTabs] = useState<Tab[]>([]);
+  const [relatedArtists, setRelatedArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -73,7 +74,7 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
 
       setArtist(artistData as Artist);
 
-      // Tabs ordenadas pelas mais vistas (campo views)
+      // Tabs do artista ordenadas pelas mais vistas (campo views)
       const { data: tabsData } = await supabase
         .from("tabs")
         .select("*")
@@ -93,6 +94,17 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
           }))
         );
       }
+
+      // Artistas relacionados: mesmo gênero, exclui o atual, top 6 por popularidade
+      const { data: relatedData } = await supabase
+        .from("artists")
+        .select("*")
+        .eq("genre", artistData.genre)
+        .neq("slug", params.artist)
+        .order("monthly_listeners", { ascending: false })
+        .limit(6);
+
+      if (active && relatedData) setRelatedArtists(relatedData as Artist[]);
 
       setLoading(false);
     }
@@ -254,6 +266,31 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
           </div>
         )}
       </div>
+
+      {/* Related Artists — mesmo gênero */}
+      {relatedArtists.length > 0 && (
+        <section className="space-y-6">
+          <div className="flex items-center gap-3">
+            <Users size={22} className="text-brand-accent" />
+            <h2 className="text-2xl font-display font-bold">Related Artists</h2>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
+            {relatedArtists.map((ra) => (
+              <Link
+                key={ra.id}
+                href={`/artist/${ra.slug}`}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl hover:bg-white/[0.04] transition-all duration-200 group"
+              >
+                <ArtistAvatar name={ra.name} slug={ra.slug} imageUrl={ra.image_url} size="md" />
+                <p className="text-sm font-bold text-center truncate w-full group-hover:text-brand-accent transition-colors">
+                  {ra.name}
+                </p>
+                <p className="text-[10px] text-brand-muted">{ra.tab_count} tabs</p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Back to Browse */}
       <div className="text-center pt-4">
