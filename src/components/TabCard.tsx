@@ -1,6 +1,6 @@
-import { BadgeCheck } from "lucide-react";
 import Link from "next/link";
 import ArtistAvatar from "@/components/ArtistAvatar";
+import VerifiedBadge from "@/components/VerifiedBadge";
 
 interface TabCardProps {
   song: string;
@@ -46,9 +46,7 @@ export default function TabCard({ song, artist, difficulty, isVerified, key_sig 
             </Link>
           </div>
         </div>
-        {isVerified && (
-          <BadgeCheck size={20} className="text-brand-accent shrink-0" />
-        )}
+        {isVerified && <VerifiedBadge size="sm" />}
       </div>
       <div className="flex gap-2 text-xs">
         <span className="bg-white/[0.06] px-3 py-1.5 rounded-lg">{key_sig}</span>
