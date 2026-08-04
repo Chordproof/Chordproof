@@ -15,6 +15,7 @@ import {
   Loader2,
   Music2,
   Youtube,
+  ListMusic,
 } from "lucide-react";
 import { createClientSupabaseClient } from "@/lib/supabase-client";
 
@@ -26,6 +27,7 @@ const difficultyColor = (d?: string) =>
 
 export default function TabDetail({ params }: { params: { artist: string; song: string } }) {
   const [tab, setTab] = useState<any>(null);
+  const [similarTabs, setSimilarTabs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [autoScroll, setAutoScroll] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(5);
@@ -41,18 +43,31 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const artistName = tab?.artist || params.artist.replace(/-/g, " ");
   const artistSlug = tab?.slug_artist || params.artist;
 
-  // Carregar a cifra do Supabase
+  // Carregar a cifra + músicas similares do mesmo artista
   useEffect(() => {
     let active = true;
     async function load() {
       const supabase = createClientSupabaseClient();
+
       const { data } = await supabase
         .from("tabs")
         .select("*")
         .eq("slug_artist", params.artist)
         .eq("slug_song", params.song)
         .maybeSingle();
+
       if (active) setTab(data || null);
+
+      // Outras músicas do mesmo artista (exclui a atual), por views
+      const { data: similarData } = await supabase
+        .from("tabs")
+        .select("*")
+        .eq("slug_artist", params.artist)
+        .neq("slug_song", params.song)
+        .order("views", { ascending: false })
+        .limit(3);
+
+      if (active && similarData) setSimilarTabs(similarData);
       setLoading(false);
     }
     load();
@@ -131,6 +146,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const difficulty = tab?.difficulty || "Beginner";
   const isVerified = tab?.is_verified !== false;
   const content = tab?.content || tab?.chords || tab?.body || "";
+  const youtubeSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${songName} ${artistName}`)}`;
 
   const fallbackContent = `[Intro]
 F#m  D  A  E
@@ -251,9 +267,20 @@ And after all, you're my wonderwall`;
         </div>
       ) : playerSource === "itunes" && previewUrl ? (
         <div className="bg-[#1A1A1A] rounded-xl p-4 border border-white/[0.06] space-y-3">
-          <div className="flex items-center gap-2 text-sm font-bold">
-            <Music2 size={16} className="text-brand-accent" />
-            Listen — Preview
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm font-bold">
+              <Music2 size={16} className="text-brand-accent" />
+              Listen — Preview
+            </div>
+            {/* Watch on YouTube também aparece no preview do iTunes */}
+            <a
+              href={youtubeSearchUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs font-bold bg-brand-accent text-black px-3 py-1.5 rounded-full hover:brightness-110 transition-all"
+            >
+              <Youtube size={14} /> Watch on YouTube
+            </a>
           </div>
           <audio controls src={previewUrl} className="w-full" preload="none">
             Your browser does not support the audio element.
@@ -263,15 +290,36 @@ And after all, you're my wonderwall`;
           </p>
         </div>
       ) : (
-        /* Placeholder quando não há vídeo nem preview */
-        <div className="bg-[#1A1A1A] rounded-xl p-6 border border-dashed border-white/[0.08] text-center space-y-3">
-          <Music2 size={24} className="mx-auto text-brand-muted" />
-          <p className="text-sm font-bold">Song not found</p>
-          <p className="text-xs text-brand-muted">
-            We couldn't find the full song or a preview for this one.
-          </p>
+        /* Sugestão: músicas similares do mesmo artista (quando não há vídeo nem preview) */
+        <div className="bg-[#1A1A1A] rounded-xl p-6 border border-white/[0.06] space-y-4">
+          <div className="flex items-center gap-2 text-sm font-bold">
+            <ListMusic size={16} className="text-brand-accent" />
+            More from {artistName}
+          </div>
+          {similarTabs.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {similarTabs.map((t) => (
+                <Link
+                  key={t.id}
+                  href={`/tab/${t.slug_artist}/${t.slug_song}`}
+                  className="block bg-white/[0.04] hover:bg-white/[0.08] rounded-lg p-3 transition-colors group"
+                >
+                  <p className="font-bold text-sm truncate group-hover:text-brand-accent transition-colors">
+                    {t.song}
+                  </p>
+                  <p className="text-xs text-brand-muted truncate">
+                    {t.difficulty} · Key {t.key_sig}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-brand-muted">
+              No other tabs available for {artistName} yet.
+            </p>
+          )}
           <a
-            href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${songName} ${artistName}`)}`}
+            href={youtubeSearchUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block text-xs text-brand-accent hover:underline font-bold"
