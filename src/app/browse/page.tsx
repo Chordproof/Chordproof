@@ -5,7 +5,9 @@ import SearchBar from "@/components/SearchBar";
 import TabCard from "@/components/TabCard";
 import ArtistAvatar from "@/components/ArtistAvatar";
 import GenreBar, { ALL } from "@/components/GenreBar";
-import { SlidersHorizontal, Music, Users, ChevronRight, Loader2, X, RotateCcw } from "lucide-react";
+import GenreBadge from "@/components/GenreBadge";
+import CleanAllButton from "@/components/CleanAllButton";
+import { SlidersHorizontal, Music, Users, ChevronRight, Loader2 } from "lucide-react";
 import { createClientSupabaseClient } from "@/lib/supabase-client";
 import Link from "next/link";
 
@@ -51,7 +53,6 @@ export default function Browse() {
 
   // Barra de estilos
   const [selectedGenre, setSelectedGenre] = useState<string>(ALL);
-  const [showMoreGenres, setShowMoreGenres] = useState(false);
 
   const router = useRouter();
 
@@ -253,23 +254,10 @@ export default function Browse() {
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">Browse</h1>
           {selectedGenre !== ALL && (
-            <button
-              onClick={clearGenre}
-              title="Clear genre filter"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-muted bg-white/[0.06] px-3 py-1 rounded-full border border-white/[0.06] hover:bg-brand-accent/10 hover:text-brand-accent transition-colors"
-            >
-              {selectedGenre}
-              <X size={12} />
-            </button>
+            <GenreBadge genre={selectedGenre} onClear={clearGenre} />
           )}
           {hasActiveFilters && (
-            <button
-              onClick={cleanAll}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-muted bg-white/[0.06] px-3 py-1 rounded-full border border-white/[0.06] hover:bg-brand-accent/10 hover:text-brand-accent transition-colors"
-            >
-              <RotateCcw size={12} />
-              Clean all
-            </button>
+            <CleanAllButton onClick={cleanAll} />
           )}
         </div>
         <p className="text-brand-muted">Search through our collection of verified guitar tabs and artists.</p>
