@@ -1,13 +1,20 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Music, Users, Globe, Flame, Loader2, ArrowLeft } from "lucide-react";
+import { Music, Users, Globe, Flame, Loader2, ArrowLeft, ChevronDown } from "lucide-react";
 import { createClientSupabaseClient } from "@/lib/supabase-client";
 import TabCard from "@/components/TabCard";
 import ArtistAvatar from "@/components/ArtistAvatar";
 
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+const ALL = "All";
+
+// Gêneros fixos — mesma barra da home/browse
+const MAIN_GENRES = ["Rock", "Pop", "Sertanejo", "MPB", "Gospel"];
+const EXTRA_GENRES = ["Jazz", "Blues", "Funk", "Soul", "Reggae", "Eletrônica", "Hip-Hop", "Country", "Metal", "Indie"];
 
 interface Artist {
   id: string;
@@ -52,6 +59,52 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
   const [relatedArtists, setRelatedArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+
+  // Barra de estilos — navega para a Home com ?genre=
+  const [selectedGenre, setSelectedGenre] = useState<string>(ALL);
+  const [showMoreGenres, setShowMoreGenres] = useState(false);
+  const moreGenresRef = useRef<HTMLDivElement>(null);
+
+  const router = useRouter();
+
+  // Ler ?genre da URL (filtro compartilhado via link)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const g = params.get("genre");
+    if (g) setSelectedGenre(g);
+  }, []);
+
+  // Sem ?genre na URL, destaca o gênero do próprio artista
+  useEffect(() => {
+    if (!artist) return;
+    const params = new URLSearchParams(window.location.search);
+    if (!params.get("genre") && selectedGenre === ALL) {
+      const g = artist.genre;
+      if (g && (MAIN_GENRES.includes(g) || EXTRA_GENRES.includes(g))) setSelectedGenre(g);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [artist]);
+
+  // Clicar num gênero: navega para a Home com o filtro aplicado (Browse → Home)
+  const selectGenre = (g: string) => {
+    setShowMoreGenres(false);
+    if (g === ALL) {
+      router.push("/");
+    } else {
+      router.push(`/?genre=${encodeURIComponent(g)}`);
+    }
+  };
+
+  // Fechar dropdown "More" ao clicar fora
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (moreGenresRef.current && !moreGenresRef.current.contains(e.target as Node)) {
+        setShowMoreGenres(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -146,6 +199,13 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
 
   const popularTabs = tabs.slice(0, 3);
 
+  const genrePillClass = (active: boolean) =>
+    `px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
+      active
+        ? "bg-brand-accent text-black"
+        : "bg-white/[0.06] text-brand-muted hover:bg-white/10 hover:text-white"
+    }`;
+
   return (
     <div className="max-w-5xl mx-auto space-y-8">
       {/* Breadcrumbs */}
@@ -158,6 +218,59 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
           <li className="text-white/60">{artist.name}</li>
         </ol>
       </nav>
+
+      {/* Barra de estilos musicais — navega para a Home com ?genre= */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => selectGenre(ALL)}
+          className={genrePillClass(selectedGenre === ALL)}
+        >
+          All
+        </button>
+
+        {MAIN_GENRES.map((g) => (
+          <button
+            key={g}
+            onClick={() => selectGenre(g)}
+            className={genrePillClass(selectedGenre === g)}
+          >
+            {g}
+          </button>
+        ))}
+
+        <div className="relative" ref={moreGenresRef}>
+          <button
+            onClick={() => setShowMoreGenres(!showMoreGenres)}
+            className={`flex items-center gap-1 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
+              showMoreGenres || (selectedGenre !== ALL && !MAIN_GENRES.includes(selectedGenre))
+                ? "bg-brand-accent text-black"
+                : "bg-white/[0.06] text-brand-muted hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            More <ChevronDown size={14} className={`transition-transform ${showMoreGenres ? "rotate-180" : ""}`} />
+          </button>
+
+          {showMoreGenres && (
+            <div className="absolute left-0 top-full mt-2 bg-[#1A1A1A] border border-white/[0.06] rounded-2xl shadow-2xl p-3 z-50 min-w-[220px]">
+              <div className="grid grid-cols-2 gap-2">
+                {EXTRA_GENRES.map((g) => (
+                  <button
+                    key={g}
+                    onClick={() => selectGenre(g)}
+                    className={`px-3 py-2 rounded-lg text-xs font-bold text-left whitespace-nowrap transition-colors ${
+                      selectedGenre === g
+                        ? "bg-brand-accent text-black"
+                        : "text-brand-muted hover:bg-white/[0.06] hover:text-white"
+                    }`}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Artist Header */}
       <div className="bg-[#1A1A1A] rounded-3xl p-8 md:p-10 border border-white/[0.06]">
