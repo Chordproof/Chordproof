@@ -3,13 +3,17 @@ import { useState, useEffect, useRef } from "react";
 import SearchBar from "@/components/SearchBar";
 import TabCard from "@/components/TabCard";
 import ArtistAvatar from "@/components/ArtistAvatar";
-import { SlidersHorizontal, Music, Users, ChevronRight, Loader2 } from "lucide-react";
+import { SlidersHorizontal, Music, Users, ChevronRight, Loader2, ChevronDown } from "lucide-react";
 import { createClientSupabaseClient } from "@/lib/supabase-client";
 import Link from "next/link";
 
 const difficulties = ["All", "Beginner", "Intermediate", "Advanced"];
 const keys = ["All", "C", "D", "E", "F", "G", "A", "B", "Am", "Em", "F#m", "Bm", "Bb"];
 const ARTISTS_PAGE_SIZE = 50;
+
+// Gêneros fixos — mesma barra da home
+const MAIN_GENRES = ["Rock", "Pop", "Sertanejo", "MPB", "Gospel"];
+const EXTRA_GENRES = ["Jazz", "Blues", "Funk", "Soul", "Reggae", "Eletrônica", "Hip-Hop", "Country", "Metal", "Indie"];
 
 interface Tab {
   id: string;
@@ -18,6 +22,7 @@ interface Tab {
   difficulty: "Beginner" | "Intermediate" | "Advanced";
   isVerified: boolean;
   key_sig: string;
+  genre?: string;
 }
 
 interface Artist {
@@ -45,6 +50,11 @@ export default function Browse() {
   const [view, setView] = useState<"tabs" | "artists">("tabs");
   const [initialQuery, setInitialQuery] = useState("");
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Barra de estilos
+  const [selectedGenre, setSelectedGenre] = useState("Todos");
+  const [showMoreGenres, setShowMoreGenres] = useState(false);
+  const moreGenresRef = useRef<HTMLDivElement>(null);
 
   // Ler parâmetros da URL (apenas no cliente)
   useEffect(() => {
@@ -74,6 +84,7 @@ export default function Browse() {
             difficulty: t.difficulty,
             isVerified: t.is_verified,
             key_sig: t.key_sig,
+            genre: t.genre,
           }))
         );
       }
@@ -103,7 +114,7 @@ export default function Browse() {
     loadFirstPage();
   }, []);
 
-  // Busca de artistas DIRETO NO BANCO (encontra artistas ainda não carregados)
+  // Busca de artistas DIRETO NO BANCO
   useEffect(() => {
     if (view !== "artists" || !search.trim()) {
       setSearchedArtists(null);
@@ -151,7 +162,7 @@ export default function Browse() {
 
   // Scroll infinito automático (desativado durante a busca)
   useEffect(() => {
-    if (!hasMoreArtists || search.trim()) return;
+    if (!hasMoreArtists || search.trim() || selectedGenre !== "Todos") return;
     const el = sentinelRef.current;
     if (!el) return;
 
@@ -167,7 +178,18 @@ export default function Browse() {
     observer.observe(el);
     return () => observer.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasMoreArtists, search, loadingArtists, artists.length]);
+  }, [hasMoreArtists, search, loadingArtists, artists.length, selectedGenre]);
+
+  // Fechar dropdown "Mais" ao clicar fora
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (moreGenresRef.current && !moreGenresRef.current.contains(e.target as Node)) {
+        setShowMoreGenres(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const filteredTabs = tabs.filter((tab) => {
     const matchSearch =
@@ -175,17 +197,28 @@ export default function Browse() {
       tab.artist.toLowerCase().includes(search.toLowerCase());
     const matchDifficulty = difficulty === "All" || tab.difficulty === difficulty;
     const matchKey = key === "All" || tab.key_sig === key;
-    return matchSearch && matchDifficulty && matchKey;
+    const matchGenre = selectedGenre === "Todos" || tab.genre === selectedGenre;
+    return matchSearch && matchDifficulty && matchKey && matchGenre;
   });
 
   // Lista exibida: resultados do banco quando buscando, senão os carregados
-  const filteredArtists = searchedArtists !== null ? searchedArtists : artists;
+  const baseArtists = searchedArtists !== null ? searchedArtists : artists;
+  const filteredArtists = baseArtists.filter((a) =>
+    selectedGenre === "Todos" || a.genre === selectedGenre
+  );
 
   const formatListeners = (n: number) => {
     if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
     if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
     return n.toString();
   };
+
+  const genrePillClass = (active: boolean) =>
+    `px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
+      active
+        ? "bg-brand-accent text-black"
+        : "bg-white/[0.06] text-brand-muted hover:bg-white/10 hover:text-white"
+    }`;
 
   return (
     <div className="space-y-8">
@@ -206,6 +239,59 @@ export default function Browse() {
         >
           <SlidersHorizontal size={18} />
         </button>
+      </div>
+
+      {/* Barra de estilos musicais — estilo CifraClub */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => { setSelectedGenre("Todos"); setShowMoreGenres(false); }}
+          className={genrePillClass(selectedGenre === "Todos")}
+        >
+          Todos
+        </button>
+
+        {MAIN_GENRES.map((g) => (
+          <button
+            key={g}
+            onClick={() => { setSelectedGenre(g); setShowMoreGenres(false); }}
+            className={genrePillClass(selectedGenre === g)}
+          >
+            {g}
+          </button>
+        ))}
+
+        <div className="relative" ref={moreGenresRef}>
+          <button
+            onClick={() => setShowMoreGenres(!showMoreGenres)}
+            className={`flex items-center gap-1 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
+              showMoreGenres || (selectedGenre !== "Todos" && !MAIN_GENRES.includes(selectedGenre))
+                ? "bg-brand-accent text-black"
+                : "bg-white/[0.06] text-brand-muted hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            Mais <ChevronDown size={14} className={`transition-transform ${showMoreGenres ? "rotate-180" : ""}`} />
+          </button>
+
+          {showMoreGenres && (
+            <div className="absolute left-0 top-full mt-2 bg-[#1A1A1A] border border-white/[0.06] rounded-2xl shadow-2xl p-3 z-50 min-w-[220px]">
+              <div className="grid grid-cols-2 gap-2">
+                {EXTRA_GENRES.map((g) => (
+                  <button
+                    key={g}
+                    onClick={() => { setSelectedGenre(g); setShowMoreGenres(false); }}
+                    className={`px-3 py-2 rounded-lg text-xs font-bold text-left whitespace-nowrap transition-colors ${
+                      selectedGenre === g
+                        ? "bg-brand-accent text-black"
+                        : "text-brand-muted hover:bg-white/[0.06] hover:text-white"
+                    }`}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* View Toggle */}
@@ -349,8 +435,7 @@ export default function Browse() {
                 ))}
               </div>
 
-              {/* Scroll infinito — só quando não há busca ativa */}
-              {!search.trim() && hasMoreArtists && (
+              {!search.trim() && selectedGenre === "Todos" && hasMoreArtists && (
                 <div ref={sentinelRef} className="flex items-center justify-center py-6 text-brand-muted">
                   {loadingArtists ? (
                     <>
@@ -363,7 +448,7 @@ export default function Browse() {
                 </div>
               )}
 
-              {!search.trim() && !hasMoreArtists && (
+              {!search.trim() && selectedGenre === "Todos" && !hasMoreArtists && (
                 <p className="text-center text-xs text-brand-muted/60 py-4">
                   You've reached the end of the artist list.
                 </p>
