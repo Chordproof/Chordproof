@@ -1,5 +1,6 @@
 import { BadgeCheck } from "lucide-react";
 import Link from "next/link";
+import ArtistAvatar from "@/components/ArtistAvatar";
 
 interface TabCardProps {
   song: string;
@@ -17,24 +18,33 @@ export default function TabCard({ song, artist, difficulty, isVerified, key_sig 
     difficulty === "Beginner" ? "text-green-400" :
     difficulty === "Intermediate" ? "text-yellow-400" : "text-red-400";
 
+  const artistSlug = slugify(artist);
+
   return (
     <div className="block bg-[#1A1A1A] rounded-2xl p-6 md:p-7 hover:bg-[#242424] transition-all duration-300 group">
       <div className="flex justify-between items-start mb-5">
-        <div className="space-y-1.5">
-          {/* Título da música → página da cifra */}
-          <Link
-            href={`/tab/${slugify(artist)}/${slugify(song)}`}
-            className="text-lg font-bold group-hover:text-brand-accent transition-colors duration-200 block"
-          >
-            {song}
+        <div className="flex items-center gap-3">
+          {/* Foto do artista → página do artista */}
+          <Link href={`/artist/${artistSlug}`} className="shrink-0">
+            <ArtistAvatar name={artist} slug={artistSlug} size="xs" />
           </Link>
-          {/* Nome do artista → página do artista */}
-          <Link
-            href={`/artist/${slugify(artist)}`}
-            className="text-brand-muted text-sm block hover:text-brand-accent hover:underline transition-colors"
-          >
-            {artist}
-          </Link>
+
+          <div className="space-y-1.5">
+            {/* Título da música → página da cifra */}
+            <Link
+              href={`/tab/${artistSlug}/${slugify(song)}`}
+              className="text-lg font-bold group-hover:text-brand-accent transition-colors duration-200 block"
+            >
+              {song}
+            </Link>
+            {/* Nome do artista → página do artista */}
+            <Link
+              href={`/artist/${artistSlug}`}
+              className="text-brand-muted text-sm block hover:text-brand-accent hover:underline transition-colors"
+            >
+              {artist}
+            </Link>
+          </div>
         </div>
         {isVerified && (
           <BadgeCheck size={20} className="text-brand-accent shrink-0" />
