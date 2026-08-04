@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import SearchBar from "@/components/SearchBar";
 import TabCard from "@/components/TabCard";
 import ArtistAvatar from "@/components/ArtistAvatar";
@@ -10,6 +11,7 @@ import Link from "next/link";
 const difficulties = ["All", "Beginner", "Intermediate", "Advanced"];
 const keys = ["All", "C", "D", "E", "F", "G", "A", "B", "Am", "Em", "F#m", "Bm", "Bb"];
 const ARTISTS_PAGE_SIZE = 50;
+const ALL = "All";
 
 // Gêneros fixos — mesma barra da home
 const MAIN_GENRES = ["Rock", "Pop", "Sertanejo", "MPB", "Gospel"];
@@ -52,19 +54,34 @@ export default function Browse() {
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Barra de estilos
-  const [selectedGenre, setSelectedGenre] = useState("Todos");
+  const [selectedGenre, setSelectedGenre] = useState<string>(ALL);
   const [showMoreGenres, setShowMoreGenres] = useState(false);
   const moreGenresRef = useRef<HTMLDivElement>(null);
 
-  // Ler parâmetros da URL (apenas no cliente)
+  const router = useRouter();
+
+  // Ler parâmetros da URL (q, view e genre compartilhado)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const q = params.get("q") || "";
     const v = params.get("view");
+    const g = params.get("genre");
     setInitialQuery(q);
     if (q) setSearch(q);
     if (v === "artists") setView("artists");
+    if (g) setSelectedGenre(g);
   }, []);
+
+  // Clicar num gênero: filtra e persiste ?genre= na URL (compartilhável)
+  const selectGenre = (g: string) => {
+    setShowMoreGenres(false);
+    setSelectedGenre(g);
+    if (g === ALL) {
+      router.replace("/browse", { scroll: false });
+    } else {
+      router.replace(`/browse?genre=${encodeURIComponent(g)}`, { scroll: false });
+    }
+  };
 
   // Carregar todas as tabs (uma vez)
   useEffect(() => {
@@ -160,9 +177,9 @@ export default function Browse() {
     setLoadingArtists(false);
   };
 
-  // Scroll infinito automático (desativado durante a busca)
+  // Scroll infinito automático (desativado durante busca ou filtro de gênero)
   useEffect(() => {
-    if (!hasMoreArtists || search.trim() || selectedGenre !== "Todos") return;
+    if (!hasMoreArtists || search.trim() || selectedGenre !== ALL) return;
     const el = sentinelRef.current;
     if (!el) return;
 
@@ -180,7 +197,7 @@ export default function Browse() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMoreArtists, search, loadingArtists, artists.length, selectedGenre]);
 
-  // Fechar dropdown "Mais" ao clicar fora
+  // Fechar dropdown "More" ao clicar fora
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (moreGenresRef.current && !moreGenresRef.current.contains(e.target as Node)) {
@@ -197,14 +214,14 @@ export default function Browse() {
       tab.artist.toLowerCase().includes(search.toLowerCase());
     const matchDifficulty = difficulty === "All" || tab.difficulty === difficulty;
     const matchKey = key === "All" || tab.key_sig === key;
-    const matchGenre = selectedGenre === "Todos" || tab.genre === selectedGenre;
+    const matchGenre = selectedGenre === ALL || tab.genre === selectedGenre;
     return matchSearch && matchDifficulty && matchKey && matchGenre;
   });
 
   // Lista exibida: resultados do banco quando buscando, senão os carregados
   const baseArtists = searchedArtists !== null ? searchedArtists : artists;
   const filteredArtists = baseArtists.filter((a) =>
-    selectedGenre === "Todos" || a.genre === selectedGenre
+    selectedGenre === ALL || a.genre === selectedGenre
   );
 
   const formatListeners = (n: number) => {
@@ -241,19 +258,19 @@ export default function Browse() {
         </button>
       </div>
 
-      {/* Barra de estilos musicais — estilo CifraClub */}
+      {/* Barra de estilos musicais — filtro persistido na URL */}
       <div className="flex flex-wrap items-center gap-2">
         <button
-          onClick={() => { setSelectedGenre("Todos"); setShowMoreGenres(false); }}
-          className={genrePillClass(selectedGenre === "Todos")}
+          onClick={() => selectGenre(ALL)}
+          className={genrePillClass(selectedGenre === ALL)}
         >
-          Todos
+          All
         </button>
 
         {MAIN_GENRES.map((g) => (
           <button
             key={g}
-            onClick={() => { setSelectedGenre(g); setShowMoreGenres(false); }}
+            onClick={() => selectGenre(g)}
             className={genrePillClass(selectedGenre === g)}
           >
             {g}
@@ -264,12 +281,12 @@ export default function Browse() {
           <button
             onClick={() => setShowMoreGenres(!showMoreGenres)}
             className={`flex items-center gap-1 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
-              showMoreGenres || (selectedGenre !== "Todos" && !MAIN_GENRES.includes(selectedGenre))
+              showMoreGenres || (selectedGenre !== ALL && !MAIN_GENRES.includes(selectedGenre))
                 ? "bg-brand-accent text-black"
                 : "bg-white/[0.06] text-brand-muted hover:bg-white/10 hover:text-white"
             }`}
           >
-            Mais <ChevronDown size={14} className={`transition-transform ${showMoreGenres ? "rotate-180" : ""}`} />
+            More <ChevronDown size={14} className={`transition-transform ${showMoreGenres ? "rotate-180" : ""}`} />
           </button>
 
           {showMoreGenres && (
@@ -278,7 +295,7 @@ export default function Browse() {
                 {EXTRA_GENRES.map((g) => (
                   <button
                     key={g}
-                    onClick={() => { setSelectedGenre(g); setShowMoreGenres(false); }}
+                    onClick={() => selectGenre(g)}
                     className={`px-3 py-2 rounded-lg text-xs font-bold text-left whitespace-nowrap transition-colors ${
                       selectedGenre === g
                         ? "bg-brand-accent text-black"
@@ -435,7 +452,7 @@ export default function Browse() {
                 ))}
               </div>
 
-              {!search.trim() && selectedGenre === "Todos" && hasMoreArtists && (
+              {!search.trim() && selectedGenre === ALL && hasMoreArtists && (
                 <div ref={sentinelRef} className="flex items-center justify-center py-6 text-brand-muted">
                   {loadingArtists ? (
                     <>
@@ -448,7 +465,7 @@ export default function Browse() {
                 </div>
               )}
 
-              {!search.trim() && selectedGenre === "Todos" && !hasMoreArtists && (
+              {!search.trim() && selectedGenre === ALL && !hasMoreArtists && (
                 <p className="text-center text-xs text-brand-muted/60 py-4">
                   You've reached the end of the artist list.
                 </p>
