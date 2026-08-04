@@ -2,10 +2,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, TrendingUp, Users, Music, ArrowRight, Loader2, X, RotateCcw } from "lucide-react";
+import { Search, TrendingUp, Users, Music, ArrowRight, Loader2 } from "lucide-react";
 import { createClientSupabaseClient } from "@/lib/supabase-client";
 import ArtistAvatar from "@/components/ArtistAvatar";
 import GenreBar, { ALL } from "@/components/GenreBar";
+import GenreBadge from "@/components/GenreBadge";
+import CleanAllButton from "@/components/CleanAllButton";
 
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -281,17 +283,14 @@ export default function Home() {
         )}
       </div>
 
-      {/* Barra de estilos + Clean all */}
+      {/* Barra de estilos + selo do gênero + Clean all */}
       <div className="flex flex-wrap items-center gap-2">
         <GenreBar selectedGenre={selectedGenre} onSelect={selectGenre} />
-        {showCleanAll && (
-          <button
-            onClick={cleanAll}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-muted bg-white/[0.06] px-3 py-2 rounded-full border border-white/[0.06] hover:bg-brand-accent/10 hover:text-brand-accent transition-colors"
-          >
-            <RotateCcw size={12} />
-            Clean all
-          </button>
+        {selectedGenre !== ALL && (
+          <>
+            <GenreBadge genre={selectedGenre} onClear={() => selectGenre(ALL)} />
+            <CleanAllButton onClick={cleanAll} />
+          </>
         )}
       </div>
 
@@ -302,14 +301,7 @@ export default function Home() {
             <TrendingUp size={22} className="text-brand-accent" />
             <h2 className="text-2xl font-bold">Trending Tabs</h2>
             {selectedGenre !== ALL && (
-              <button
-                onClick={() => selectGenre(ALL)}
-                title="Clear genre filter"
-                className="inline-flex items-center gap-1 text-xs text-brand-muted bg-white/[0.06] px-2 py-0.5 rounded-full hover:bg-brand-accent/10 hover:text-brand-accent transition-colors"
-              >
-                {selectedGenre}
-                <X size={10} />
-              </button>
+              <GenreBadge genre={selectedGenre} onClear={() => selectGenre(ALL)} size="sm" />
             )}
           </div>
           <Link href="/browse" className="text-sm text-brand-accent hover:underline flex items-center gap-1">
@@ -371,14 +363,7 @@ export default function Home() {
             <Users size={22} className="text-brand-accent" />
             <h2 className="text-2xl font-bold">Popular Artists</h2>
             {selectedGenre !== ALL && (
-              <button
-                onClick={() => selectGenre(ALL)}
-                title="Clear genre filter"
-                className="inline-flex items-center gap-1 text-xs text-brand-muted bg-white/[0.06] px-2 py-0.5 rounded-full hover:bg-brand-accent/10 hover:text-brand-accent transition-colors"
-              >
-                {selectedGenre}
-                <X size={10} />
-              </button>
+              <GenreBadge genre={selectedGenre} onClear={() => selectGenre(ALL)} size="sm" />
             )}
           </div>
           <Link href="/browse?view=artists" className="text-sm text-brand-accent hover:underline flex items-center gap-1">
