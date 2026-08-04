@@ -59,7 +59,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
 
       if (active) setTab(data || null);
 
-      // Outras músicas do mesmo artista (exclui a atual), por views
       const { data: similarData } = await supabase
         .from("tabs")
         .select("*")
@@ -106,7 +105,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
           setPlayerSource("youtube");
           setPlayerLoading(false);
         } else {
-          // Fallback: preview iTunes de 30 segundos
           return fetch(
             `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&limit=1`
           )
@@ -163,7 +161,7 @@ F#m     D        A       E
 And after all, you're my wonderwall`;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
+    <div className="max-w-6xl mx-auto space-y-8">
       {/* Breadcrumbs — navegação completa */}
       <nav className="text-sm text-brand-muted">
         <ol className="flex gap-2 items-center">
@@ -232,110 +230,6 @@ And after all, you're my wonderwall`;
         </div>
       </div>
 
-      {/* Player — música na íntegra via YouTube (fallback: iTunes) */}
-      {playerLoading ? (
-        <div className="flex items-center gap-2 text-sm text-brand-muted bg-[#1A1A1A] rounded-xl px-4 py-3 border border-white/[0.06]">
-          <Loader2 size={16} className="animate-spin" />
-          <span>Looking for the full song...</span>
-        </div>
-      ) : playerSource === "youtube" && youtubeId ? (
-        <div className="bg-[#1A1A1A] rounded-xl p-4 border border-white/[0.06] space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-bold">
-              <Youtube size={16} className="text-brand-accent" />
-              Listen — Full Song
-            </div>
-            <a
-              href={`https://www.youtube.com/watch?v=${youtubeId}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs font-bold bg-brand-accent text-black px-3 py-1.5 rounded-full hover:brightness-110 transition-all"
-            >
-              <Youtube size={14} /> Watch on YouTube
-            </a>
-          </div>
-          <div className="relative w-full aspect-video overflow-hidden rounded-lg">
-            <iframe
-              className="absolute inset-0 w-full h-full"
-              src={`https://www.youtube.com/embed/${youtubeId}?autoplay=0&rel=0`}
-              title={`${songName} - ${artistName}`}
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
-        </div>
-      ) : playerSource === "itunes" && previewUrl ? (
-        <div className="bg-[#1A1A1A] rounded-xl p-4 border border-white/[0.06] space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-bold">
-              <Music2 size={16} className="text-brand-accent" />
-              Listen — Preview
-            </div>
-            <a
-              href={youtubeSearchUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs font-bold bg-brand-accent text-black px-3 py-1.5 rounded-full hover:brightness-110 transition-all"
-            >
-              <Youtube size={14} /> Watch on YouTube
-            </a>
-          </div>
-          <audio controls src={previewUrl} className="w-full" preload="none">
-            Your browser does not support the audio element.
-          </audio>
-          <p className="text-[10px] text-brand-muted">
-            30-second preview via iTunes — full song not found on YouTube.
-          </p>
-        </div>
-      ) : (
-        /* Sugestão: músicas similares do mesmo artista (quando não há vídeo nem preview) */
-        <div className="bg-[#1A1A1A] rounded-xl p-6 border border-white/[0.06] space-y-4">
-          <div className="flex items-center gap-2 text-sm font-bold">
-            <ListMusic size={16} className="text-brand-accent" />
-            More from {artistName}
-          </div>
-          {similarTabs.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {similarTabs.map((t) => (
-                <Link
-                  key={t.id}
-                  href={`/tab/${t.slug_artist || artistSlug}/${t.slug_song || slugify(t.song)}`}
-                  className="block bg-white/[0.04] hover:bg-white/[0.08] rounded-lg p-3 transition-colors group"
-                >
-                  <div className="flex items-center gap-3">
-                    <ArtistAvatar name={t.artist || artistName} slug={t.slug_artist || artistSlug} size="xs" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm truncate group-hover:text-brand-accent transition-colors">
-                        {t.song}
-                      </p>
-                      <p className="text-xs text-brand-muted truncate">
-                        {t.difficulty} · Key {t.key_sig}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 mt-2 text-xs text-brand-muted">
-                    <Eye size={12} /> {(t.views || 0).toLocaleString()} views
-                  </div>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-brand-muted">
-              No other tabs available for {artistName} yet.
-            </p>
-          )}
-          <a
-            href={youtubeSearchUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block text-xs text-brand-accent hover:underline font-bold"
-          >
-            Search on YouTube
-          </a>
-        </div>
-      )}
-
       {/* Controles */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <TransposeControls />
@@ -376,25 +270,134 @@ And after all, you're my wonderwall`;
         </div>
       </div>
 
-      {/* Cifra */}
-      {loading ? (
-        <div className="flex items-center justify-center py-24 text-brand-muted">
-          <Loader2 className="animate-spin mr-2" size={20} />
-          <p>Loading tab...</p>
-        </div>
-      ) : (
-        <div className="bg-[#1A1A1A] rounded-2xl p-6 md:p-10 border border-white/[0.06]">
-          {!tab && (
-            <div className="flex items-center gap-2 text-sm text-yellow-400/80 mb-4">
-              <AlertTriangle size={16} />
-              Preview tab — full version not found in database.
+      {/* Cifra + Player lado a lado */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* Coluna da cifra */}
+        <div className="lg:col-span-2">
+          {loading ? (
+            <div className="flex items-center justify-center py-24 text-brand-muted">
+              <Loader2 className="animate-spin mr-2" size={20} />
+              <p>Loading tab...</p>
+            </div>
+          ) : (
+            <div className="bg-[#1A1A1A] rounded-2xl p-6 md:p-10 border border-white/[0.06]">
+              {!tab && (
+                <div className="flex items-center gap-2 text-sm text-yellow-400/80 mb-4">
+                  <AlertTriangle size={16} />
+                  Preview tab — full version not found in database.
+                </div>
+              )}
+              <pre className="cifra-content text-brand-text">
+                {content || fallbackContent}
+              </pre>
             </div>
           )}
-          <pre className="cifra-content text-brand-text">
-            {content || fallbackContent}
-          </pre>
         </div>
-      )}
+
+        {/* Coluna lateral — acesso ao vídeo/áudio da música */}
+        <div className="space-y-4 lg:sticky lg:top-24">
+          {playerLoading ? (
+            <div className="flex items-center gap-2 text-sm text-brand-muted bg-[#1A1A1A] rounded-xl px-4 py-3 border border-white/[0.06]">
+              <Loader2 size={16} className="animate-spin" />
+              <span>Looking for the full song...</span>
+            </div>
+          ) : playerSource === "youtube" && youtubeId ? (
+            <div className="bg-[#1A1A1A] rounded-xl p-4 border border-white/[0.06] space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-bold">
+                  <Youtube size={16} className="text-brand-accent" />
+                  Listen — Full Song
+                </div>
+                <a
+                  href={`https://www.youtube.com/watch?v=${youtubeId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-xs font-bold bg-brand-accent text-black px-3 py-1.5 rounded-full hover:brightness-110 transition-all"
+                >
+                  <Youtube size={14} /> Watch on YouTube
+                </a>
+              </div>
+              <div className="relative w-full aspect-video overflow-hidden rounded-lg">
+                <iframe
+                  className="absolute inset-0 w-full h-full"
+                  src={`https://www.youtube.com/embed/${youtubeId}?autoplay=0&rel=0`}
+                  title={`${songName} - ${artistName}`}
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            </div>
+          ) : playerSource === "itunes" && previewUrl ? (
+            <div className="bg-[#1A1A1A] rounded-xl p-4 border border-white/[0.06] space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-bold">
+                  <Music2 size={16} className="text-brand-accent" />
+                  Listen — Preview
+                </div>
+                <a
+                  href={youtubeSearchUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-xs font-bold bg-brand-accent text-black px-3 py-1.5 rounded-full hover:brightness-110 transition-all"
+                >
+                  <Youtube size={14} /> Watch on YouTube
+                </a>
+              </div>
+              <audio controls src={previewUrl} className="w-full" preload="none">
+                Your browser does not support the audio element.
+              </audio>
+              <p className="text-[10px] text-brand-muted">
+                30-second preview via iTunes — full song not found on YouTube.
+              </p>
+            </div>
+          ) : (
+            /* Sugestão: músicas similares do mesmo artista */
+            <div className="bg-[#1A1A1A] rounded-xl p-6 border border-white/[0.06] space-y-4">
+              <div className="flex items-center gap-2 text-sm font-bold">
+                <ListMusic size={16} className="text-brand-accent" />
+                More from {artistName}
+              </div>
+              {similarTabs.length > 0 ? (
+                <div className="space-y-3">
+                  {similarTabs.map((t) => (
+                    <Link
+                      key={t.id}
+                      href={`/tab/${t.slug_artist || artistSlug}/${t.slug_song || slugify(t.song)}`}
+                      className="flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.08] rounded-lg p-3 transition-colors group"
+                    >
+                      <ArtistAvatar name={t.artist || artistName} slug={t.slug_artist || artistSlug} size="xs" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm truncate group-hover:text-brand-accent transition-colors">
+                          {t.song}
+                        </p>
+                        <p className="text-xs text-brand-muted truncate">
+                          {t.difficulty} · Key {t.key_sig}
+                        </p>
+                      </div>
+                      <span className="flex items-center gap-1 text-[10px] text-brand-muted shrink-0">
+                        <Eye size={10} /> {(t.views || 0).toLocaleString()}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-brand-muted">
+                  No other tabs available for {artistName} yet.
+                </p>
+              )}
+              <a
+                href={youtubeSearchUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block text-xs text-brand-accent hover:underline font-bold"
+              >
+                Search on YouTube
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Histórico */}
       <div className="flex items-center gap-2 text-sm text-brand-muted pt-2">
