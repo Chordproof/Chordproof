@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, TrendingUp, Users, Music, ArrowRight, Loader2, ChevronDown } from "lucide-react";
+import { Search, TrendingUp, Users, Music, ArrowRight, Loader2, ChevronDown, X } from "lucide-react";
 import { createClientSupabaseClient } from "@/lib/supabase-client";
 import ArtistAvatar from "@/components/ArtistAvatar";
 
@@ -62,6 +62,14 @@ export default function Home() {
     const g = params.get("genre");
     if (g) setSelectedGenre(g);
   }, []);
+
+  // Título da página (SEO) com o gênero ativo
+  useEffect(() => {
+    document.title =
+      selectedGenre === ALL
+        ? "ChordProof - Verified Guitar Tabs"
+        : `${selectedGenre} Tabs | ChordProof`;
+  }, [selectedGenre]);
 
   useEffect(() => {
     async function load() {
@@ -189,27 +197,23 @@ export default function Home() {
     router.push(`/browse?q=${encodeURIComponent(q)}`);
   };
 
-  // Clicar num gênero navega para o Browse com o filtro aplicado (estilo CifraClub)
+  // Home é o destino do filtro: aplica localmente e persiste ?genre= na URL
   const selectGenre = (g: string) => {
     setShowMoreGenres(false);
     setSelectedGenre(g);
-    if (g === ALL) {
-      router.push("/browse");
-    } else {
-      router.push(`/browse?genre=${encodeURIComponent(g)}`);
-    }
+    router.replace(g === ALL ? "/" : `/?genre=${encodeURIComponent(g)}`, { scroll: false });
   };
 
   const difficultyColor = (d: string) =>
     d === "Beginner" ? "text-green-400" : d === "Intermediate" ? "text-yellow-400" : "text-red-400";
 
-  // Filtra Trending Tabs pelo gênero (vindo da URL compartilhada)
+  // Filtra Trending Tabs pelo gênero selecionado
   const displayedTabs =
     selectedGenre === ALL
       ? trendingTabs
       : trendingTabs.filter((t) => t.genre === selectedGenre);
 
-  // Filtra Popular Artists pelo gênero (vindo da URL compartilhada)
+  // Filtra Popular Artists pelo gênero selecionado
   const displayedArtists =
     selectedGenre === ALL
       ? popularArtists
@@ -282,7 +286,7 @@ export default function Home() {
         )}
       </div>
 
-      {/* Barra de estilos musicais — navega para o Browse */}
+      {/* Barra de estilos musicais — Home é o destino do filtro */}
       <div className="flex flex-wrap items-center gap-2">
         <button
           onClick={() => selectGenre(ALL)}
@@ -301,7 +305,6 @@ export default function Home() {
           </button>
         ))}
 
-        {/* Botão More (dropdown com os demais gêneros) */}
         <div className="relative" ref={moreGenresRef}>
           <button
             onClick={() => setShowMoreGenres(!showMoreGenres)}
@@ -343,9 +346,14 @@ export default function Home() {
             <TrendingUp size={22} className="text-brand-accent" />
             <h2 className="text-2xl font-bold">Trending Tabs</h2>
             {selectedGenre !== ALL && (
-              <span className="text-xs text-brand-muted bg-white/[0.06] px-2 py-0.5 rounded-full">
+              <button
+                onClick={() => selectGenre(ALL)}
+                title="Clear genre filter"
+                className="inline-flex items-center gap-1 text-xs text-brand-muted bg-white/[0.06] px-2 py-0.5 rounded-full hover:bg-brand-accent/10 hover:text-brand-accent transition-colors"
+              >
                 {selectedGenre}
-              </span>
+                <X size={10} />
+              </button>
             )}
           </div>
           <Link href="/browse" className="text-sm text-brand-accent hover:underline flex items-center gap-1">
@@ -407,9 +415,14 @@ export default function Home() {
             <Users size={22} className="text-brand-accent" />
             <h2 className="text-2xl font-bold">Popular Artists</h2>
             {selectedGenre !== ALL && (
-              <span className="text-xs text-brand-muted bg-white/[0.06] px-2 py-0.5 rounded-full">
+              <button
+                onClick={() => selectGenre(ALL)}
+                title="Clear genre filter"
+                className="inline-flex items-center gap-1 text-xs text-brand-muted bg-white/[0.06] px-2 py-0.5 rounded-full hover:bg-brand-accent/10 hover:text-brand-accent transition-colors"
+              >
                 {selectedGenre}
-              </span>
+                <X size={10} />
+              </button>
             )}
           </div>
           <Link href="/browse?view=artists" className="text-sm text-brand-accent hover:underline flex items-center gap-1">
