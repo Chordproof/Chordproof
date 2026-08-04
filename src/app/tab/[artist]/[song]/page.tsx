@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import TransposeControls from "@/components/TransposeControls";
 import ArtistAvatar from "@/components/ArtistAvatar";
+import CleanAllButton from "@/components/CleanAllButton";
 import {
   BadgeCheck,
   History,
@@ -372,7 +373,6 @@ And after all, you're my wonderwall`;
                         href={`/tab/${tArtistSlug}/${t.slug_song || slugify(t.song)}`}
                         className="flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.08] rounded-lg p-3 transition-colors group"
                       >
-                        {/* Foto do artista → página do artista com ?genre= */}
                         <Link href={tArtistHref} className="shrink-0">
                           <ArtistAvatar name={t.artist || artistName} slug={tArtistSlug} size="xs" />
                         </Link>
@@ -415,10 +415,13 @@ And after all, you're my wonderwall`;
         </div>
       </div>
 
-      {/* Histórico */}
-      <div className="flex items-center gap-2 text-sm text-brand-muted pt-2">
-        <History size={16} />
-        <span>Contributors: ChordProof Community · Last verified: recently</span>
+      {/* Histórico + Clean all */}
+      <div className="flex items-center justify-between pt-2">
+        <div className="flex items-center gap-2 text-sm text-brand-muted">
+          <History size={16} />
+          <span>Contributors: ChordProof Community · Last verified: recently</span>
+        </div>
+        <CleanAllButton onClick={() => (window.location.href = "/")} label="Clean all" />
       </div>
     </div>
   );
