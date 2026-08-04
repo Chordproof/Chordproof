@@ -2,12 +2,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Music, Users, Globe, Flame, Loader2, ArrowLeft, RotateCcw } from "lucide-react";
+import { Music, Users, Globe, Flame, Loader2, ArrowLeft } from "lucide-react";
 import { createClientSupabaseClient } from "@/lib/supabase-client";
 import TabCard from "@/components/TabCard";
 import ArtistAvatar from "@/components/ArtistAvatar";
 import GenreBar, { ALL, MAIN_GENRES, EXTRA_GENRES } from "@/components/GenreBar";
 import GenreBadge from "@/components/GenreBadge";
+import CleanAllButton from "@/components/CleanAllButton";
 
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -220,13 +221,7 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
         {selectedGenre !== ALL && (
           <>
             <GenreBadge genre={selectedGenre} onClear={cleanAll} />
-            <button
-              onClick={cleanAll}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-muted bg-white/[0.06] px-3 py-1 rounded-full border border-white/[0.06] hover:bg-brand-accent/10 hover:text-brand-accent transition-colors"
-            >
-              <RotateCcw size={12} />
-              Clean all
-            </button>
+            <CleanAllButton onClick={cleanAll} />
           </>
         )}
       </div>
