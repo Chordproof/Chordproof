@@ -72,14 +72,13 @@ export default function Browse() {
     if (g) setSelectedGenre(g);
   }, []);
 
-  // Clicar num gênero: filtra e persiste ?genre= na URL (compartilhável)
+  // Clicar num gênero: navega para a Home com o filtro aplicado (Browse → Home)
   const selectGenre = (g: string) => {
     setShowMoreGenres(false);
-    setSelectedGenre(g);
     if (g === ALL) {
-      router.replace("/browse", { scroll: false });
+      router.push("/");
     } else {
-      router.replace(`/browse?genre=${encodeURIComponent(g)}`, { scroll: false });
+      router.push(`/?genre=${encodeURIComponent(g)}`);
     }
   };
 
@@ -239,8 +238,16 @@ export default function Browse() {
 
   return (
     <div className="space-y-8">
+      {/* Cabeçalho com selo do gênero ativo */}
       <div className="space-y-4">
-        <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">Browse</h1>
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">Browse</h1>
+          {selectedGenre !== ALL && (
+            <span className="text-xs font-bold text-brand-muted bg-white/[0.06] px-3 py-1 rounded-full border border-white/[0.06]">
+              {selectedGenre}
+            </span>
+          )}
+        </div>
         <p className="text-brand-muted">Search through our collection of verified guitar tabs and artists.</p>
       </div>
 
@@ -258,7 +265,7 @@ export default function Browse() {
         </button>
       </div>
 
-      {/* Barra de estilos musicais — filtro persistido na URL */}
+      {/* Barra de estilos musicais — navega para a Home */}
       <div className="flex flex-wrap items-center gap-2">
         <button
           onClick={() => selectGenre(ALL)}
