@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, TrendingUp, Users, Music, ArrowRight, Loader2 } from "lucide-react";
+import { Search, TrendingUp, Users, Music, ArrowRight, Loader2, ChevronDown } from "lucide-react";
 import { createClientSupabaseClient } from "@/lib/supabase-client";
 import ArtistAvatar from "@/components/ArtistAvatar";
 
@@ -10,6 +10,7 @@ const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
 const ARTISTS_PAGE_SIZE = 24;
+const MAIN_GENRES_COUNT = 5;
 
 interface TabItem {
   id: string;
@@ -31,6 +32,11 @@ interface ArtistItem {
   tab_count: number;
 }
 
+interface GenreItem {
+  name: string;
+  count: number;
+}
+
 export default function Home() {
   const [trendingTabs, setTrendingTabs] = useState<TabItem[]>([]);
   const [popularArtists, setPopularArtists] = useState<ArtistItem[]>([]);
@@ -43,6 +49,14 @@ export default function Home() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [searching, setSearching] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Estilos musicais (gêneros)
+  const [genres, setGenres] = useState<GenreItem[]>([]);
+  const [selectedGenre, setSelectedGenre] = useState("Todos");
+  const [showMoreGenres, setShowMoreGenres] = useState(false);
+  const [genreSlugs, setGenreSlugs] = useState<Record<string, string[]>>({});
+  const moreGenresRef = useRef<HTMLDivElement>(null);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -66,6 +80,49 @@ export default function Home() {
       setLoading(false);
     }
     load();
+  }, []);
+
+  // Carregar gêneros a partir dos artistas (coluna genre)
+  useEffect(() => {
+    async function loadGenres() {
+      const supabase = createClientSupabaseClient();
+      const { data } = await supabase
+        .from("artists")
+        .select("slug, genre")
+        .limit(1000);
+
+      if (!data) return;
+
+      const countMap: Record<string, number> = {};
+      const slugMap: Record<string, string[]> = {};
+
+      data.forEach((a: { slug: string; genre: string | null }) => {
+        const g = a.genre?.trim();
+        if (!g) return;
+        countMap[g] = (countMap[g] || 0) + 1;
+        if (!slugMap[g]) slugMap[g] = [];
+        slugMap[g].push(a.slug);
+      });
+
+      const sorted = Object.entries(countMap)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count);
+
+      setGenres(sorted);
+      setGenreSlugs(slugMap);
+    }
+    loadGenres();
+  }, []);
+
+  // Fechar o dropdown "Mais" ao clicar fora
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (moreGenresRef.current && !moreGenresRef.current.contains(e.target as Node)) {
+        setShowMoreGenres(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
   const loadMoreArtists = async () => {
@@ -163,6 +220,22 @@ export default function Home() {
   const difficultyColor = (d: string) =>
     d === "Beginner" ? "text-green-400" : d === "Intermediate" ? "text-yellow-400" : "text-red-400";
 
+  // Filtra as Trending Tabs pelo gênero selecionado
+  const displayedTabs =
+    selectedGenre === "Todos" || !genreSlugs[selectedGenre]
+      ? trendingTabs
+      : trendingTabs.filter((t) => genreSlugs[selectedGenre]?.includes(t.slug_artist));
+
+  const mainGenres = genres.slice(0, MAIN_GENRES_COUNT);
+  const extraGenres = genres.slice(MAIN_GENRES_COUNT);
+
+  const genrePillClass = (active: boolean) =>
+    `px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
+      active
+        ? "bg-brand-accent text-black"
+        : "bg-white/[0.06] text-brand-muted hover:bg-white/10 hover:text-white"
+    }`;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32 text-brand-muted">
@@ -223,56 +296,127 @@ export default function Home() {
         )}
       </div>
 
+      {/* Barra de estilos musicais — estilo CifraClub */}
+      {genres.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => { setSelectedGenre("Todos"); setShowMoreGenres(false); }}
+            className={genrePillClass(selectedGenre === "Todos")}
+          >
+            Todos
+          </button>
+
+          {mainGenres.map((g) => (
+            <button
+              key={g.name}
+              onClick={() => { setSelectedGenre(g.name); setShowMoreGenres(false); }}
+              className={genrePillClass(selectedGenre === g.name)}
+            >
+              {g.name}
+            </button>
+          ))}
+
+          {/* Botão Mais (dropdown com os demais gêneros) */}
+          {extraGenres.length > 0 && (
+            <div className="relative" ref={moreGenresRef}>
+              <button
+                onClick={() => setShowMoreGenres(!showMoreGenres)}
+                className={`flex items-center gap-1 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
+                  showMoreGenres || (selectedGenre !== "Todos" && !mainGenres.some((g) => g.name === selectedGenre))
+                    ? "bg-brand-accent text-black"
+                    : "bg-white/[0.06] text-brand-muted hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                Mais <ChevronDown size={14} className={`transition-transform ${showMoreGenres ? "rotate-180" : ""}`} />
+              </button>
+
+              {showMoreGenres && (
+                <div className="absolute left-0 top-full mt-2 bg-[#1A1A1A] border border-white/[0.06] rounded-2xl shadow-2xl p-3 z-50 min-w-[220px]">
+                  <div className="grid grid-cols-2 gap-2">
+                    {extraGenres.map((g) => (
+                      <button
+                        key={g.name}
+                        onClick={() => { setSelectedGenre(g.name); setShowMoreGenres(false); }}
+                        className={`px-3 py-2 rounded-lg text-xs font-bold text-left whitespace-nowrap transition-colors ${
+                          selectedGenre === g.name
+                            ? "bg-brand-accent text-black"
+                            : "text-brand-muted hover:bg-white/[0.06] hover:text-white"
+                        }`}
+                      >
+                        {g.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Trending Tabs — com foto do artista */}
       <section>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <TrendingUp size={22} className="text-brand-accent" />
             <h2 className="text-2xl font-bold">Trending Tabs</h2>
+            {selectedGenre !== "Todos" && (
+              <span className="text-xs text-brand-muted bg-white/[0.06] px-2 py-0.5 rounded-full">
+                {selectedGenre}
+              </span>
+            )}
           </div>
           <Link href="/browse" className="text-sm text-brand-accent hover:underline flex items-center gap-1">
             View all <ArrowRight size={14} />
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {trendingTabs.map((tab, index) => (
-            <div
-              key={tab.id}
-              className="flex items-center gap-4 bg-[#1A1A1A] rounded-xl p-4 hover:bg-[#242424] transition-all duration-200 group border border-white/[0.03]"
-            >
-              <span className="text-2xl font-black text-brand-muted w-8 text-right shrink-0">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-
-              {/* Foto do artista */}
-              <ArtistAvatar name={tab.artist} slug={tab.slug_artist} size="sm" />
-
-              <div className="flex-1 min-w-0">
-                <Link
-                  href={`/tab/${tab.slug_artist}/${tab.slug_song}`}
-                  className="font-bold truncate block group-hover:text-brand-accent transition-colors"
-                >
-                  {tab.song}
-                </Link>
-                <Link
-                  href={`/artist/${tab.slug_artist}`}
-                  className="text-sm text-brand-muted truncate block hover:text-brand-accent hover:underline transition-colors"
-                >
-                  {tab.artist}
-                </Link>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {tab.is_verified && (
-                  <span className="text-[10px] bg-brand-accent/10 text-brand-accent px-2 py-0.5 rounded font-bold">✓</span>
-                )}
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${difficultyColor(tab.difficulty)} bg-white/[0.04]`}>
-                  {tab.difficulty}
+        {displayedTabs.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {displayedTabs.map((tab, index) => (
+              <div
+                key={tab.id}
+                className="flex items-center gap-4 bg-[#1A1A1A] rounded-xl p-4 hover:bg-[#242424] transition-all duration-200 group border border-white/[0.03]"
+              >
+                <span className="text-2xl font-black text-brand-muted w-8 text-right shrink-0">
+                  {String(index + 1).padStart(2, "0")}
                 </span>
+
+                {/* Foto do artista */}
+                <ArtistAvatar name={tab.artist} slug={tab.slug_artist} size="sm" />
+
+                <div className="flex-1 min-w-0">
+                  <Link
+                    href={`/tab/${tab.slug_artist}/${tab.slug_song}`}
+                    className="font-bold truncate block group-hover:text-brand-accent transition-colors"
+                  >
+                    {tab.song}
+                  </Link>
+                  <Link
+                    href={`/artist/${tab.slug_artist}`}
+                    className="text-sm text-brand-muted truncate block hover:text-brand-accent hover:underline transition-colors"
+                  >
+                    {tab.artist}
+                  </Link>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {tab.is_verified && (
+                    <span className="text-[10px] bg-brand-accent/10 text-brand-accent px-2 py-0.5 rounded font-bold">✓</span>
+                  )}
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${difficultyColor(tab.difficulty)} bg-white/[0.04]`}>
+                    {tab.difficulty}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-[#1A1A1A] rounded-2xl p-10 text-center border border-white/[0.06] space-y-2">
+            <Music size={32} className="mx-auto text-brand-muted opacity-50" />
+            <p className="font-bold">No tabs in this genre yet</p>
+            <p className="text-sm text-brand-muted">Try another style or check back soon.</p>
+          </div>
+        )}
       </section>
 
       {/* Popular Artists com scroll infinito */}
