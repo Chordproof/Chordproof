@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, RotateCcw } from "lucide-react";
 
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
@@ -35,8 +35,9 @@ export default function TransposeControls() {
         </button>
         <button
           onClick={() => setSemitones(0)}
-          className="px-4 py-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors text-sm"
+          className="inline-flex items-center gap-1 px-4 py-2 bg-white/5 rounded-lg hover:bg-white/10 hover:text-brand-gold transition-colors text-sm font-bold"
         >
+          <RotateCcw size={14} />
           Reset
         </button>
         <button
