@@ -74,10 +74,17 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
     if (g) setSelectedGenre(g);
   }, []);
 
-  // Título da página (SEO): artista + gênero
+  // Título + meta description (SEO): artista + gênero
   useEffect(() => {
     if (artist) {
       document.title = `${artist.name} | ${artist.genre} Tabs | ChordProof`;
+      const meta = document.querySelector('meta[name="description"]');
+      if (meta) {
+        meta.setAttribute(
+          "content",
+          `Browse verified ${artist.name} guitar tabs (${artist.genre}) on ChordProof. Accurate chords, no paywalls.`
+        );
+      }
     }
   }, [artist]);
 
