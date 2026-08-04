@@ -1,462 +1,411 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, TrendingUp, Users, Music, ArrowRight, Loader2, ChevronDown } from "lucide-react";
-import { createClientSupabaseClient } from "@/lib/supabase-client";
+import TransposeControls from "@/components/TransposeControls";
 import ArtistAvatar from "@/components/ArtistAvatar";
+import {
+  BadgeCheck,
+  History,
+  AlertTriangle,
+  Share2,
+  Bookmark,
+  Play,
+  ChevronDown,
+  MousePointer2,
+  Loader2,
+  Music2,
+  Youtube,
+  ListMusic,
+  Eye,
+} from "lucide-react";
+import { createClientSupabaseClient } from "@/lib/supabase-client";
 
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
-const ARTISTS_PAGE_SIZE = 24;
-const ALL = "All";
+const difficultyColor = (d?: string) =>
+  d === "Beginner" ? "text-green-400" : d === "Intermediate" ? "text-yellow-400" : "text-red-400";
 
-// Gêneros fixos — controla quais aparecem na barra (5 principais + More)
-const MAIN_GENRES = ["Rock", "Pop", "Sertanejo", "MPB", "Gospel"];
-const EXTRA_GENRES = ["Jazz", "Blues", "Funk", "Soul", "Reggae", "Eletrônica", "Hip-Hop", "Country", "Metal", "Indie"];
-
-interface TabItem {
-  id: string;
-  song: string;
-  artist: string;
-  slug_artist: string;
-  slug_song: string;
-  difficulty: string;
-  is_verified: boolean;
-  key_sig: string;
-}
-
-interface ArtistItem {
-  id: string;
-  name: string;
-  slug: string;
-  genre: string;
-  image_url: string | null;
-  tab_count: number;
-}
-
-export default function Home() {
-  const [trendingTabs, setTrendingTabs] = useState<TabItem[]>([]);
-  const [popularArtists, setPopularArtists] = useState<ArtistItem[]>([]);
+export default function TabDetail({ params }: { params: { artist: string; song: string } }) {
+  const [tab, setTab] = useState<any>(null);
+  const [similarTabs, setSimilarTabs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingArtists, setLoadingArtists] = useState(false);
-  const [hasMoreArtists, setHasMoreArtists] = useState(true);
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  const [query, setQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [searching, setSearching] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [autoScroll, setAutoScroll] = useState(false);
+  const [scrollSpeed, setScrollSpeed] = useState(5);
+  const [version, setVersion] = useState("2.1");
 
-  // Estilos musicais (gêneros fixos)
-  const [selectedGenre, setSelectedGenre] = useState<string>(ALL);
-  const [showMoreGenres, setShowMoreGenres] = useState(false);
-  const moreGenresRef = useRef<HTMLDivElement>(null);
+  // Player: YouTube (vídeo completo) com fallback para iTunes (preview 30s)
+  const [youtubeId, setYoutubeId] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [playerLoading, setPlayerLoading] = useState(true);
+  const [playerSource, setPlayerSource] = useState<"youtube" | "itunes" | null>(null);
 
-  const router = useRouter();
+  const songName = tab?.song || params.song.replace(/-/g, " ");
+  const artistName = tab?.artist || params.artist.replace(/-/g, " ");
+  const artistSlug = tab?.slug_artist || params.artist;
+  const artistGenre = tab?.genre || "";
 
-  // Ler ?genre da URL ao montar (filtro compartilhado via link)
+  // Carregar a cifra + músicas similares do mesmo artista
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const g = params.get("genre");
-    if (g) setSelectedGenre(g);
-  }, []);
-
-  useEffect(() => {
+    let active = true;
     async function load() {
       const supabase = createClientSupabaseClient();
 
-      const [tabsResult, artistsResult] = await Promise.all([
-        supabase.from("tabs").select("*").order("views", { ascending: false }).limit(15),
-        supabase
-          .from("artists")
-          .select("*")
-          .order("monthly_listeners", { ascending: false })
-          .range(0, ARTISTS_PAGE_SIZE - 1),
-      ]);
+      const { data } = await supabase
+        .from("tabs")
+        .select("*")
+        .eq("slug_artist", params.artist)
+        .eq("slug_song", params.song)
+        .maybeSingle();
 
-      if (tabsResult.data) setTrendingTabs(tabsResult.data as TabItem[]);
-      if (artistsResult.data) {
-        setPopularArtists(artistsResult.data as ArtistItem[]);
-        setHasMoreArtists(artistsResult.data.length === ARTISTS_PAGE_SIZE);
-      }
+      if (active) setTab(data || null);
+
+      const { data: similarData } = await supabase
+        .from("tabs")
+        .select("*")
+        .eq("slug_artist", params.artist)
+        .neq("slug_song", params.song)
+        .order("views", { ascending: false })
+        .limit(3);
+
+      if (active && similarData) setSimilarTabs(similarData);
       setLoading(false);
     }
     load();
-  }, []);
+    return () => {
+      active = false;
+    };
+  }, [params.artist, params.song]);
 
-  const loadMoreArtists = async () => {
-    if (loadingArtists) return;
-    setLoadingArtists(true);
+  // Registrar a visualização da cifra (incrementa o campo views)
+  useEffect(() => {
     const supabase = createClientSupabaseClient();
-    const start = popularArtists.length;
-    const { data } = await supabase
-      .from("artists")
-      .select("*")
-      .order("monthly_listeners", { ascending: false })
-      .range(start, start + ARTISTS_PAGE_SIZE - 1);
+    supabase
+      .rpc("increment_tab_view", {
+        p_slug_artist: params.artist,
+        p_slug_song: params.song,
+      })
+      .then(({ error }) => {
+        if (error) console.error("Erro ao registrar visualização:", error);
+      });
+  }, [params.artist, params.song]);
 
-    if (data) {
-      setPopularArtists((prev) => [...prev, ...(data as ArtistItem[])]);
-      setHasMoreArtists(data.length === ARTISTS_PAGE_SIZE);
-    }
-    setLoadingArtists(false);
-  };
-
+  // Buscar a música: 1º YouTube (completo), 2º iTunes (preview 30s)
   useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el || !hasMoreArtists) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !loadingArtists) {
-          loadMoreArtists();
-        }
-      },
-      { rootMargin: "300px" }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasMoreArtists, loadingArtists, popularArtists.length]);
-
-  useEffect(() => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      setShowDropdown(false);
-      return;
-    }
-
-    const q = query.trim().toLowerCase();
+    if (!songName || !artistName) return;
     let active = true;
-    setSearching(true);
+    setPlayerLoading(true);
+    const term = `${songName} ${artistName}`;
 
-    const timer = setTimeout(async () => {
-      const supabase = createClientSupabaseClient();
+    fetch(`/api/youtube-search?q=${encodeURIComponent(term)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!active) return;
+        if (d?.videoId) {
+          setYoutubeId(d.videoId);
+          setPlayerSource("youtube");
+          setPlayerLoading(false);
+        } else {
+          return fetch(
+            `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&limit=1`
+          )
+            .then((r) => (r.ok ? r.json() : Promise.reject(new Error("nf"))))
+            .then((it) => {
+              if (active) {
+                setPreviewUrl(it?.results?.[0]?.previewUrl || null);
+                setPlayerSource(it?.results?.[0]?.previewUrl ? "itunes" : null);
+                setPlayerLoading(false);
+              }
+            });
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setYoutubeId(null);
+          setPreviewUrl(null);
+          setPlayerSource(null);
+          setPlayerLoading(false);
+        }
+      });
 
-      const [tabsResult, artistsResult] = await Promise.all([
-        supabase.from("tabs").select("song, artist").ilike("song", `%${q}%`).limit(5),
-        supabase.from("artists").select("name, slug").ilike("name", `%${q}%`).limit(5),
-      ]);
-
-      if (!active) return;
-
-      const combined: any[] = [];
-      if (artistsResult.data) {
-        artistsResult.data.forEach((a) => {
-          combined.push({ type: "artist", label: a.name, subtitle: "Artist", href: `/artist/${a.slug}` });
-        });
-      }
-      if (tabsResult.data) {
-        tabsResult.data.forEach((t) => {
-          combined.push({ type: "tab", label: t.song, subtitle: t.artist, href: `/tab/${slugify(t.artist)}/${slugify(t.song)}` });
-        });
-      }
-
-      setSearchResults(combined.slice(0, 8));
-      setShowDropdown(combined.length > 0);
-      setSearching(false);
-    }, 300);
-
-    return () => { active = false; clearTimeout(timer); };
-  }, [query]);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setShowDropdown(false);
+    return () => {
+      active = false;
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  }, [songName, artistName]);
 
-  // Fechar dropdown "More" ao clicar fora
+  // Auto-scroll
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (moreGenresRef.current && !moreGenresRef.current.contains(e.target as Node)) {
-        setShowMoreGenres(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+    if (!autoScroll) return;
+    const id = setInterval(() => {
+      window.scrollBy({ top: scrollSpeed, behavior: "smooth" });
+    }, 100);
+    return () => clearInterval(id);
+  }, [autoScroll, scrollSpeed]);
 
-  const handleSearch = () => {
-    const q = query.trim();
-    if (!q) return;
-    setShowDropdown(false);
-    router.push(`/browse?q=${encodeURIComponent(q)}`);
-  };
+  const keySig = tab?.key_sig || "F#m";
+  const difficulty = tab?.difficulty || "Beginner";
+  const isVerified = tab?.is_verified !== false;
+  const content = tab?.content || tab?.chords || tab?.body || "";
+  const youtubeSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${songName} ${artistName}`)}`;
+  const artistHref = `/artist/${artistSlug}${artistGenre ? `?genre=${encodeURIComponent(artistGenre)}` : ""}`;
 
-  // Home é o destino do filtro: aplica localmente e persiste ?genre= na URL
-  const selectGenre = (g: string) => {
-    setShowMoreGenres(false);
-    setSelectedGenre(g);
-    router.replace(g === ALL ? "/" : `/?genre=${encodeURIComponent(g)}`, { scroll: false });
-  };
+  const fallbackContent = `[Intro]
+F#m  D  A  E
 
-  const difficultyColor = (d: string) =>
-    d === "Beginner" ? "text-green-400" : d === "Intermediate" ? "text-yellow-400" : "text-red-400";
+[Verse]
+F#m                D
+Today is gonna be the day
+A                   E
+That they're gonna throw it back to you
 
-  // Filtra Trending Tabs pelo gênero selecionado
-  const displayedTabs =
-    selectedGenre === ALL
-      ? trendingTabs
-      : trendingTabs.filter((t) => t.genre === selectedGenre);
-
-  // Filtra Popular Artists pelo gênero selecionado
-  const displayedArtists =
-    selectedGenre === ALL
-      ? popularArtists
-      : popularArtists.filter((a) => a.genre === selectedGenre);
-
-  const genrePillClass = (active: boolean) =>
-    `px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
-      active
-        ? "bg-brand-accent text-black"
-        : "bg-white/[0.06] text-brand-muted hover:bg-white/10 hover:text-white"
-    }`;
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-32 text-brand-muted">
-        <Loader2 className="animate-spin mr-2" size={20} />
-        <p>Loading...</p>
-      </div>
-    );
-  }
+[Chorus]
+F#m     D        A       E
+And after all, you're my wonderwall`;
 
   return (
-    <div className="space-y-12">
-      {/* Search Bar com dropdown ao vivo */}
-      <div className="relative" ref={dropdownRef}>
-        <div className="relative max-w-2xl mx-auto">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted" size={20} />
-          <input
-            type="text"
-            placeholder="What do you want to play?"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
-            className="w-full bg-white/5 border border-white/10 rounded-full pl-12 pr-6 py-3.5 text-white placeholder-brand-muted focus:outline-none focus:border-brand-accent transition text-lg"
-          />
-          {searching && (
-            <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-muted animate-spin" size={20} />
-          )}
+    <div className="max-w-6xl mx-auto space-y-8">
+      {/* Breadcrumbs — navegação completa */}
+      <nav className="text-sm text-brand-muted">
+        <ol className="flex gap-2 items-center">
+          <li><Link href="/" className="hover:text-white transition-colors">Home</Link></li>
+          <li>/</li>
+          <li><Link href="/browse" className="hover:text-white transition-colors">Browse</Link></li>
+          <li>/</li>
+          <li>
+            <Link href={artistHref} className="hover:text-white capitalize">
+              {artistName}
+            </Link>
+          </li>
+          <li>/</li>
+          <li className="text-white/60 capitalize">{songName}</li>
+        </ol>
+      </nav>
+
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <h1 className="text-4xl font-bold capitalize">{songName}</h1>
+            {isVerified && (
+              <div className="flex items-center gap-1 bg-brand-accent/10 text-brand-accent px-3 py-1 rounded-full text-xs font-bold">
+                <BadgeCheck size={14} /> VERIFIED
+              </div>
+            )}
+          </div>
+
+          {/* Foto do artista + nome clicável → página do artista com ?genre= */}
+          <Link
+            href={artistHref}
+            className="inline-flex items-center gap-3 group"
+          >
+            <ArtistAvatar name={artistName} slug={artistSlug} size="sm" />
+            <span className="text-xl text-brand-muted capitalize group-hover:text-brand-accent group-hover:underline transition-colors">
+              {artistName}
+            </span>
+          </Link>
+
+          <div className="flex gap-4 pt-2">
+            <span className="bg-white/5 px-3 py-1 rounded text-sm">
+              Key: <strong>{keySig}</strong>
+            </span>
+            <span className={`bg-white/5 px-3 py-1 rounded text-sm font-bold ${difficultyColor(difficulty)}`}>
+              {difficulty}
+            </span>
+          </div>
         </div>
 
-        {showDropdown && (
-          <div className="absolute top-full left-1/2 -translate-x-1/2 w-full max-w-2xl mt-2 bg-[#1A1A1A] border border-white/[0.06] rounded-2xl shadow-2xl overflow-hidden z-50">
-            {searchResults.map((r, i) => (
-              <Link
-                key={`${r.type}-${i}`}
-                href={r.href}
-                onClick={() => setShowDropdown(false)}
-                className="flex items-center gap-4 px-5 py-4 hover:bg-white/[0.06] transition-colors group"
-              >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
-                  r.type === "artist" ? "bg-gradient-to-br from-brand-accent to-emerald-700 text-black" : "bg-white/[0.08] text-brand-muted"
-                }`}>
-                  {r.type === "artist" ? <Users size={16} /> : <Music size={16} />}
-                </div>
-                <div className="text-left flex-1 min-w-0">
-                  <p className="font-bold text-sm group-hover:text-brand-accent transition-colors truncate">{r.label}</p>
-                  <p className="text-xs text-brand-muted">{r.subtitle}</p>
-                </div>
-                <span className="text-[10px] uppercase tracking-wider text-brand-muted bg-white/[0.04] px-2 py-1 rounded">{r.type}</span>
-              </Link>
-            ))}
-            <Link
-              href={`/browse?q=${encodeURIComponent(query)}`}
-              onClick={() => setShowDropdown(false)}
-              className="block text-center py-3 text-sm text-brand-accent hover:bg-white/[0.04] transition-colors border-t border-white/[0.06] font-bold"
-            >
-              View all results
-            </Link>
-          </div>
-        )}
-      </div>
-
-      {/* Barra de estilos musicais — Home é o destino do filtro */}
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          onClick={() => selectGenre(ALL)}
-          className={genrePillClass(selectedGenre === ALL)}
-        >
-          All
-        </button>
-
-        {MAIN_GENRES.map((g) => (
-          <button
-            key={g}
-            onClick={() => selectGenre(g)}
-            className={genrePillClass(selectedGenre === g)}
-          >
-            {g}
+        <div className="flex gap-3">
+          <button className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors">
+            <Bookmark size={20} />
           </button>
-        ))}
-
-        <div className="relative" ref={moreGenresRef}>
+          <button className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors">
+            <Share2 size={20} />
+          </button>
           <button
-            onClick={() => setShowMoreGenres(!showMoreGenres)}
-            className={`flex items-center gap-1 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
-              showMoreGenres || (selectedGenre !== ALL && !MAIN_GENRES.includes(selectedGenre))
-                ? "bg-brand-accent text-black"
-                : "bg-white/[0.06] text-brand-muted hover:bg-white/10 hover:text-white"
+            onClick={() => setAutoScroll(!autoScroll)}
+            className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all ${
+              autoScroll ? "bg-brand-accent text-black" : "bg-white/5 hover:bg-white/10"
             }`}
           >
-            More <ChevronDown size={14} className={`transition-transform ${showMoreGenres ? "rotate-180" : ""}`} />
+            <Play size={18} /> Auto-scroll
           </button>
+        </div>
+      </div>
 
-          {showMoreGenres && (
-            <div className="absolute left-0 top-full mt-2 bg-[#1A1A1A] border border-white/[0.06] rounded-2xl shadow-2xl p-3 z-50 min-w-[220px]">
-              <div className="grid grid-cols-2 gap-2">
-                {EXTRA_GENRES.map((g) => (
-                  <button
-                    key={g}
-                    onClick={() => selectGenre(g)}
-                    className={`px-3 py-2 rounded-lg text-xs font-bold text-left whitespace-nowrap transition-colors ${
-                      selectedGenre === g
-                        ? "bg-brand-accent text-black"
-                        : "text-brand-muted hover:bg-white/[0.06] hover:text-white"
-                    }`}
-                  >
-                    {g}
-                  </button>
-                ))}
+      {/* Controles */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <TransposeControls />
+
+        <div className="bg-[#1A1A1A] rounded-xl p-4 border border-white/[0.06] space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm font-bold">
+              <MousePointer2 size={16} className="text-brand-accent" />
+              Auto-scroll
+            </div>
+            {autoScroll && (
+              <button
+                onClick={() => setAutoScroll(false)}
+                className="text-xs bg-brand-accent/10 text-brand-accent px-3 py-1 rounded-full font-bold"
+              >
+                Stop
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-brand-muted">Speed</span>
+            <input
+              type="range"
+              min={1}
+              max={15}
+              value={scrollSpeed}
+              onChange={(e) => setScrollSpeed(Number(e.target.value))}
+              className="flex-1 accent-brand-accent"
+            />
+            <span className="text-sm font-bold w-6 text-right">{scrollSpeed}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-brand-muted">Version</span>
+            <button className="flex items-center gap-1 text-sm font-bold bg-white/[0.06] px-3 py-1 rounded-lg">
+              {version} <ChevronDown size={14} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Cifra + Player lado a lado */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* Coluna da cifra */}
+        <div className="lg:col-span-2">
+          {loading ? (
+            <div className="flex items-center justify-center py-24 text-brand-muted">
+              <Loader2 className="animate-spin mr-2" size={20} />
+              <p>Loading tab...</p>
+            </div>
+          ) : (
+            <div className="bg-[#1A1A1A] rounded-2xl p-6 md:p-10 border border-white/[0.06]">
+              {!tab && (
+                <div className="flex items-center gap-2 text-sm text-yellow-400/80 mb-4">
+                  <AlertTriangle size={16} />
+                  Preview tab — full version not found in database.
+                </div>
+              )}
+              <pre className="cifra-content text-brand-text">
+                {content || fallbackContent}
+              </pre>
+            </div>
+          )}
+        </div>
+
+        {/* Coluna lateral — acesso ao vídeo/áudio da música */}
+        <div className="space-y-4 lg:sticky lg:top-24">
+          {playerLoading ? (
+            <div className="flex items-center gap-2 text-sm text-brand-muted bg-[#1A1A1A] rounded-xl px-4 py-3 border border-white/[0.06]">
+              <Loader2 size={16} className="animate-spin" />
+              <span>Looking for the full song...</span>
+            </div>
+          ) : playerSource === "youtube" && youtubeId ? (
+            <div className="bg-[#1A1A1A] rounded-xl p-4 border border-white/[0.06] space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-bold">
+                  <Youtube size={16} className="text-brand-accent" />
+                  Listen — Full Song
+                </div>
+                <a
+                  href={`https://www.youtube.com/watch?v=${youtubeId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-xs font-bold bg-brand-accent text-black px-3 py-1.5 rounded-full hover:brightness-110 transition-all"
+                >
+                  <Youtube size={14} /> Watch on YouTube
+                </a>
               </div>
+              <div className="relative w-full aspect-video overflow-hidden rounded-lg">
+                <iframe
+                  className="absolute inset-0 w-full h-full"
+                  src={`https://www.youtube.com/embed/${youtubeId}?autoplay=0&rel=0`}
+                  title={`${songName} - ${artistName}`}
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            </div>
+          ) : playerSource === "itunes" && previewUrl ? (
+            <div className="bg-[#1A1A1A] rounded-xl p-4 border border-white/[0.06] space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-bold">
+                  <Music2 size={16} className="text-brand-accent" />
+                  Listen — Preview
+                </div>
+                <a
+                  href={youtubeSearchUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-xs font-bold bg-brand-accent text-black px-3 py-1.5 rounded-full hover:brightness-110 transition-all"
+                >
+                  <Youtube size={14} /> Watch on YouTube
+                </a>
+              </div>
+              <audio controls src={previewUrl} className="w-full" preload="none">
+                Your browser does not support the audio element.
+              </audio>
+              <p className="text-[10px] text-brand-muted">
+                30-second preview via iTunes — full song not found on YouTube.
+              </p>
+            </div>
+          ) : (
+            /* Sugestão: músicas similares do mesmo artista */
+            <div className="bg-[#1A1A1A] rounded-xl p-6 border border-white/[0.06] space-y-4">
+              <div className="flex items-center gap-2 text-sm font-bold">
+                <ListMusic size={16} className="text-brand-accent" />
+                More from {artistName}
+              </div>
+              {similarTabs.length > 0 ? (
+                <div className="space-y-3">
+                  {similarTabs.map((t) => (
+                    <Link
+                      key={t.id}
+                      href={`/tab/${t.slug_artist || artistSlug}/${t.slug_song || slugify(t.song)}`}
+                      className="flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.08] rounded-lg p-3 transition-colors group"
+                    >
+                      <ArtistAvatar name={t.artist || artistName} slug={t.slug_artist || artistSlug} size="xs" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm truncate group-hover:text-brand-accent transition-colors">
+                          {t.song}
+                        </p>
+                        <p className="text-xs text-brand-muted truncate">
+                          {t.difficulty} · Key {t.key_sig}
+                        </p>
+                      </div>
+                      <span className="flex items-center gap-1 text-[10px] text-brand-muted shrink-0">
+                        <Eye size={10} /> {(t.views || 0).toLocaleString()}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-brand-muted">
+                  No other tabs available for {artistName} yet.
+                </p>
+              )}
+              <a
+                href={youtubeSearchUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block text-xs text-brand-accent hover:underline font-bold"
+              >
+                Search on YouTube
+              </a>
             </div>
           )}
         </div>
       </div>
 
-      {/* Trending Tabs — com foto do artista */}
-      <section>
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <TrendingUp size={22} className="text-brand-accent" />
-            <h2 className="text-2xl font-bold">Trending Tabs</h2>
-            {selectedGenre !== ALL && (
-              <span className="text-xs text-brand-muted bg-white/[0.06] px-2 py-0.5 rounded-full">
-                {selectedGenre}
-              </span>
-            )}
-          </div>
-          <Link href="/browse" className="text-sm text-brand-accent hover:underline flex items-center gap-1">
-            View all <ArrowRight size={14} />
-          </Link>
-        </div>
-
-        {displayedTabs.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {displayedTabs.map((tab, index) => (
-              <div
-                key={tab.id}
-                className="flex items-center gap-4 bg-[#1A1A1A] rounded-xl p-4 hover:bg-[#242424] transition-all duration-200 group border border-white/[0.03]"
-              >
-                <span className="text-2xl font-black text-brand-muted w-8 text-right shrink-0">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-
-                <ArtistAvatar name={tab.artist} slug={tab.slug_artist} size="sm" />
-
-                <div className="flex-1 min-w-0">
-                  <Link
-                    href={`/tab/${tab.slug_artist}/${tab.slug_song}`}
-                    className="font-bold truncate block group-hover:text-brand-accent transition-colors"
-                  >
-                    {tab.song}
-                  </Link>
-                  <Link
-                    href={`/artist/${tab.slug_artist}`}
-                    className="text-sm text-brand-muted truncate block hover:text-brand-accent hover:underline transition-colors"
-                  >
-                    {tab.artist}
-                  </Link>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {tab.is_verified && (
-                    <span className="text-[10px] bg-brand-accent/10 text-brand-accent px-2 py-0.5 rounded font-bold">✓</span>
-                  )}
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${difficultyColor(tab.difficulty)} bg-white/[0.04]`}>
-                    {tab.difficulty}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="bg-[#1A1A1A] rounded-2xl p-10 text-center border border-white/[0.06] space-y-2">
-            <Music size={32} className="mx-auto text-brand-muted opacity-50" />
-            <p className="font-bold">No tabs in this genre yet</p>
-            <p className="text-sm text-brand-muted">Try another style or check back soon.</p>
-          </div>
-        )}
-      </section>
-
-      {/* Popular Artists — filtrado por gênero + scroll infinito */}
-      <section>
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Users size={22} className="text-brand-accent" />
-            <h2 className="text-2xl font-bold">Popular Artists</h2>
-            {selectedGenre !== ALL && (
-              <span className="text-xs text-brand-muted bg-white/[0.06] px-2 py-0.5 rounded-full">
-                {selectedGenre}
-              </span>
-            )}
-          </div>
-          <Link href="/browse?view=artists" className="text-sm text-brand-accent hover:underline flex items-center gap-1">
-            View all <ArrowRight size={14} />
-          </Link>
-        </div>
-
-        {displayedArtists.length > 0 ? (
-          <>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
-              {displayedArtists.map((artist) => (
-                <Link
-                  key={artist.id}
-                  href={`/artist/${artist.slug}`}
-                  className="flex flex-col items-center gap-2 p-4 rounded-xl hover:bg-white/[0.04] transition-all duration-200 group"
-                >
-                  <ArtistAvatar name={artist.name} slug={artist.slug} imageUrl={artist.image_url} size="md" />
-                  <p className="text-sm font-bold text-center truncate w-full group-hover:text-brand-accent transition-colors">
-                    {artist.name}
-                  </p>
-                  <p className="text-[10px] text-brand-muted">{artist.tab_count} tabs</p>
-                </Link>
-              ))}
-            </div>
-
-            {selectedGenre === ALL && hasMoreArtists && (
-              <div ref={sentinelRef} className="flex items-center justify-center py-6 text-brand-muted">
-                {loadingArtists ? (
-                  <>
-                    <Loader2 size={18} className="animate-spin mr-2" />
-                    <span className="text-sm">Loading more artists...</span>
-                  </>
-                ) : (
-                  <span className="text-xs text-brand-muted/50">Scroll for more</span>
-                )}
-              </div>
-            )}
-
-            {selectedGenre === ALL && !hasMoreArtists && (
-              <p className="text-center text-xs text-brand-muted/60 py-4">
-                You've reached the end of the artist list.
-              </p>
-            )}
-          </>
-        ) : (
-          <div className="bg-[#1A1A1A] rounded-2xl p-10 text-center border border-white/[0.06] space-y-2">
-            <Users size={32} className="mx-auto text-brand-muted opacity-50" />
-            <p className="font-bold">No artists in this genre yet</p>
-            <p className="text-sm text-brand-muted">Try another style or check back soon.</p>
-          </div>
-        )}
-      </section>
+      {/* Histórico */}
+      <div className="flex items-center gap-2 text-sm text-brand-muted pt-2">
+        <History size={16} />
+        <span>Contributors: ChordProof Community · Last verified: recently</span>
+      </div>
     </div>
   );
 }
