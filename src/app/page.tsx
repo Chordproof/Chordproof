@@ -8,6 +8,7 @@ import ArtistAvatar from "@/components/ArtistAvatar";
 import GenreBar, { ALL } from "@/components/GenreBar";
 import GenreBadge from "@/components/GenreBadge";
 import CleanAllButton from "@/components/CleanAllButton";
+import VerifiedBadge from "@/components/VerifiedBadge";
 
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -337,9 +338,7 @@ export default function Home() {
                   </Link>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  {tab.is_verified && (
-                    <span className="text-[10px] bg-brand-accent/10 text-brand-accent px-2 py-0.5 rounded font-bold">✓</span>
-                  )}
+                  {tab.is_verified && <VerifiedBadge size="sm" />}
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${difficultyColor(tab.difficulty)} bg-white/[0.04]`}>
                     {tab.difficulty}
                   </span>
