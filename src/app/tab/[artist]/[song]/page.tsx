@@ -223,9 +223,20 @@ And after all, you're my wonderwall`;
         </div>
       ) : playerSource === "youtube" && youtubeId ? (
         <div className="bg-[#1A1A1A] rounded-xl p-4 border border-white/[0.06] space-y-3">
-          <div className="flex items-center gap-2 text-sm font-bold">
-            <Youtube size={16} className="text-brand-accent" />
-            Listen — Full Song
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm font-bold">
+              <Youtube size={16} className="text-brand-accent" />
+              Listen — Full Song
+            </div>
+            {/* Botão que abre o vídeo em nova aba */}
+            <a
+              href={`https://www.youtube.com/watch?v=${youtubeId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs font-bold bg-brand-accent text-black px-3 py-1.5 rounded-full hover:brightness-110 transition-all"
+            >
+              <Youtube size={14} /> Watch on YouTube
+            </a>
           </div>
           <div className="relative w-full aspect-video overflow-hidden rounded-lg">
             <iframe
@@ -251,7 +262,24 @@ And after all, you're my wonderwall`;
             30-second preview via iTunes — full song not found on YouTube.
           </p>
         </div>
-      ) : null}
+      ) : (
+        /* Placeholder quando não há vídeo nem preview */
+        <div className="bg-[#1A1A1A] rounded-xl p-6 border border-dashed border-white/[0.08] text-center space-y-3">
+          <Music2 size={24} className="mx-auto text-brand-muted" />
+          <p className="text-sm font-bold">Song not found</p>
+          <p className="text-xs text-brand-muted">
+            We couldn't find the full song or a preview for this one.
+          </p>
+          <a
+            href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${songName} ${artistName}`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block text-xs text-brand-accent hover:underline font-bold"
+          >
+            Search on YouTube
+          </a>
+        </div>
+      )}
 
       {/* Controles */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
