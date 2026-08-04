@@ -5,17 +5,18 @@ interface ArtistAvatarProps {
   name: string;
   slug?: string;
   imageUrl?: string | null;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
 }
 
 const sizeClasses = {
+  xs: "w-10 h-10 text-lg",
   sm: "w-14 h-14 text-xl",
   md: "w-20 h-20 text-2xl",
   lg: "w-32 h-32 md:w-40 md:h-40 text-5xl md:text-6xl",
 };
 
 // Tamanho pedido ao iTunes conforme o tamanho do avatar
-const itunesSize = (size: "sm" | "md" | "lg") =>
+const itunesSize = (size: "xs" | "sm" | "md" | "lg") =>
   size === "lg" ? "1000x1000bb" : size === "md" ? "600x600bb" : "300x300bb";
 
 const initialsUrl = (name: string) =>
