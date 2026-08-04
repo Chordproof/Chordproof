@@ -2,11 +2,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Music, Users, Globe, Flame, Loader2, ArrowLeft } from "lucide-react";
+import { Music, Users, Globe, Flame, Loader2, ArrowLeft, RotateCcw } from "lucide-react";
 import { createClientSupabaseClient } from "@/lib/supabase-client";
 import TabCard from "@/components/TabCard";
 import ArtistAvatar from "@/components/ArtistAvatar";
 import GenreBar, { ALL, MAIN_GENRES, EXTRA_GENRES } from "@/components/GenreBar";
+import GenreBadge from "@/components/GenreBadge";
 
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -99,6 +100,12 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
     } else {
       router.push(`/?genre=${encodeURIComponent(g)}`);
     }
+  };
+
+  // Clean all: remove o gênero destacado e volta para a Home limpa
+  const cleanAll = () => {
+    setSelectedGenre(ALL);
+    router.push("/", { scroll: false });
   };
 
   useEffect(() => {
@@ -207,8 +214,22 @@ export default function ArtistPage({ params }: { params: { artist: string } }) {
         </ol>
       </nav>
 
-      {/* Barra de estilos — componente reutilizável */}
-      <GenreBar selectedGenre={selectedGenre} onSelect={selectGenre} />
+      {/* Barra de estilos + selo do gênero ativo + Clean all */}
+      <div className="flex flex-wrap items-center gap-2">
+        <GenreBar selectedGenre={selectedGenre} onSelect={selectGenre} />
+        {selectedGenre !== ALL && (
+          <>
+            <GenreBadge genre={selectedGenre} onClear={cleanAll} />
+            <button
+              onClick={cleanAll}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-muted bg-white/[0.06] px-3 py-1 rounded-full border border-white/[0.06] hover:bg-brand-accent/10 hover:text-brand-accent transition-colors"
+            >
+              <RotateCcw size={12} />
+              Clean all
+            </button>
+          </>
+        )}
+      </div>
 
       {/* Artist Header */}
       <div className="bg-[#1A1A1A] rounded-3xl p-8 md:p-10 border border-white/[0.06]">
