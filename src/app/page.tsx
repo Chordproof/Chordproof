@@ -63,12 +63,19 @@ export default function Home() {
     if (g) setSelectedGenre(g);
   }, []);
 
-  // Título da página (SEO) com o gênero ativo
+  // Título + meta description (SEO) com o gênero ativo
   useEffect(() => {
-    document.title =
-      selectedGenre === ALL
-        ? "ChordProof - Verified Guitar Tabs"
-        : `${selectedGenre} Tabs | ChordProof`;
+    const genre = selectedGenre === ALL ? "" : selectedGenre;
+    document.title = genre ? `${genre} Tabs | ChordProof` : "ChordProof - Verified Guitar Tabs";
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) {
+      meta.setAttribute(
+        "content",
+        genre
+          ? `Browse verified ${genre} guitar tabs and artists on ChordProof. Accurate chords, no paywalls.`
+          : "The world's first verified guitar tab platform. No paywalls on community content. Accurate chords for real musicians."
+      );
+    }
   }, [selectedGenre]);
 
   useEffect(() => {
@@ -382,7 +389,7 @@ export default function Home() {
                     {tab.song}
                   </Link>
                   <Link
-                    href={`/artist/${tab.slug_artist}`}
+                    href={`/artist/${tab.slug_artist}?genre=${encodeURIComponent(tab.genre || "")}`}
                     className="text-sm text-brand-muted truncate block hover:text-brand-accent hover:underline transition-colors"
                   >
                     {tab.artist}
@@ -436,7 +443,7 @@ export default function Home() {
               {displayedArtists.map((artist) => (
                 <Link
                   key={artist.id}
-                  href={`/artist/${artist.slug}`}
+                  href={`/artist/${artist.slug}?genre=${encodeURIComponent(artist.genre)}`}
                   className="flex flex-col items-center gap-2 p-4 rounded-xl hover:bg-white/[0.04] transition-all duration-200 group"
                 >
                   <ArtistAvatar name={artist.name} slug={artist.slug} imageUrl={artist.image_url} size="md" />
