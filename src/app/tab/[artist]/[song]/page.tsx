@@ -16,6 +16,7 @@ import {
   Music2,
   Youtube,
   ListMusic,
+  Eye,
 } from "lucide-react";
 import { createClientSupabaseClient } from "@/lib/supabase-client";
 
@@ -244,7 +245,6 @@ And after all, you're my wonderwall`;
               <Youtube size={16} className="text-brand-accent" />
               Listen — Full Song
             </div>
-            {/* Botão que abre o vídeo em nova aba */}
             <a
               href={`https://www.youtube.com/watch?v=${youtubeId}`}
               target="_blank"
@@ -272,7 +272,6 @@ And after all, you're my wonderwall`;
               <Music2 size={16} className="text-brand-accent" />
               Listen — Preview
             </div>
-            {/* Watch on YouTube também aparece no preview do iTunes */}
             <a
               href={youtubeSearchUrl}
               target="_blank"
@@ -301,15 +300,23 @@ And after all, you're my wonderwall`;
               {similarTabs.map((t) => (
                 <Link
                   key={t.id}
-                  href={`/tab/${t.slug_artist}/${t.slug_song}`}
+                  href={`/tab/${t.slug_artist || artistSlug}/${t.slug_song || slugify(t.song)}`}
                   className="block bg-white/[0.04] hover:bg-white/[0.08] rounded-lg p-3 transition-colors group"
                 >
-                  <p className="font-bold text-sm truncate group-hover:text-brand-accent transition-colors">
-                    {t.song}
-                  </p>
-                  <p className="text-xs text-brand-muted truncate">
-                    {t.difficulty} · Key {t.key_sig}
-                  </p>
+                  <div className="flex items-center gap-3">
+                    <ArtistAvatar name={t.artist || artistName} slug={t.slug_artist || artistSlug} size="xs" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-sm truncate group-hover:text-brand-accent transition-colors">
+                        {t.song}
+                      </p>
+                      <p className="text-xs text-brand-muted truncate">
+                        {t.difficulty} · Key {t.key_sig}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 mt-2 text-xs text-brand-muted">
+                    <Eye size={12} /> {(t.views || 0).toLocaleString()} views
+                  </div>
                 </Link>
               ))}
             </div>
