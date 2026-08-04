@@ -10,8 +10,9 @@ const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
 const ARTISTS_PAGE_SIZE = 24;
+const ALL = "All";
 
-// Gêneros fixos — controla quais aparecem na barra (5 principais + Mais)
+// Gêneros fixos — controla quais aparecem na barra (5 principais + More)
 const MAIN_GENRES = ["Rock", "Pop", "Sertanejo", "MPB", "Gospel"];
 const EXTRA_GENRES = ["Jazz", "Blues", "Funk", "Soul", "Reggae", "Eletrônica", "Hip-Hop", "Country", "Metal", "Indie"];
 
@@ -49,11 +50,18 @@ export default function Home() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Estilos musicais (gêneros fixos)
-  const [selectedGenre, setSelectedGenre] = useState("Todos");
+  const [selectedGenre, setSelectedGenre] = useState<string>(ALL);
   const [showMoreGenres, setShowMoreGenres] = useState(false);
   const moreGenresRef = useRef<HTMLDivElement>(null);
 
   const router = useRouter();
+
+  // Ler ?genre da URL ao montar (filtro compartilhado via link)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const g = params.get("genre");
+    if (g) setSelectedGenre(g);
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -163,7 +171,7 @@ export default function Home() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Fechar dropdown "Mais" ao clicar fora
+  // Fechar dropdown "More" ao clicar fora
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (moreGenresRef.current && !moreGenresRef.current.contains(e.target as Node)) {
@@ -181,18 +189,29 @@ export default function Home() {
     router.push(`/browse?q=${encodeURIComponent(q)}`);
   };
 
+  // Clicar num gênero navega para o Browse com o filtro aplicado (estilo CifraClub)
+  const selectGenre = (g: string) => {
+    setShowMoreGenres(false);
+    setSelectedGenre(g);
+    if (g === ALL) {
+      router.push("/browse");
+    } else {
+      router.push(`/browse?genre=${encodeURIComponent(g)}`);
+    }
+  };
+
   const difficultyColor = (d: string) =>
     d === "Beginner" ? "text-green-400" : d === "Intermediate" ? "text-yellow-400" : "text-red-400";
 
-  // Filtra Trending Tabs pelo gênero selecionado
+  // Filtra Trending Tabs pelo gênero (vindo da URL compartilhada)
   const displayedTabs =
-    selectedGenre === "Todos"
+    selectedGenre === ALL
       ? trendingTabs
       : trendingTabs.filter((t) => t.genre === selectedGenre);
 
-  // Filtra Popular Artists pelo gênero selecionado
+  // Filtra Popular Artists pelo gênero (vindo da URL compartilhada)
   const displayedArtists =
-    selectedGenre === "Todos"
+    selectedGenre === ALL
       ? popularArtists
       : popularArtists.filter((a) => a.genre === selectedGenre);
 
@@ -263,36 +282,36 @@ export default function Home() {
         )}
       </div>
 
-      {/* Barra de estilos musicais — estilo CifraClub (gêneros fixos) */}
+      {/* Barra de estilos musicais — navega para o Browse */}
       <div className="flex flex-wrap items-center gap-2">
         <button
-          onClick={() => { setSelectedGenre("Todos"); setShowMoreGenres(false); }}
-          className={genrePillClass(selectedGenre === "Todos")}
+          onClick={() => selectGenre(ALL)}
+          className={genrePillClass(selectedGenre === ALL)}
         >
-          Todos
+          All
         </button>
 
         {MAIN_GENRES.map((g) => (
           <button
             key={g}
-            onClick={() => { setSelectedGenre(g); setShowMoreGenres(false); }}
+            onClick={() => selectGenre(g)}
             className={genrePillClass(selectedGenre === g)}
           >
             {g}
           </button>
         ))}
 
-        {/* Botão Mais (dropdown com os demais gêneros) */}
+        {/* Botão More (dropdown com os demais gêneros) */}
         <div className="relative" ref={moreGenresRef}>
           <button
             onClick={() => setShowMoreGenres(!showMoreGenres)}
             className={`flex items-center gap-1 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
-              showMoreGenres || (selectedGenre !== "Todos" && !MAIN_GENRES.includes(selectedGenre))
+              showMoreGenres || (selectedGenre !== ALL && !MAIN_GENRES.includes(selectedGenre))
                 ? "bg-brand-accent text-black"
                 : "bg-white/[0.06] text-brand-muted hover:bg-white/10 hover:text-white"
             }`}
           >
-            Mais <ChevronDown size={14} className={`transition-transform ${showMoreGenres ? "rotate-180" : ""}`} />
+            More <ChevronDown size={14} className={`transition-transform ${showMoreGenres ? "rotate-180" : ""}`} />
           </button>
 
           {showMoreGenres && (
@@ -301,7 +320,7 @@ export default function Home() {
                 {EXTRA_GENRES.map((g) => (
                   <button
                     key={g}
-                    onClick={() => { setSelectedGenre(g); setShowMoreGenres(false); }}
+                    onClick={() => selectGenre(g)}
                     className={`px-3 py-2 rounded-lg text-xs font-bold text-left whitespace-nowrap transition-colors ${
                       selectedGenre === g
                         ? "bg-brand-accent text-black"
@@ -323,7 +342,7 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <TrendingUp size={22} className="text-brand-accent" />
             <h2 className="text-2xl font-bold">Trending Tabs</h2>
-            {selectedGenre !== "Todos" && (
+            {selectedGenre !== ALL && (
               <span className="text-xs text-brand-muted bg-white/[0.06] px-2 py-0.5 rounded-full">
                 {selectedGenre}
               </span>
@@ -387,7 +406,7 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <Users size={22} className="text-brand-accent" />
             <h2 className="text-2xl font-bold">Popular Artists</h2>
-            {selectedGenre !== "Todos" && (
+            {selectedGenre !== ALL && (
               <span className="text-xs text-brand-muted bg-white/[0.06] px-2 py-0.5 rounded-full">
                 {selectedGenre}
               </span>
@@ -416,7 +435,7 @@ export default function Home() {
               ))}
             </div>
 
-            {selectedGenre === "Todos" && hasMoreArtists && (
+            {selectedGenre === ALL && hasMoreArtists && (
               <div ref={sentinelRef} className="flex items-center justify-center py-6 text-brand-muted">
                 {loadingArtists ? (
                   <>
@@ -429,7 +448,7 @@ export default function Home() {
               </div>
             )}
 
-            {selectedGenre === "Todos" && !hasMoreArtists && (
+            {selectedGenre === ALL && !hasMoreArtists && (
               <p className="text-center text-xs text-brand-muted/60 py-4">
                 You've reached the end of the artist list.
               </p>
