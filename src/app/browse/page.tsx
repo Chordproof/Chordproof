@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import SearchBar from "@/components/SearchBar";
 import TabCard from "@/components/TabCard";
 import ArtistAvatar from "@/components/ArtistAvatar";
-import { SlidersHorizontal, Music, Users, ChevronRight, Loader2, ChevronDown } from "lucide-react";
+import { SlidersHorizontal, Music, Users, ChevronRight, Loader2, ChevronDown, X, RotateCcw } from "lucide-react";
 import { createClientSupabaseClient } from "@/lib/supabase-client";
 import Link from "next/link";
 
@@ -72,6 +72,21 @@ export default function Browse() {
     if (g) setSelectedGenre(g);
   }, []);
 
+  // Título + meta description (SEO) com o gênero ativo
+  useEffect(() => {
+    const genre = selectedGenre === ALL ? "" : selectedGenre;
+    document.title = genre ? `${genre} Tabs | ChordProof` : "Browse | ChordProof";
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) {
+      meta.setAttribute(
+        "content",
+        genre
+          ? `Browse verified ${genre} guitar tabs and artists on ChordProof. Accurate chords, no paywalls.`
+          : "Browse verified guitar tabs and artists on ChordProof. Accurate chords, no paywalls."
+      );
+    }
+  }, [selectedGenre]);
+
   // Clicar num gênero: navega para a Home com o filtro aplicado (Browse → Home)
   const selectGenre = (g: string) => {
     setShowMoreGenres(false);
@@ -81,6 +96,27 @@ export default function Browse() {
       router.push(`/?genre=${encodeURIComponent(g)}`);
     }
   };
+
+  // Remove o filtro de gênero (selo clicável no cabeçalho)
+  const clearGenre = () => {
+    setShowMoreGenres(false);
+    setSelectedGenre(ALL);
+    router.push("/browse", { scroll: false });
+  };
+
+  // Clean all: reseta busca + filtros + gênero de uma vez
+  const cleanAll = () => {
+    setSearch("");
+    setDifficulty("All");
+    setKey("All");
+    setSelectedGenre(ALL);
+    setShowMoreGenres(false);
+    setSearchedArtists(null);
+    router.push("/browse", { scroll: false });
+  };
+
+  const hasActiveFilters =
+    search.trim() !== "" || difficulty !== "All" || key !== "All" || selectedGenre !== ALL;
 
   // Carregar todas as tabs (uma vez)
   useEffect(() => {
@@ -238,14 +274,28 @@ export default function Browse() {
 
   return (
     <div className="space-y-8">
-      {/* Cabeçalho com selo do gênero ativo */}
+      {/* Cabeçalho com selo do gênero ativo + Clean all */}
       <div className="space-y-4">
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">Browse</h1>
           {selectedGenre !== ALL && (
-            <span className="text-xs font-bold text-brand-muted bg-white/[0.06] px-3 py-1 rounded-full border border-white/[0.06]">
+            <button
+              onClick={clearGenre}
+              title="Clear genre filter"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-muted bg-white/[0.06] px-3 py-1 rounded-full border border-white/[0.06] hover:bg-brand-accent/10 hover:text-brand-accent transition-colors"
+            >
               {selectedGenre}
-            </span>
+              <X size={12} />
+            </button>
+          )}
+          {hasActiveFilters && (
+            <button
+              onClick={cleanAll}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-muted bg-white/[0.06] px-3 py-1 rounded-full border border-white/[0.06] hover:bg-brand-accent/10 hover:text-brand-accent transition-colors"
+            >
+              <RotateCcw size={12} />
+              Clean all
+            </button>
           )}
         </div>
         <p className="text-brand-muted">Search through our collection of verified guitar tabs and artists.</p>
@@ -434,7 +484,7 @@ export default function Browse() {
                 {filteredArtists.map((artist) => (
                   <Link
                     key={artist.id}
-                    href={`/artist/${artist.slug}`}
+                    href={`/artist/${artist.slug}?genre=${encodeURIComponent(artist.genre)}`}
                     className="block bg-[#1A1A1A] rounded-2xl p-5 border border-white/[0.06] hover:bg-[#242424] transition-all duration-300 group"
                   >
                     <div className="flex items-center gap-4">
