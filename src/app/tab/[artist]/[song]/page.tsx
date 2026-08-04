@@ -3,9 +3,10 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import TransposeControls from "@/components/TransposeControls";
 import ArtistAvatar from "@/components/ArtistAvatar";
+import VerifiedBadge from "@/components/VerifiedBadge";
 import CleanAllButton from "@/components/CleanAllButton";
+import SimilarTabCard from "@/components/SimilarTabCard";
 import {
-  BadgeCheck,
   History,
   AlertTriangle,
   Share2,
@@ -17,7 +18,6 @@ import {
   Music2,
   Youtube,
   ListMusic,
-  Eye,
 } from "lucide-react";
 import { createClientSupabaseClient } from "@/lib/supabase-client";
 
@@ -150,6 +150,14 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const youtubeSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${songName} ${artistName}`)}`;
   const artistHref = `/artist/${artistSlug}${artistGenre ? `?genre=${encodeURIComponent(artistGenre)}` : ""}`;
 
+  // Clean all: reseta transpose, auto-scroll, velocidade e versão
+  const cleanAll = () => {
+    setAutoScroll(false);
+    setScrollSpeed(5);
+    setVersion("2.1");
+    window.dispatchEvent(new CustomEvent("reset-transpose"));
+  };
+
   const fallbackContent = `[Intro]
 F#m  D  A  E
 
@@ -187,11 +195,7 @@ And after all, you're my wonderwall`;
         <div className="space-y-2">
           <div className="flex items-center gap-3">
             <h1 className="text-4xl font-bold capitalize">{songName}</h1>
-            {isVerified && (
-              <div className="flex items-center gap-1 bg-brand-accent/10 text-brand-accent px-3 py-1 rounded-full text-xs font-bold">
-                <BadgeCheck size={14} /> VERIFIED
-              </div>
-            )}
+            {isVerified && <VerifiedBadge />}
           </div>
 
           {/* Foto do artista + nome clicável → página do artista com ?genre= */}
@@ -363,39 +367,19 @@ And after all, you're my wonderwall`;
               </div>
               {similarTabs.length > 0 ? (
                 <div className="space-y-3">
-                  {similarTabs.map((t) => {
-                    const tArtistSlug = t.slug_artist || artistSlug;
-                    const tGenre = t.genre || artistGenre;
-                    const tArtistHref = `/artist/${tArtistSlug}${tGenre ? `?genre=${encodeURIComponent(tGenre)}` : ""}`;
-                    return (
-                      <Link
-                        key={t.id}
-                        href={`/tab/${tArtistSlug}/${t.slug_song || slugify(t.song)}`}
-                        className="flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.08] rounded-lg p-3 transition-colors group"
-                      >
-                        <Link href={tArtistHref} className="shrink-0">
-                          <ArtistAvatar name={t.artist || artistName} slug={tArtistSlug} size="xs" />
-                        </Link>
-                        <div className="flex-1 min-w-0">
-                          <Link
-                            href={`/tab/${tArtistSlug}/${t.slug_song || slugify(t.song)}`}
-                            className="font-bold text-sm truncate block group-hover:text-brand-accent transition-colors"
-                          >
-                            {t.song}
-                          </Link>
-                          <Link
-                            href={tArtistHref}
-                            className="text-xs text-brand-muted truncate block hover:text-brand-accent hover:underline transition-colors"
-                          >
-                            {t.artist || artistName}
-                          </Link>
-                        </div>
-                        <span className="flex items-center gap-1 text-[10px] text-brand-muted shrink-0">
-                          <Eye size={10} /> {(t.views || 0).toLocaleString()}
-                        </span>
-                      </Link>
-                    );
-                  })}
+                  {similarTabs.map((t) => (
+                    <SimilarTabCard
+                      key={t.id}
+                      song={t.song}
+                      artist={t.artist || artistName}
+                      artistSlug={t.slug_artist || artistSlug}
+                      slugSong={t.slug_song}
+                      difficulty={t.difficulty}
+                      keySig={t.key_sig}
+                      views={t.views || 0}
+                      genre={t.genre || artistGenre}
+                    />
+                  ))}
                 </div>
               ) : (
                 <p className="text-xs text-brand-muted">
@@ -415,13 +399,13 @@ And after all, you're my wonderwall`;
         </div>
       </div>
 
-      {/* Histórico + Clean all */}
+      {/* Histórico + Clean all (reseta transpose/auto-scroll) */}
       <div className="flex items-center justify-between pt-2">
         <div className="flex items-center gap-2 text-sm text-brand-muted">
           <History size={16} />
           <span>Contributors: ChordProof Community · Last verified: recently</span>
         </div>
-        <CleanAllButton onClick={() => (window.location.href = "/")} label="Clean all" />
+        <CleanAllButton onClick={cleanAll} label="Reset controls" />
       </div>
     </div>
   );
