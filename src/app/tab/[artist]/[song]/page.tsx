@@ -362,26 +362,40 @@ And after all, you're my wonderwall`;
               </div>
               {similarTabs.length > 0 ? (
                 <div className="space-y-3">
-                  {similarTabs.map((t) => (
-                    <Link
-                      key={t.id}
-                      href={`/tab/${t.slug_artist || artistSlug}/${t.slug_song || slugify(t.song)}`}
-                      className="flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.08] rounded-lg p-3 transition-colors group"
-                    >
-                      <ArtistAvatar name={t.artist || artistName} slug={t.slug_artist || artistSlug} size="xs" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-sm truncate group-hover:text-brand-accent transition-colors">
-                          {t.song}
-                        </p>
-                        <p className="text-xs text-brand-muted truncate">
-                          {t.difficulty} · Key {t.key_sig}
-                        </p>
-                      </div>
-                      <span className="flex items-center gap-1 text-[10px] text-brand-muted shrink-0">
-                        <Eye size={10} /> {(t.views || 0).toLocaleString()}
-                      </span>
-                    </Link>
-                  ))}
+                  {similarTabs.map((t) => {
+                    const tArtistSlug = t.slug_artist || artistSlug;
+                    const tGenre = t.genre || artistGenre;
+                    const tArtistHref = `/artist/${tArtistSlug}${tGenre ? `?genre=${encodeURIComponent(tGenre)}` : ""}`;
+                    return (
+                      <Link
+                        key={t.id}
+                        href={`/tab/${tArtistSlug}/${t.slug_song || slugify(t.song)}`}
+                        className="flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.08] rounded-lg p-3 transition-colors group"
+                      >
+                        {/* Foto do artista → página do artista com ?genre= */}
+                        <Link href={tArtistHref} className="shrink-0">
+                          <ArtistAvatar name={t.artist || artistName} slug={tArtistSlug} size="xs" />
+                        </Link>
+                        <div className="flex-1 min-w-0">
+                          <Link
+                            href={`/tab/${tArtistSlug}/${t.slug_song || slugify(t.song)}`}
+                            className="font-bold text-sm truncate block group-hover:text-brand-accent transition-colors"
+                          >
+                            {t.song}
+                          </Link>
+                          <Link
+                            href={tArtistHref}
+                            className="text-xs text-brand-muted truncate block hover:text-brand-accent hover:underline transition-colors"
+                          >
+                            {t.artist || artistName}
+                          </Link>
+                        </div>
+                        <span className="flex items-center gap-1 text-[10px] text-brand-muted shrink-0">
+                          <Eye size={10} /> {(t.views || 0).toLocaleString()}
+                        </span>
+                      </Link>
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-xs text-brand-muted">
