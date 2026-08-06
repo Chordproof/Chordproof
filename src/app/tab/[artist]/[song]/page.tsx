@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import TransposeControls from "@/components/TransposeControls";
-import { BadgeCheck, Bookmark, Share2, Play, ChevronDown, MousePointer2, Youtube } from "lucide-react";
+import { BadgeCheck, Bookmark, Share2, Play, ChevronDown, MousePointer2, Youtube, ExternalLink, X } from "lucide-react";
 
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
@@ -266,6 +266,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const [scrollSpeed, setScrollSpeed] = useState(5);
   const [version, setVersion] = useState("1.0");
   const [hoveredChord, setHoveredChord] = useState<string | null>(null);
+  const [selectedChord, setSelectedChord] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchTab() {
@@ -313,6 +314,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
                   className="chord"
                   onMouseEnter={() => setHoveredChord(part)}
                   onMouseLeave={() => setHoveredChord(null)}
+                  onClick={() => setSelectedChord(part)}
                 >
                   {part}
                 </span>
@@ -415,10 +417,10 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         )}
       </div>
 
-      {/* Conteúdo + vídeo lateral */}
+      {/* Conteúdo + coluna lateral */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          {/* Cifra completa (sem corte, sem caixa de rolagem) */}
+          {/* Cifra completa (sem corte) */}
           <div className="cifra-content bg-brand-card rounded-2xl p-8 border border-white/5">
             {renderContent(transposedContent)}
           </div>
@@ -427,15 +429,16 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
           <div className="bg-brand-card rounded-2xl p-8 border border-white/5">
             <h3 className="text-xl font-bold mb-2">Acordes usados nesta cifra</h3>
             <p className="text-sm text-brand-muted mb-6">
-              Passe o mouse sobre um acorde no texto para ver o diagrama. Confira abaixo todos os acordes:
+              Passe o mouse (ou clique) sobre um acorde no texto, ou veja todos abaixo:
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {chords.map((chord) => (
                 <div
                   key={chord}
-                  className="bg-white/5 rounded-xl p-3 border border-white/5 hover:border-brand-gold/40 transition"
+                  className="bg-white/5 rounded-xl p-3 border border-white/5 hover:border-brand-gold/40 transition cursor-pointer"
                   onMouseEnter={() => setHoveredChord(chord)}
                   onMouseLeave={() => setHoveredChord(null)}
+                  onClick={() => setSelectedChord(chord)}
                 >
                   <ChordDiagram chord={chord} />
                 </div>
@@ -452,29 +455,69 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
           </details>
         </div>
 
-        {/* Vídeo lateral para ouvir a música */}
+        {/* Ouvir a música (botões confiáveis) */}
         <aside className="space-y-6 lg:sticky lg:top-24 h-fit">
           <div className="bg-brand-card rounded-2xl p-4 border border-white/5">
-            <h3 className="flex items-center gap-2 font-bold mb-3">
-              <Youtube size={18} className="text-brand-gold" /> Ouça a música
+            <h3 className="flex items-center gap-2 font-bold mb-2">
+              <Youtube size={18} className="text-red-500" /> Ouça a música
             </h3>
-            <iframe
-              src={`https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(
-                `${tab.song} ${tab.artist}`
-              )}`}
-              title={`${tab.song} - ${tab.artist}`}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="w-full aspect-video rounded-xl border border-white/5"
-            />
+            <p className="text-sm text-brand-muted mb-4">
+              Abre a busca de {tab.song} por {tab.artist} direto no YouTube ou Spotify.
+            </p>
+            <a
+              href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${tab.song} ${tab.artist}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl transition"
+            >
+              <Youtube size={18} /> Ouvir no YouTube
+            </a>
+            <a
+              href={`https://open.spotify.com/search/${encodeURIComponent(`${tab.song} ${tab.artist}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full bg-[#1DB954] hover:bg-[#1ed760] text-black font-bold py-3 rounded-xl transition mt-3"
+            >
+              <ExternalLink size={16} /> Abrir no Spotify
+            </a>
+            <p className="text-xs text-brand-muted mt-3">
+              O player embutido do YouTube é bloqueado pelo próprio YouTube na maioria dos sites — por isso usamos botões que abrem a música direto.
+            </p>
           </div>
         </aside>
       </div>
 
-      {/* Tooltip com o diagrama do acorde (hover) */}
+      {/* Tooltip do acorde (hover) */}
       {hoveredChord && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-brand-card border border-brand-gold/40 rounded-2xl p-3 shadow-2xl w-44">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[999] bg-brand-card border border-brand-gold/40 rounded-2xl p-3 shadow-2xl w-44 pointer-events-none">
           <ChordDiagram chord={hoveredChord} />
+          <p className="text-center text-xs text-brand-muted -mt-1">Clique no acorde para ampliar</p>
+        </div>
+      )}
+
+      {/* Modal do acorde (clique) — funciona em qualquer dispositivo */}
+      {selectedChord && (
+        <div
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setSelectedChord(null)}
+        >
+          <div
+            className="bg-brand-card border border-brand-gold/40 rounded-2xl p-6 shadow-2xl max-w-xs w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-xl font-bold">Acorde {selectedChord}</h3>
+              <button
+                onClick={() => setSelectedChord(null)}
+                className="p-2 bg-white/5 rounded-full hover:bg-white/10"
+                aria-label="Fechar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <ChordDiagram chord={selectedChord} />
+            <p className="text-center text-xs text-brand-muted mt-2">Clique fora para fechar</p>
+          </div>
         </div>
       )}
     </div>
