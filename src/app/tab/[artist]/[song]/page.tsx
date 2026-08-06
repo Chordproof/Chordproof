@@ -31,7 +31,7 @@ function transposeContent(content: string, semitones: number) {
 // Extrai os acordes únicos do conteúdo para gerar os diagramas
 function extractChords(content: string) {
   const matches = content.match(/\b[A-G](?:#|b)?(?:[0-9]|M|m|7|9|11|13|4|6|add|sus|dim|aug|\([0-9]+\)|\/[A-G](?:#|b)?)*\b/g) || [];
-  return [...new Set(matches)];
+  return Array.from(new Set(matches));
 }
 
 export default function TabDetail({ params }: { params: { artist: string; song: string } }) {
