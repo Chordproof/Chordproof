@@ -10,7 +10,7 @@ export default async function BrowsePage() {
     .order("artist", { ascending: true })
     .order("song", { ascending: true });
 
-  const grouped = (tabs || []).reduce<Record<string, typeof tabs>>((acc, tab) => {
+  const grouped = (tabs || []).reduce<Record<string, any[]>>((acc, tab) => {
     (acc[tab.artist] ||= []).push(tab);
     return acc;
   }, {});
