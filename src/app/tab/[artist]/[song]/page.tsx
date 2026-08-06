@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import TransposeControls from "@/components/TransposeControls";
-import { BadgeCheck, Bookmark, Share2, Play, ChevronDown, MousePointer2, Youtube, X } from "lucide-react";
+import { BadgeCheck, Bookmark, Share2, Play, ChevronDown, MousePointer2, Youtube, X, ExternalLink } from "lucide-react";
 
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
@@ -42,7 +42,6 @@ function extractChords(content: string) {
   const re = new RegExp(String.raw`\b${CHORD_PATTERN}\b`, "gi");
   const matches = content.match(re) || [];
   if (matches.length > 0) return Array.from(new Set(matches));
-  // Plano B: divide por espaços e mantém só tokens que parecem acordes
   const tokenRe = new RegExp(String.raw`^\b${CHORD_PATTERN}\b$`, "i");
   const tokens = content.split(/[\s\n\r\t]+/).map((t) =>
     t.replace(/^[\[\(\{\<]+|[\]\)\}\>\,\.\;\¡\?]+$/g, "")
@@ -53,7 +52,6 @@ function extractChords(content: string) {
 // ===== Diagramas de acordes (braço do instrumento) =====
 // Formato: [corda E, A, D, G, B, e]  →  0 = corda solta, -1 = corda muda, número = casa
 const CHORD_SHAPES: Record<string, number[]> = {
-  // ===== Acordes maiores (12 tons) =====
   C: [-1, 3, 2, 0, 1, 0],
   "C#": [-1, 4, 6, 6, 6, 4],
   D: [-1, -1, 0, 2, 3, 2],
@@ -66,8 +64,6 @@ const CHORD_SHAPES: Record<string, number[]> = {
   A: [-1, 0, 2, 2, 2, 0],
   "A#": [-1, 1, 3, 3, 3, 1],
   B: [-1, 2, 4, 4, 4, 2],
-
-  // ===== Acordes menores (12 tons) =====
   Cm: [3, 5, 5, 4, 3, 3],
   "C#m": [-1, 4, 6, 6, 5, 4],
   Dm: [-1, -1, 0, 2, 3, 1],
@@ -80,8 +76,6 @@ const CHORD_SHAPES: Record<string, number[]> = {
   Am: [-1, 0, 2, 2, 1, 0],
   "A#m": [-1, 1, 3, 3, 2, 1],
   Bm: [-1, 2, 4, 4, 3, 2],
-
-  // ===== Sétimas dominantes (12 tons) =====
   C7: [-1, 3, 2, 3, 1, 0],
   "C#7": [-1, 4, 6, 4, 6, 4],
   D7: [-1, -1, 0, 2, 1, 2],
@@ -94,8 +88,6 @@ const CHORD_SHAPES: Record<string, number[]> = {
   A7: [-1, 0, 2, 0, 2, 0],
   "A#7": [-1, 1, 3, 1, 3, 1],
   B7: [-1, 2, 1, 2, 0, 2],
-
-  // ===== Sétimas maiores (maj7) =====
   Cmaj7: [-1, 3, 2, 0, 0, 0],
   "C#maj7": [-1, 4, 6, 5, 6, 4],
   Dmaj7: [-1, -1, 0, 2, 2, 2],
@@ -108,8 +100,6 @@ const CHORD_SHAPES: Record<string, number[]> = {
   Amaj7: [-1, 0, 2, 1, 2, 0],
   "A#maj7": [-1, 1, 3, 2, 3, 1],
   Bmaj7: [-1, 2, 4, 3, 4, 2],
-
-  // ===== Sétimas menores (m7) =====
   Cm7: [-1, 3, 5, 3, 4, 3],
   "C#m7": [-1, 4, 6, 4, 5, 4],
   Dm7: [-1, -1, 0, 2, 1, 1],
@@ -122,16 +112,12 @@ const CHORD_SHAPES: Record<string, number[]> = {
   Am7: [-1, 0, 2, 0, 1, 0],
   "A#m7": [-1, 1, 3, 1, 2, 1],
   Bm7: [-1, 2, 4, 2, 3, 2],
-
-  // ===== Sus2 =====
   Csus2: [-1, 3, 0, 0, 1, 0],
   Dsus2: [-1, -1, 0, 2, 3, 0],
   Fsus2: [1, 3, 3, 1, 1, 1],
   Gsus2: [3, 0, 0, 0, 0, 3],
   Asus2: [-1, 0, 2, 2, 0, 0],
   Bsus2: [-1, 2, 4, 4, 2, 2],
-
-  // ===== Sus4 =====
   Csus4: [-1, 3, 3, 0, 1, 1],
   Dsus4: [-1, -1, 0, 2, 3, 3],
   Esus4: [0, 2, 2, 2, 0, 0],
@@ -139,38 +125,26 @@ const CHORD_SHAPES: Record<string, number[]> = {
   Gsus4: [3, 3, 0, 0, 1, 3],
   Asus4: [-1, 0, 2, 2, 3, 0],
   Bsus4: [-1, 2, 4, 4, 4, 2],
-
-  // ===== Add9 =====
   Cadd9: [-1, 3, 2, 0, 3, 0],
   Dadd9: [-1, -1, 0, 2, 0, 2],
   Eadd9: [0, 2, 2, 1, 0, 2],
   Gadd9: [3, 2, 0, 2, 0, 3],
   Aadd9: [-1, 0, 2, 4, 2, 0],
-
-  // ===== Sextas =====
   C6: [-1, 3, 2, 2, 1, 0],
   D6: [-1, -1, 0, 2, 0, 2],
   E6: [0, 2, 2, 1, 2, 0],
   G6: [3, 2, 0, 0, 0, 0],
   A6: [-1, 0, 2, 2, 2, 2],
   B6: [-1, 2, 4, 4, 4, 4],
-
-  // ===== Nonas =====
   C9: [-1, 3, 2, 3, 3, 3],
   D9: [-1, 5, 4, 5, 5, 5],
   E9: [0, 2, 0, 1, 0, 2],
-
-  // ===== 7sus4 =====
   D7sus4: [-1, -1, 0, 2, 1, 3],
   E7sus4: [0, 2, 0, 2, 0, 0],
   G7sus4: [3, 3, 0, 0, 1, 1],
   A7sus4: [-1, 0, 2, 0, 3, 0],
-
-  // ===== Acordes específicos da Wonderwall =====
   D4: [-1, -1, 0, 2, 3, 3],
   "A7(4)": [-1, 0, 2, 0, 3, 0],
-
-  // ===== Acordes com baixo (slash) =====
   "G/B": [-1, 2, 0, 0, 0, 3],
   "D/F#": [2, -1, 0, 2, 3, 2],
   "C/E": [0, 3, 2, 0, 1, 0],
@@ -178,14 +152,10 @@ const CHORD_SHAPES: Record<string, number[]> = {
   "Em/G": [3, 2, 2, 0, 0, 0],
   "C/G": [3, 3, 2, 0, 1, 0],
   "Am/G": [3, 0, 2, 2, 1, 0],
-
-  // ===== Diminutos e aumentados =====
   Cdim: [-1, 3, 4, 3, 4, 2],
   Caug: [-1, 3, 2, 1, 1, 0],
   Eaug: [0, 3, 2, 1, 1, 0],
   Gaug: [3, 2, 1, 0, 0, 3],
-
-  // ===== Power chords (5) =====
   C5: [-1, 3, 5, 5, -1, -1],
   D5: [-1, -1, 0, 2, 3, -1],
   E5: [0, 2, 2, -1, -1, -1],
@@ -195,14 +165,15 @@ const CHORD_SHAPES: Record<string, number[]> = {
   B5: [-1, 2, 4, 4, -1, -1],
 };
 
-function ChordDiagram({ chord }: { chord: string }) {
+// Componente de diagrama com design melhorado
+function ChordDiagram({ chord, size = "md" }: { chord: string; size?: "sm" | "md" | "lg" }) {
   const shape = CHORD_SHAPES[chord] || CHORD_SHAPES[chord.charAt(0).toUpperCase() + chord.slice(1)];
 
   if (!shape) {
     return (
       <div className="flex flex-col items-center gap-1 py-2">
         <span className="text-2xl font-bold text-brand-gold">{chord}</span>
-        <span className="text-xs text-brand-muted">Diagrama não disponível</span>
+        <span className="text-xs text-brand-muted">Diagram not available</span>
       </div>
     );
   }
@@ -215,54 +186,56 @@ function ChordDiagram({ chord }: { chord: string }) {
   const fretGap = 22;
 
   return (
-    <svg width="96" height="128" viewBox="0 0 96 128" className="mx-auto">
-      {/* Cordas */}
-      {stringXs.map((x, i) => (
-        <line key={i} x1={x} y1={topY} x2={x} y2={topY + fretGap * 4} stroke="#9E9E9E" strokeWidth={i === 5 ? 2 : 1.5} />
-      ))}
-      {/* Trastes */}
-      {[0, 1, 2, 3, 4].map((f) => (
-        <line
-          key={f}
-          x1={stringXs[0] - 3}
-          y1={topY + fretGap * f}
-          x2={stringXs[5] + 3}
-          y2={topY + fretGap * f}
-          stroke={f === 0 ? "#f0b429" : "#9E9E9E"}
-          strokeWidth={f === 0 ? 4 : 1.5}
-        />
-      ))}
-      {/* Número do traste (quando começa além da casa 1) */}
-      {baseFret > 1 && (
-        <text x={4} y={topY + fretGap / 2 + 4} fontSize="10" fill="#9E9E9E">
-          {baseFret}
+    <div className="flex flex-col items-center">
+      <svg width="96" height="128" viewBox="0 0 96 128" className="mx-auto">
+        {/* Cordas */}
+        {stringXs.map((x, i) => (
+          <line key={i} x1={x} y1={topY} x2={x} y2={topY + fretGap * 4} stroke="#9E9E9E" strokeWidth={i === 5 ? 2 : 1.5} />
+        ))}
+        {/* Trastes */}
+        {[0, 1, 2, 3, 4].map((f) => (
+          <line
+            key={f}
+            x1={stringXs[0] - 3}
+            y1={topY + fretGap * f}
+            x2={stringXs[5] + 3}
+            y2={topY + fretGap * f}
+            stroke={f === 0 ? "#f0b429" : "#9E9E9E"}
+            strokeWidth={f === 0 ? 4 : 1.5}
+          />
+        ))}
+        {/* Número do traste */}
+        {baseFret > 1 && (
+          <text x={4} y={topY + fretGap / 2 + 4} fontSize="10" fill="#9E9E9E">
+            {baseFret}
+          </text>
+        )}
+        {/* Dedilhados */}
+        {positions.map((pos, i) => {
+          const x = stringXs[i];
+          if (pos === 0) {
+            return (
+              <text key={i} x={x} y={topY - 8} fontSize="12" textAnchor="middle" fill="#9E9E9E">
+                ○
+              </text>
+            );
+          }
+          if (pos < 0) {
+            return (
+              <text key={i} x={x} y={topY - 8} fontSize="12" textAnchor="middle" fill="#9E9E9E">
+                ×
+              </text>
+            );
+          }
+          const y = topY + (pos - baseFret) * fretGap + fretGap / 2;
+          return <circle key={i} cx={x} cy={y} r="6.5" fill="#f0b429" stroke="#0f0f0f" strokeWidth="1.5" />;
+        })}
+        {/* Nome do acorde */}
+        <text x="48" y="122" fontSize="14" fontWeight="bold" textAnchor="middle" fill="#f0b429">
+          {chord}
         </text>
-      )}
-      {/* Dedilhados */}
-      {positions.map((pos, i) => {
-        const x = stringXs[i];
-        if (pos === 0) {
-          return (
-            <text key={i} x={x} y={topY - 8} fontSize="12" textAnchor="middle" fill="#9E9E9E">
-              ○
-            </text>
-          );
-        }
-        if (pos < 0) {
-          return (
-            <text key={i} x={x} y={topY - 8} fontSize="12" textAnchor="middle" fill="#9E9E9E">
-              ×
-            </text>
-          );
-        }
-        const y = topY + (pos - baseFret) * fretGap + fretGap / 2;
-        return <circle key={i} cx={x} cy={y} r="6.5" fill="#f0b429" />;
-      })}
-      {/* Nome do acorde */}
-      <text x="48" y="122" fontSize="14" fontWeight="bold" textAnchor="middle" fill="#f0b429">
-        {chord}
-      </text>
-    </svg>
+      </svg>
+    </div>
   );
 }
 
@@ -312,7 +285,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       });
   }, [tab]);
 
-  // Auto-scroll suave (rola a página inteira)
+  // Auto-scroll suave
   useEffect(() => {
     if (!autoScroll) return;
     const interval = setInterval(() => {
@@ -321,13 +294,13 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
     return () => clearInterval(interval);
   }, [autoScroll, scrollSpeed]);
 
-  if (loading) return <p className="text-center py-20 text-brand-muted">Carregando cifra...</p>;
-  if (!tab) return <p className="text-center py-20 text-brand-muted">Cifra não encontrada.</p>;
+  if (loading) return <p className="text-center py-20 text-brand-muted">Loading tab...</p>;
+  if (!tab) return <p className="text-center py-20 text-brand-muted">Tab not found.</p>;
 
   const transposedContent = transposeContent(tab.content, transpose);
   const chords = extractChords(transposedContent);
 
-  // Renderiza cada linha; acordes viram elementos clicáveis com diagrama no hover (CSS puro)
+  // Renderiza a cifra com layout clássico: acorde em cima, letra embaixo
   const renderContent = (text: string) => {
     const splitRe = new RegExp(String.raw`(\b${CHORD_PATTERN}\b)`, "gi");
     const testRe = new RegExp(String.raw`^\b${CHORD_PATTERN}\b$`, "i");
@@ -345,10 +318,10 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
                   onClick={() => setSelectedChord(part)}
                 >
                   <span className="chord">{part}</span>
-                  {/* Tooltip com o braço do instrumento (aparece no hover, sem JS) */}
+                  {/* Tooltip com o braço do instrumento */}
                   <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-[60] bg-brand-card border border-brand-gold/40 rounded-xl p-2 shadow-2xl w-40 pointer-events-none">
                     <ChordDiagram chord={part} />
-                    <span className="block text-center text-[10px] text-brand-muted">Clique para ampliar</span>
+                    <span className="block text-center text-[10px] text-brand-muted">Click to enlarge</span>
                   </span>
                 </span>
               );
@@ -439,7 +412,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         </button>
         {autoScroll && (
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-brand-muted">Velocidade</span>
+            <span className="text-brand-muted">Speed</span>
             <input
               type="range" min={1} max={10} value={scrollSpeed}
               onChange={(e) => setScrollSpeed(Number(e.target.value))}
@@ -453,16 +426,16 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       {/* Conteúdo + vídeo lateral */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          {/* Cifra completa (sem corte) */}
+          {/* Cifra completa */}
           <div className="cifra-content bg-brand-card rounded-2xl p-8 border border-white/5">
             {renderContent(transposedContent)}
           </div>
 
           {/* Diagramas dos acordes no final */}
           <div className="bg-brand-card rounded-2xl p-8 border border-white/5">
-            <h3 className="text-xl font-bold mb-2">Acordes usados nesta cifra</h3>
+            <h3 className="text-xl font-bold mb-2">Chords used in this tab</h3>
             <p className="text-sm text-brand-muted mb-6">
-              Passe o mouse sobre um acorde na cifra, ou veja todos abaixo:
+              Hover over a chord in the tab, or view them all below:
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {chords.map((chord) => (
@@ -477,7 +450,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
             </div>
             {chords.length === 0 && (
               <p className="text-brand-muted text-sm">
-                Nenhum acorde identificado automaticamente. Verifique se a cifra usa o formato padrão (ex: Em7, G, D4).
+                No chords identified automatically. Check that the tab uses the standard format (e.g. Em7, G, D4).
               </p>
             )}
           </div>
@@ -485,43 +458,53 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
           {/* Versões */}
           <details className="bg-brand-card rounded-xl p-4 border border-white/5">
             <summary className="flex items-center gap-2 cursor-pointer font-semibold">
-              <ChevronDown size={16} /> Outras versões
+              <ChevronDown size={16} /> Other versions
             </summary>
-            <p className="text-sm text-brand-muted mt-3">Versão 1.0 (principal)</p>
+            <p className="text-sm text-brand-muted mt-3">Version 1.0 (main)</p>
           </details>
         </div>
 
-        {/* Vídeo embutido (fica visível enquanto rola a cifra) */}
+        {/* Vídeo embutido */}
         <aside className="space-y-6 lg:sticky lg:top-24 h-fit">
           <div className="bg-brand-card rounded-2xl p-4 border border-white/5">
             <h3 className="flex items-center gap-2 font-bold mb-3">
               <Youtube size={18} className="text-red-500" /> {tab.song} - {tab.artist}
             </h3>
             {videoId ? (
-              <iframe
-                src={`https://www.youtube.com/embed/${videoId}`}
-                title={`${tab.song} - ${tab.artist}`}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-                className="w-full aspect-video rounded-xl border border-white/5"
-              />
+              <div>
+                <iframe
+                  src={`https://www.youtube.com/embed/${videoId}?origin=${encodeURIComponent(
+                    typeof window !== "undefined" ? window.location.origin : ""
+                  )}`}
+                  title={`${tab.song} - ${tab.artist}`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className="w-full aspect-video rounded-xl border border-white/5"
+                />
+                <a
+                  href={`https://www.youtube.com/watch?v=${videoId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full mt-3 bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-xl transition text-sm"
+                >
+                  <ExternalLink size={16} /> Watch on YouTube
+                </a>
+                <p className="text-xs text-brand-muted mt-2">
+                  If the video is blocked by the copyright holder, use the button above to watch it on YouTube.
+                </p>
+              </div>
             ) : (
               <div className="w-full aspect-video rounded-xl border border-white/5 bg-white/5 flex items-center justify-center">
                 <p className="text-sm text-brand-muted px-4 text-center">
-                  {videoLoading ? "Buscando vídeo..." : "Vídeo não encontrado no YouTube."}
+                  {videoLoading ? "Searching for video..." : "Video not found on YouTube."}
                 </p>
               </div>
             )}
-            <p className="text-xs text-brand-muted mt-3">
-              {tab.video_id
-                ? "Vídeo oficial desta cifra."
-                : "Vídeo encontrado automaticamente no YouTube."}
-            </p>
           </div>
         </aside>
       </div>
 
-      {/* Modal do acorde (clique) — funciona em qualquer dispositivo */}
+      {/* Modal do acorde (clique) */}
       {selectedChord && (
         <div
           className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4"
@@ -532,17 +515,17 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-2">
-              <h3 className="text-xl font-bold">Acorde {selectedChord}</h3>
+              <h3 className="text-xl font-bold">Chord {selectedChord}</h3>
               <button
                 onClick={() => setSelectedChord(null)}
                 className="p-2 bg-white/5 rounded-full hover:bg-white/10"
-                aria-label="Fechar"
+                aria-label="Close"
               >
                 <X size={18} />
               </button>
             </div>
             <ChordDiagram chord={selectedChord} />
-            <p className="text-center text-xs text-brand-muted mt-2">Clique fora para fechar</p>
+            <p className="text-center text-xs text-brand-muted mt-2">Click outside to close</p>
           </div>
         </div>
       )}
