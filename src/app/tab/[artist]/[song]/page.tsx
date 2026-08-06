@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import TransposeControls from "@/components/TransposeControls";
-import { BadgeCheck, Bookmark, Share2, Play, ChevronDown, MousePointer2, Youtube, ExternalLink, X } from "lucide-react";
+import { BadgeCheck, Bookmark, Share2, Play, ChevronDown, MousePointer2, Youtube, X } from "lucide-react";
 
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
@@ -265,7 +265,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const [autoScroll, setAutoScroll] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(5);
   const [version, setVersion] = useState("1.0");
-  const [hoveredChord, setHoveredChord] = useState<string | null>(null);
   const [selectedChord, setSelectedChord] = useState<string | null>(null);
 
   useEffect(() => {
@@ -297,7 +296,12 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const transposedContent = transposeContent(tab.content, transpose);
   const chords = extractChords(transposedContent);
 
-  // Renderiza cada linha; acordes viram elementos clicáveis, linhas de tablatura ganham destaque
+  // Vídeo: usa o video_id do banco (se existir) ou busca no YouTube
+  const videoSrc = tab.video_id
+    ? `https://www.youtube.com/embed/${tab.video_id}`
+    : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(`${tab.song} ${tab.artist}`)}`;
+
+  // Renderiza cada linha; acordes viram elementos clicáveis com diagrama no hover (CSS puro)
   const renderContent = (text: string) => {
     const splitRe = new RegExp(`(\b${CHORD_PATTERN}\b)`, "g");
     const testRe = new RegExp(`^\b${CHORD_PATTERN}\b$`);
@@ -311,12 +315,15 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
               return (
                 <span
                   key={i}
-                  className="chord"
-                  onMouseEnter={() => setHoveredChord(part)}
-                  onMouseLeave={() => setHoveredChord(null)}
+                  className="relative inline-block group"
                   onClick={() => setSelectedChord(part)}
                 >
-                  {part}
+                  <span className="chord">{part}</span>
+                  {/* Tooltip com o braço do instrumento (aparece no hover, sem JS) */}
+                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-[60] bg-brand-card border border-brand-gold/40 rounded-xl p-2 shadow-2xl w-40 pointer-events-none">
+                    <ChordDiagram chord={part} />
+                    <span className="block text-center text-[10px] text-brand-muted">Clique para ampliar</span>
+                  </span>
                 </span>
               );
             }
@@ -417,7 +424,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         )}
       </div>
 
-      {/* Conteúdo + coluna lateral */}
+      {/* Conteúdo + vídeo lateral */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
           {/* Cifra completa (sem corte) */}
@@ -429,15 +436,13 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
           <div className="bg-brand-card rounded-2xl p-8 border border-white/5">
             <h3 className="text-xl font-bold mb-2">Acordes usados nesta cifra</h3>
             <p className="text-sm text-brand-muted mb-6">
-              Passe o mouse (ou clique) sobre um acorde no texto, ou veja todos abaixo:
+              Passe o mouse sobre um acorde na cifra, ou veja todos abaixo:
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {chords.map((chord) => (
                 <div
                   key={chord}
                   className="bg-white/5 rounded-xl p-3 border border-white/5 hover:border-brand-gold/40 transition cursor-pointer"
-                  onMouseEnter={() => setHoveredChord(chord)}
-                  onMouseLeave={() => setHoveredChord(null)}
                   onClick={() => setSelectedChord(chord)}
                 >
                   <ChordDiagram chord={chord} />
@@ -455,45 +460,27 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
           </details>
         </div>
 
-        {/* Ouvir a música (botões confiáveis) */}
+        {/* Vídeo embutido (fica visível enquanto rola a cifra) */}
         <aside className="space-y-6 lg:sticky lg:top-24 h-fit">
           <div className="bg-brand-card rounded-2xl p-4 border border-white/5">
-            <h3 className="flex items-center gap-2 font-bold mb-2">
-              <Youtube size={18} className="text-red-500" /> Ouça a música
+            <h3 className="flex items-center gap-2 font-bold mb-3">
+              <Youtube size={18} className="text-red-500" /> {tab.song} - {tab.artist}
             </h3>
-            <p className="text-sm text-brand-muted mb-4">
-              Abre a busca de {tab.song} por {tab.artist} direto no YouTube ou Spotify.
-            </p>
-            <a
-              href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${tab.song} ${tab.artist}`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl transition"
-            >
-              <Youtube size={18} /> Ouvir no YouTube
-            </a>
-            <a
-              href={`https://open.spotify.com/search/${encodeURIComponent(`${tab.song} ${tab.artist}`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full bg-[#1DB954] hover:bg-[#1ed760] text-black font-bold py-3 rounded-xl transition mt-3"
-            >
-              <ExternalLink size={16} /> Abrir no Spotify
-            </a>
+            <iframe
+              src={videoSrc}
+              title={`${tab.song} - ${tab.artist}`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              className="w-full aspect-video rounded-xl border border-white/5"
+            />
             <p className="text-xs text-brand-muted mt-3">
-              O player embutido do YouTube é bloqueado pelo próprio YouTube na maioria dos sites — por isso usamos botões que abrem a música direto.
+              {tab.video_id
+                ? "Vídeo oficial desta cifra."
+                : "Reproduzindo a busca no YouTube. Para fixar o vídeo exato, cadastre o ID na coluna video_id da música."}
             </p>
           </div>
         </aside>
       </div>
-
-      {/* Tooltip do acorde (hover) */}
-      {hoveredChord && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[999] bg-brand-card border border-brand-gold/40 rounded-2xl p-3 shadow-2xl w-44 pointer-events-none">
-          <ChordDiagram chord={hoveredChord} />
-          <p className="text-center text-xs text-brand-muted -mt-1">Clique no acorde para ampliar</p>
-        </div>
-      )}
 
       {/* Modal do acorde (clique) — funciona em qualquer dispositivo */}
       {selectedChord && (
