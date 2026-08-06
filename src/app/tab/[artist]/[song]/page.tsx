@@ -174,6 +174,7 @@ const CHORD_SHAPES: Record<string, number[]> = {
 // Componente de diagrama com visual de braço de violão (maior, madeira, tons suaves)
 // Componente de diagrama com visual de braço de violão (nogueira + âmbar com brilho)
 // Componente de diagrama com visual de braço de violão (nogueira + âmbar com brilho)
+// Componente de diagrama com visual de braço de violão (nogueira + âmbar com brilho)
 function ChordDiagram({ chord }: { chord: string }) {
   const shape = CHORD_SHAPES[chord] || CHORD_SHAPES[chord.charAt(0).toUpperCase() + chord.slice(1)];
 
@@ -197,8 +198,8 @@ function ChordDiagram({ chord }: { chord: string }) {
   const woodY = 26;
   const woodH = 112;
 
-  // ID único por acorde (evita conflito de gradiente entre vários diagramas na página)
-  const gradId = `neckWood-${chord.replace(/[^a-zA-Z0-9]/g, "")}`;
+  // ID único por instância (usa um contador global para nunca repetir)
+  const gradId = `neckWood-${chord.replace(/[^a-zA-Z0-9]/g, "")}-${ChordDiagram.__counter++}`;
 
   return (
     <svg width="120" height="160" viewBox="0 0 120 160" className="mx-auto">
@@ -287,6 +288,9 @@ function ChordDiagram({ chord }: { chord: string }) {
     </svg>
   );
 }
+
+// Contador global para garantir IDs únicos entre todos os diagramas da página
+ChordDiagram.__counter = 0;
 
 export default function TabDetail({ params }: { params: { artist: string; song: string } }) {
   const [tab, setTab] = useState<any>(null);
