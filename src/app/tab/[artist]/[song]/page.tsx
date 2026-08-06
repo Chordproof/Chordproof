@@ -167,6 +167,7 @@ const CHORD_SHAPES: Record<string, number[]> = {
 
 // Componente de diagrama com visual de braço de violão (maior, madeira, tons suaves)
 // Componente de diagrama com visual de braço de violão (nogueira + âmbar com brilho)
+// Componente de diagrama com visual de braço de violão (nogueira + âmbar com brilho)
 function ChordDiagram({ chord }: { chord: string }) {
   const shape = CHORD_SHAPES[chord] || CHORD_SHAPES[chord.charAt(0).toUpperCase() + chord.slice(1)];
 
@@ -190,10 +191,13 @@ function ChordDiagram({ chord }: { chord: string }) {
   const woodY = 26;
   const woodH = 112;
 
+  // ID único por acorde (evita conflito de gradiente entre vários diagramas na página)
+  const gradId = `neckWood-${chord.replace(/[^a-zA-Z0-9]/g, "")}`;
+
   return (
     <svg width="120" height="160" viewBox="0 0 120 160" className="mx-auto">
       <defs>
-        <linearGradient id="neckWood" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#A5713F" />
           <stop offset="50%" stopColor="#7C4E26" />
           <stop offset="100%" stopColor="#553318" />
@@ -201,7 +205,7 @@ function ChordDiagram({ chord }: { chord: string }) {
       </defs>
 
       {/* Corpo do braço (madeira nogueira) */}
-      <rect x={woodX} y={woodY} width={woodW} height={woodH} rx="8" fill="url(#neckWood)" />
+      <rect x={woodX} y={woodY} width={woodW} height={woodH} rx="8" fill={`url(#${gradId})`} />
 
       {/* Marcas de casa (dots decorativos do braço) */}
       {[2, 4].map((fret) => (
