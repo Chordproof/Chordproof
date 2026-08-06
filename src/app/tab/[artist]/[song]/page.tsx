@@ -45,7 +45,7 @@ function extractChords(content: string) {
   // Plano B: divide por espaços e mantém só tokens que parecem acordes
   const tokenRe = new RegExp(String.raw`^\b${CHORD_PATTERN}\b$`, "i");
   const tokens = content.split(/[\s\n\r\t]+/).map((t) =>
-    t.replace(/^[\[\(\{\&lt;]+|[\]\)\}\>\,\.\;\!\?]+$/g, "")
+    t.replace(/^[\[\(\{\<]+|[\]\)\}\>\,\.\;\¡\?]+$/g, "")
   );
   return Array.from(new Set(tokens.filter((t) => tokenRe.test(t))));
 }
@@ -194,6 +194,7 @@ const CHORD_SHAPES: Record<string, number[]> = {
   A5: [-1, 0, 2, 2, -1, -1],
   B5: [-1, 2, 4, 4, -1, -1],
 };
+
 function ChordDiagram({ chord }: { chord: string }) {
   const shape = CHORD_SHAPES[chord] || CHORD_SHAPES[chord.charAt(0).toUpperCase() + chord.slice(1)];
 
@@ -273,6 +274,8 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const [scrollSpeed, setScrollSpeed] = useState(5);
   const [version, setVersion] = useState("1.0");
   const [selectedChord, setSelectedChord] = useState<string | null>(null);
+  const [videoId, setVideoId] = useState<string | null>(null);
+  const [videoLoading, setVideoLoading] = useState(false);
 
   useEffect(() => {
     async function fetchTab() {
@@ -287,6 +290,27 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
     }
     fetchTab();
   }, [params.artist, params.song]);
+
+  // Vídeo: usa o video_id do banco (se existir) ou busca no YouTube via API
+  useEffect(() => {
+    if (!tab) return;
+    if (tab.video_id) {
+      setVideoId(tab.video_id);
+      setVideoLoading(false);
+      return;
+    }
+    setVideoLoading(true);
+    fetch(`/api/youtube-search?q=${encodeURIComponent(`${tab.song} ${tab.artist}`)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setVideoId(data.videoId || null);
+        setVideoLoading(false);
+      })
+      .catch(() => {
+        setVideoId(null);
+        setVideoLoading(false);
+      });
+  }, [tab]);
 
   // Auto-scroll suave (rola a página inteira)
   useEffect(() => {
@@ -303,14 +327,9 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const transposedContent = transposeContent(tab.content, transpose);
   const chords = extractChords(transposedContent);
 
-  // Vídeo: usa o video_id do banco (se existir) ou busca no YouTube
-  const videoSrc = tab.video_id
-    ? `https://www.youtube.com/embed/${tab.video_id}`
-    : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(`${tab.song} ${tab.artist}`)}`;
-
   // Renderiza cada linha; acordes viram elementos clicáveis com diagrama no hover (CSS puro)
   const renderContent = (text: string) => {
-        const splitRe = new RegExp(String.raw`(\b${CHORD_PATTERN}\b)`, "gi");
+    const splitRe = new RegExp(String.raw`(\b${CHORD_PATTERN}\b)`, "gi");
     const testRe = new RegExp(String.raw`^\b${CHORD_PATTERN}\b$`, "i");
     return text.split("\n").map((line, lineIdx) => {
       const isTabLine = /^\s*[eEBGDA]{1,2}\|/.test(line.trim());
@@ -456,12 +475,12 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
                 </div>
               ))}
             </div>
-          </div>
-                      {chords.length === 0 && (
+            {chords.length === 0 && (
               <p className="text-brand-muted text-sm">
                 Nenhum acorde identificado automaticamente. Verifique se a cifra usa o formato padrão (ex: Em7, G, D4).
               </p>
             )}
+          </div>
 
           {/* Versões */}
           <details className="bg-brand-card rounded-xl p-4 border border-white/5">
@@ -478,17 +497,25 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
             <h3 className="flex items-center gap-2 font-bold mb-3">
               <Youtube size={18} className="text-red-500" /> {tab.song} - {tab.artist}
             </h3>
-            <iframe
-              src={videoSrc}
-              title={`${tab.song} - ${tab.artist}`}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-              className="w-full aspect-video rounded-xl border border-white/5"
-            />
+            {videoId ? (
+              <iframe
+                src={`https://www.youtube.com/embed/${videoId}`}
+                title={`${tab.song} - ${tab.artist}`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                className="w-full aspect-video rounded-xl border border-white/5"
+              />
+            ) : (
+              <div className="w-full aspect-video rounded-xl border border-white/5 bg-white/5 flex items-center justify-center">
+                <p className="text-sm text-brand-muted px-4 text-center">
+                  {videoLoading ? "Buscando vídeo..." : "Vídeo não encontrado no YouTube."}
+                </p>
+              </div>
+            )}
             <p className="text-xs text-brand-muted mt-3">
               {tab.video_id
                 ? "Vídeo oficial desta cifra."
-                : "Reproduzindo a busca no YouTube. Para fixar o vídeo exato, cadastre o ID na coluna video_id da música."}
+                : "Vídeo encontrado automaticamente no YouTube."}
             </p>
           </div>
         </aside>
