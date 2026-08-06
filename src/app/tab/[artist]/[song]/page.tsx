@@ -9,24 +9,26 @@ const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
 // Padrão que reconhece acordes simples e complexos: C, Em7, D4, A7(4), C9, G/B, etc.
 const CHORD_PATTERN =
-  "[A-G](?:#|b)?(?:[0-9]|M|m|7|9|11|13|4|6|add|sus|dim|aug|\([0-9]+\)|\/[A-G](?:#|b)?)*";
+  "[A-Ga-g](?:#|b)?(?:[0-9]|M|m|7|9|11|13|4|6|add|sus|dim|aug|\([0-9]+\)|\/[A-Ga-g](?:#|b)?)*";
 
 function transposeChord(chord: string, semitones: number) {
-  const match = chord.match(/^([A-G])(#|b)?(.*)$/);
+  const match = chord.match(/^([A-Ga-g])(#|b)?(.*)$/);
   if (!match) return chord;
   const root = match[1];
   const acc = match[2];
   const rest = match[3];
-  let idx = NOTES.indexOf(root);
+  const isLower = root === root.toLowerCase();
+  let idx = NOTES.indexOf(root.toUpperCase());
   if (acc === "#") idx = (idx + 1) % 12;
   if (acc === "b") idx = (idx + 11) % 12;
-  const newRoot = NOTES[((idx + semitones) % 12 + 12) % 12];
+  let newRoot = NOTES[((idx + semitones) % 12 + 12) % 12];
+  if (isLower) newRoot = newRoot.toLowerCase();
   return newRoot + rest;
 }
 
 function transposeContent(content: string, semitones: number) {
   if (semitones === 0) return content;
-  const re = new RegExp(`\b${CHORD_PATTERN}\b`, "g");
+  const re = new RegExp(`\b${CHORD_PATTERN}\b`, "gi");
   return content.replace(re, (chord) => {
     try {
       return transposeChord(chord, semitones);
@@ -37,9 +39,15 @@ function transposeContent(content: string, semitones: number) {
 }
 
 function extractChords(content: string) {
-  const re = new RegExp(`\b${CHORD_PATTERN}\b`, "g");
+  const re = new RegExp(`\b${CHORD_PATTERN}\b`, "gi");
   const matches = content.match(re) || [];
-  return Array.from(new Set(matches));
+  if (matches.length > 0) return Array.from(new Set(matches));
+  // Plano B: divide por espaços e mantém só tokens que parecem acordes
+  const tokenRe = new RegExp(`^\b${CHORD_PATTERN}\b$`, "i");
+  const tokens = content.split(/[\s\n\r\t]+/).map((t) =>
+    t.replace(/^[\[\(\{\&lt;]+|[\]\)\}\>\,\.\;\!\?]+$/g, "")
+  );
+  return Array.from(new Set(tokens.filter((t) => tokenRe.test(t))));
 }
 
 // ===== Diagramas de acordes (braço do instrumento) =====
@@ -187,7 +195,7 @@ const CHORD_SHAPES: Record<string, number[]> = {
   B5: [-1, 2, 4, 4, -1, -1],
 };
 function ChordDiagram({ chord }: { chord: string }) {
-  const shape = CHORD_SHAPES[chord];
+  const shape = CHORD_SHAPES[chord] || CHORD_SHAPES[chord.charAt(0).toUpperCase() + chord.slice(1)];
 
   if (!shape) {
     return (
@@ -302,8 +310,8 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
 
   // Renderiza cada linha; acordes viram elementos clicáveis com diagrama no hover (CSS puro)
   const renderContent = (text: string) => {
-    const splitRe = new RegExp(`(\b${CHORD_PATTERN}\b)`, "g");
-    const testRe = new RegExp(`^\b${CHORD_PATTERN}\b$`);
+        const splitRe = new RegExp(`(\b${CHORD_PATTERN}\b)`, "gi");
+    const testRe = new RegExp(`^\b${CHORD_PATTERN}\b$`, "i");
     return text.split("\n").map((line, lineIdx) => {
       const isTabLine = /^\s*[eEBGDA]{1,2}\|/.test(line.trim());
       const parts = line.split(splitRe);
@@ -449,6 +457,11 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
               ))}
             </div>
           </div>
+                      {chords.length === 0 && (
+              <p className="text-brand-muted text-sm">
+                Nenhum acorde identificado automaticamente. Verifique se a cifra usa o formato padrão (ex: Em7, G, D4).
+              </p>
+            )}
 
           {/* Versões */}
           <details className="bg-brand-card rounded-xl p-4 border border-white/5">
