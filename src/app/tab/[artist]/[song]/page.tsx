@@ -163,6 +163,12 @@ const CHORD_SHAPES: Record<string, number[]> = {
   G5: [3, 5, 5, -1, -1, -1],
   A5: [-1, 0, 2, 2, -1, -1],
   B5: [-1, 2, 4, 4, -1, -1],
+    // ===== Power chords (5) — adicionais =====
+  "Db5": [-1, 4, 6, 6, -1, -1],
+  "Eb5": [-1, 6, 8, 8, -1, -1],
+
+  // ===== Acordes com baixo (slash) — adicionais =====
+  "Fm/C": [-1, 3, 3, 1, 1, 1],
 };
 
 // Componente de diagrama com visual de braço de violão (maior, madeira, tons suaves)
