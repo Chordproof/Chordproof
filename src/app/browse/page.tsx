@@ -3,14 +3,33 @@ import TabCard from "@/components/TabCard";
 
 export const dynamic = "force-dynamic";
 
-export default async function BrowsePage() {
+export default async function BrowsePage({
+  searchParams,
+}: {
+  searchParams: { q?: string };
+}) {
+  const query = (searchParams.q || "").trim().toLowerCase();
+
   const { data: tabs } = await supabase
     .from("tabs")
     .select("song, artist, slug_artist, slug_song, difficulty, is_verified, key_sig")
     .order("artist", { ascending: true })
     .order("song", { ascending: true });
 
-  const grouped = (tabs || []).reduce<Record<string, any[]>>((acc, tab) => {
+  const allTabs = tabs || [];
+
+  // Filtra pelo termo digitado (artista ou música), sem diferenciar maiúsculas
+  const filtered = query
+    ? allTabs.filter(
+        (t) =>
+          (t.song || "").toLowerCase().includes(query) ||
+          (t.artist || "").toLowerCase().includes(query) ||
+          (t.slug_song || "").toLowerCase().includes(query) ||
+          (t.slug_artist || "").toLowerCase().includes(query)
+      )
+    : allTabs;
+
+  const grouped = filtered.reduce<Record<string, any[]>>((acc, tab) => {
     (acc[tab.artist] ||= []).push(tab);
     return acc;
   }, {});
@@ -19,12 +38,18 @@ export default async function BrowsePage() {
     <div className="space-y-10">
       <div className="text-center py-6">
         <h1 className="text-4xl font-bold">Browse Tabs</h1>
-        <p className="text-brand-muted mt-2">{tabs?.length || 0} cifras disponíveis</p>
+        {query ? (
+          <p className="text-brand-muted mt-2">
+            {filtered.length} resultado(s) para &quot;{searchParams.q}&quot;
+          </p>
+        ) : (
+          <p className="text-brand-muted mt-2">{allTabs.length} cifras disponíveis</p>
+        )}
       </div>
 
-      {Object.keys(grouped).length === 0 ? (
+      {filtered.length === 0 ? (
         <p className="text-brand-muted text-center py-16">
-          Nenhuma cifra cadastrada. Insira as cifras no Supabase primeiro.
+          Nenhuma cifra encontrada para &quot;{searchParams.q}&quot;. Tente outro artista ou música.
         </p>
       ) : (
         Object.entries(grouped).map(([artist, artistTabs]) => (
