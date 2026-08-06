@@ -166,6 +166,7 @@ const CHORD_SHAPES: Record<string, number[]> = {
 };
 
 // Componente de diagrama com visual de braço de violão (maior, madeira, tons suaves)
+// Componente de diagrama com visual de braço de violão (nogueira + âmbar com brilho)
 function ChordDiagram({ chord }: { chord: string }) {
   const shape = CHORD_SHAPES[chord] || CHORD_SHAPES[chord.charAt(0).toUpperCase() + chord.slice(1)];
 
@@ -193,18 +194,18 @@ function ChordDiagram({ chord }: { chord: string }) {
     <svg width="120" height="160" viewBox="0 0 120 160" className="mx-auto">
       <defs>
         <linearGradient id="neckWood" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#A87B4E" />
-          <stop offset="50%" stopColor="#7C5228" />
-          <stop offset="100%" stopColor="#5C3A1E" />
+          <stop offset="0%" stopColor="#A5713F" />
+          <stop offset="50%" stopColor="#7C4E26" />
+          <stop offset="100%" stopColor="#553318" />
         </linearGradient>
       </defs>
 
-      {/* Corpo do braço (madeira) */}
+      {/* Corpo do braço (madeira nogueira) */}
       <rect x={woodX} y={woodY} width={woodW} height={woodH} rx="8" fill="url(#neckWood)" />
 
       {/* Marcas de casa (dots decorativos do braço) */}
       {[2, 4].map((fret) => (
-        <circle key={fret} cx={57} cy={topY + fret * fretGap} r="4" fill="#5C3A1E" opacity="0.45" />
+        <circle key={fret} cx={57} cy={topY + fret * fretGap} r="4" fill="#3A2413" opacity="0.5" />
       ))}
 
       {/* Trastes */}
@@ -215,14 +216,14 @@ function ChordDiagram({ chord }: { chord: string }) {
           y1={topY + fretGap * f}
           x2={woodX + woodW - 2}
           y2={topY + fretGap * f}
-          stroke={f === 0 ? "#E5D3B3" : "#D9B98A"}
+          stroke={f === 0 ? "#F2DCA8" : "#D4B183"}
           strokeWidth={f === 0 ? 6 : 1.2}
         />
       ))}
 
       {/* Número do traste (quando começa além da casa 1) */}
       {baseFret > 1 && (
-        <text x={10} y={topY + fretGap / 2 + 4} fontSize="11" fill="#E8C36A" fontWeight="bold">
+        <text x={10} y={topY + fretGap / 2 + 4} fontSize="11" fill="#F5C96B" fontWeight="bold">
           {baseFret}
         </text>
       )}
@@ -235,7 +236,7 @@ function ChordDiagram({ chord }: { chord: string }) {
           y1={topY}
           x2={x}
           y2={topY + fretGap * 4}
-          stroke="#C9B393"
+          stroke="#EAD9BC"
           strokeWidth={i === 5 ? 2 : 1.4}
           opacity="0.9"
         />
@@ -246,24 +247,31 @@ function ChordDiagram({ chord }: { chord: string }) {
         const x = stringXs[i];
         if (pos === 0) {
           return (
-            <text key={i} x={x} y={topY - 10} fontSize="13" textAnchor="middle" fill="#F0E6D0">
+            <text key={i} x={x} y={topY - 10} fontSize="13" textAnchor="middle" fill="#F5EFE0">
               ○
             </text>
           );
         }
         if (pos < 0) {
           return (
-            <text key={i} x={x} y={topY - 10} fontSize="13" textAnchor="middle" fill="#F0E6D0">
+            <text key={i} x={x} y={topY - 10} fontSize="13" textAnchor="middle" fill="#F5EFE0">
               ×
             </text>
           );
         }
         const y = topY + (pos - baseFret) * fretGap + fretGap / 2;
-        return <circle key={i} cx={x} cy={y} r="7" fill="#E8B84B" stroke="#8A5A1E" strokeWidth="1.5" />;
+        return (
+          <g key={i}>
+            {/* Bolinha âmbar com contorno escuro */}
+            <circle cx={x} cy={y} r="7" fill="#FFB84D" stroke="#2E1A0C" strokeWidth="1.5" />
+            {/* Brilho interno (efeito gloss) */}
+            <circle cx={x - 2.2} cy={y - 2.2} r="2.4" fill="#FFE0A3" opacity="0.85" />
+          </g>
+        );
       })}
 
       {/* Nome do acorde */}
-      <text x="60" y="154" fontSize="16" fontWeight="bold" textAnchor="middle" fill="#E8C36A">
+      <text x="60" y="154" fontSize="16" fontWeight="bold" textAnchor="middle" fill="#F5C96B">
         {chord}
       </text>
     </svg>
