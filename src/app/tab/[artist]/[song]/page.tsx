@@ -1,192 +1,110 @@
 "use client";
-import { useState, useEffect } from "react";
-import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { supabase } from "@/lib/supabase";
 import TransposeControls from "@/components/TransposeControls";
-import ArtistAvatar from "@/components/ArtistAvatar";
-import VerifiedBadge from "@/components/VerifiedBadge";
-import CleanAllButton from "@/components/CleanAllButton";
-import SimilarTabCard from "@/components/SimilarTabCard";
-import {
-  History,
-  AlertTriangle,
-  Share2,
-  Bookmark,
-  Play,
-  ChevronDown,
-  MousePointer2,
-  Loader2,
-  Music2,
-  Youtube,
-  ListMusic,
-} from "lucide-react";
-import { createClientSupabaseClient } from "@/lib/supabase-client";
+import { BadgeCheck, Bookmark, Share2, Play, ChevronDown, MousePointer2 } from "lucide-react";
 
-const slugify = (s: string) =>
-  s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-const difficultyColor = (d?: string) =>
-  d === "Beginner" ? "text-green-400" : d === "Intermediate" ? "text-yellow-400" : "text-red-400";
+// Transpõe um acorde individual (suporta Em7, D4, A7(4), C9, etc.)
+function transposeChord(chord: string, semitones: number) {
+  const match = chord.match(/^([A-G])(#|b)?(.*)$/);
+  if (!match) return chord;
+  let root = match[1];
+  const acc = match[2];
+  const rest = match[3];
+  let idx = NOTES.indexOf(root);
+  if (acc === "#") idx = (idx + 1) % 12;
+  if (acc === "b") idx = (idx + 11) % 12;
+  const newRoot = NOTES[((idx + semitones) % 12 + 12) % 12];
+  return newRoot + rest;
+}
+
+// Transpõe o conteúdo inteiro, reconhecendo acordes complexos
+function transposeContent(content: string, semitones: number) {
+  if (semitones === 0) return content;
+  return content.replace(/\b[A-G](?:#|b)?(?:[0-9]|M|m|7|9|11|13|4|6|add|sus|dim|aug|\([0-9]+\)|\/[A-G](?:#|b)?)*\b/g, (chord) => {
+    try { return transposeChord(chord, semitones); } catch { return chord; }
+  });
+}
+
+// Extrai os acordes únicos do conteúdo para gerar os diagramas
+function extractChords(content: string) {
+  const matches = content.match(/\b[A-G](?:#|b)?(?:[0-9]|M|m|7|9|11|13|4|6|add|sus|dim|aug|\([0-9]+\)|\/[A-G](?:#|b)?)*\b/g) || [];
+  return [...new Set(matches)];
+}
 
 export default function TabDetail({ params }: { params: { artist: string; song: string } }) {
   const [tab, setTab] = useState<any>(null);
-  const [similarTabs, setSimilarTabs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [transpose, setTranspose] = useState(0);
   const [autoScroll, setAutoScroll] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(5);
-  const [version, setVersion] = useState("2.1");
+  const [version, setVersion] = useState("1.0");
+  const [hoveredChord, setHoveredChord] = useState<string | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
-  // Player: YouTube (vídeo completo) com fallback para iTunes (preview 30s)
-  const [youtubeId, setYoutubeId] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [playerLoading, setPlayerLoading] = useState(true);
-  const [playerSource, setPlayerSource] = useState<"youtube" | "itunes" | null>(null);
-
-  const songName = tab?.song || params.song.replace(/-/g, " ");
-  const artistName = tab?.artist || params.artist.replace(/-/g, " ");
-  const artistSlug = tab?.slug_artist || params.artist;
-  const artistGenre = tab?.genre || "";
-
-  // Carregar a cifra + músicas similares do mesmo artista
   useEffect(() => {
-    let active = true;
-    async function load() {
-      const supabase = createClientSupabaseClient();
-
+    async function fetchTab() {
       const { data } = await supabase
         .from("tabs")
         .select("*")
         .eq("slug_artist", params.artist)
         .eq("slug_song", params.song)
-        .maybeSingle();
-
-      if (active) setTab(data || null);
-
-      const { data: similarData } = await supabase
-        .from("tabs")
-        .select("*")
-        .eq("slug_artist", params.artist)
-        .neq("slug_song", params.song)
-        .order("views", { ascending: false })
-        .limit(3);
-
-      if (active && similarData) setSimilarTabs(similarData);
+        .single();
+      setTab(data);
       setLoading(false);
     }
-    load();
-    return () => {
-      active = false;
-    };
+    fetchTab();
   }, [params.artist, params.song]);
 
-  // Registrar a visualização da cifra (incrementa o campo views)
+  // Auto-scroll suave do conteúdo
   useEffect(() => {
-    const supabase = createClientSupabaseClient();
-    supabase
-      .rpc("increment_tab_view", {
-        p_slug_artist: params.artist,
-        p_slug_song: params.song,
-      })
-      .then(({ error }) => {
-        if (error) console.error("Erro ao registrar visualização:", error);
-      });
-  }, [params.artist, params.song]);
-
-  // Buscar a música: 1º YouTube (completo), 2º iTunes (preview 30s)
-  useEffect(() => {
-    if (!songName || !artistName) return;
-    let active = true;
-    setPlayerLoading(true);
-    const term = `${songName} ${artistName}`;
-
-    fetch(`/api/youtube-search?q=${encodeURIComponent(term)}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (!active) return;
-        if (d?.videoId) {
-          setYoutubeId(d.videoId);
-          setPlayerSource("youtube");
-          setPlayerLoading(false);
-        } else {
-          return fetch(
-            `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&limit=1`
-          )
-            .then((r) => (r.ok ? r.json() : Promise.reject(new Error("nf"))))
-            .then((it) => {
-              if (active) {
-                setPreviewUrl(it?.results?.[0]?.previewUrl || null);
-                setPlayerSource(it?.results?.[0]?.previewUrl ? "itunes" : null);
-                setPlayerLoading(false);
-              }
-            });
-        }
-      })
-      .catch(() => {
-        if (active) {
-          setYoutubeId(null);
-          setPreviewUrl(null);
-          setPlayerSource(null);
-          setPlayerLoading(false);
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [songName, artistName]);
-
-  // Auto-scroll
-  useEffect(() => {
-    if (!autoScroll) return;
-    const id = setInterval(() => {
-      window.scrollBy({ top: scrollSpeed, behavior: "smooth" });
-    }, 100);
-    return () => clearInterval(id);
+    if (!autoScroll || !contentRef.current) return;
+    const interval = setInterval(() => {
+      contentRef.current?.scrollBy({ top: scrollSpeed, behavior: "smooth" });
+    }, 300);
+    return () => clearInterval(interval);
   }, [autoScroll, scrollSpeed]);
 
-  const keySig = tab?.key_sig || "F#m";
-  const difficulty = tab?.difficulty || "Beginner";
-  const isVerified = tab?.is_verified !== false;
-  const content = tab?.content || tab?.chords || tab?.body || "";
-  const youtubeSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${songName} ${artistName}`)}`;
-  const artistHref = `/artist/${artistSlug}${artistGenre ? `?genre=${encodeURIComponent(artistGenre)}` : ""}`;
+  if (loading) return <p className="text-center py-20 text-brand-muted">Carregando cifra...</p>;
+  if (!tab) return <p className="text-center py-20 text-brand-muted">Cifra não encontrada.</p>;
 
-  // Clean all: reseta transpose, auto-scroll, velocidade e versão
-  const cleanAll = () => {
-    setAutoScroll(false);
-    setScrollSpeed(5);
-    setVersion("2.1");
-    window.dispatchEvent(new CustomEvent("reset-transpose"));
+  // Conteúdo transposto
+  const transposedContent = transposeContent(tab.content, transpose);
+  // Acordes únicos (transpostos) para os diagramas
+  const chords = extractChords(transposedContent);
+
+  // Renderiza o conteúdo com os acordes clicáveis
+  const renderContent = (text: string) => {
+    const parts = text.split(/(\b[A-G](?:#|b)?(?:[0-9]|M|m|7|9|11|13|4|6|add|sus|dim|aug|\([0-9]+\)|\/[A-G](?:#|b)?)*\b)/g);
+    return parts.map((part, i) => {
+      if (/^[A-G](?:#|b)?(?:[0-9]|M|m|7|9|11|13|4|6|add|sus|dim|aug|\([0-9]+\)|\/[A-G](?:#|b)?)*$/.test(part)) {
+        return (
+          <span
+            key={i}
+            className="chord"
+            onMouseEnter={() => setHoveredChord(part)}
+            onMouseLeave={() => setHoveredChord(null)}
+          >
+            {part}
+          </span>
+        );
+      }
+      return <span key={i}>{part}</span>;
+    });
   };
 
-  const fallbackContent = `[Intro]
-F#m  D  A  E
-
-[Verse]
-F#m                D
-Today is gonna be the day
-A                   E
-That they're gonna throw it back to you
-
-[Chorus]
-F#m     D        A       E
-And after all, you're my wonderwall`;
-
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
-      {/* Breadcrumbs — navegação completa */}
+    <div className="max-w-5xl mx-auto space-y-8">
+      {/* Breadcrumbs */}
       <nav className="text-sm text-brand-muted">
-        <ol className="flex gap-2 items-center">
-          <li><Link href="/" className="hover:text-white transition-colors">Home</Link></li>
+        <ol className="flex gap-2">
+          <li><a href="/" className="hover:text-white">Home</a></li>
           <li>/</li>
-          <li><Link href="/browse" className="hover:text-white transition-colors">Browse</Link></li>
+          <li><a href={`/browse`} className="hover:text-white">Browse</a></li>
           <li>/</li>
-          <li>
-            <Link href={artistHref} className="hover:text-white capitalize">
-              {artistName}
-            </Link>
-          </li>
-          <li>/</li>
-          <li className="text-white/60 capitalize">{songName}</li>
+          <li className="capitalize">{params.artist.replace("-", " ")}</li>
         </ol>
       </nav>
 
@@ -194,219 +112,101 @@ And after all, you're my wonderwall`;
       <div className="flex flex-col md:flex-row justify-between items-start gap-6">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <h1 className="text-4xl font-bold capitalize">{songName}</h1>
-            {isVerified && <VerifiedBadge />}
+            <h1 className="text-4xl font-bold capitalize">{tab.song}</h1>
+            {tab.is_verified && (
+              <div className="flex items-center gap-1 bg-brand-gold/10 text-brand-gold px-3 py-1 rounded-full text-xs font-bold gold-seal-anim">
+                <BadgeCheck size={14} /> VERIFIED
+              </div>
+            )}
           </div>
-
-          {/* Foto do artista + nome clicável → página do artista com ?genre= */}
-          <Link
-            href={artistHref}
-            className="inline-flex items-center gap-3 group"
-          >
-            <ArtistAvatar name={artistName} slug={artistSlug} size="sm" />
-            <span className="text-xl text-brand-muted capitalize group-hover:text-brand-accent group-hover:underline transition-colors">
-              {artistName}
-            </span>
-          </Link>
-
+          <p className="text-xl text-brand-muted capitalize">{tab.artist}</p>
           <div className="flex gap-4 pt-2">
             <span className="bg-white/5 px-3 py-1 rounded text-sm">
-              Key: <strong>{keySig}</strong>
+              Key: <strong>{transpose !== 0 ? transposeChord(tab.key_sig || "C", transpose) : tab.key_sig}</strong>
             </span>
-            <span className={`bg-white/5 px-3 py-1 rounded text-sm font-bold ${difficultyColor(difficulty)}`}>
-              {difficulty}
+            <span className="bg-white/5 px-3 py-1 rounded text-sm">
+              Difficulty: <strong className="text-green-400">{tab.difficulty}</strong>
+            </span>
+            <span className="bg-white/5 px-3 py-1 rounded text-sm">
+              Version: <strong>{version}</strong>
             </span>
           </div>
         </div>
 
         <div className="flex gap-3">
-          <button className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors">
-            <Bookmark size={20} />
-          </button>
-          <button className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors">
-            <Share2 size={20} />
-          </button>
-          <button
-            onClick={() => setAutoScroll(!autoScroll)}
-            className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all ${
-              autoScroll ? "bg-brand-accent text-black" : "bg-white/5 hover:bg-white/10"
-            }`}
-          >
-            <Play size={18} /> Auto-scroll
+          <button className="p-3 bg-white/5 rounded-full hover:bg-white/10" aria-label="Bookmark"><Bookmark size={20} /></button>
+          <button className="p-3 bg-white/5 rounded-full hover:bg-white/10" aria-label="Share"><Share2 size={20} /></button>
+          <button className="flex items-center gap-2 px-6 py-3 bg-brand-gold text-black rounded-full font-bold hover:scale-105 transition">
+            <Play size={18} /> Play
           </button>
         </div>
       </div>
 
-      {/* Controles */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <TransposeControls />
-
-        <div className="bg-[#1A1A1A] rounded-xl p-4 border border-white/[0.06] space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-bold">
-              <MousePointer2 size={16} className="text-brand-accent" />
-              Auto-scroll
-            </div>
-            {autoScroll && (
-              <button
-                onClick={() => setAutoScroll(false)}
-                className="text-xs bg-brand-accent/10 text-brand-accent px-3 py-1 rounded-full font-bold"
-              >
-                Stop
-              </button>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-brand-muted">Speed</span>
+      {/* Controles: transposição + auto-scroll */}
+      <div className="flex flex-wrap items-center gap-4 bg-brand-card rounded-xl p-4 border border-white/5">
+        <TransposeControls transpose={transpose} onTranspose={setTranspose} />
+        <div className="h-6 w-px bg-white/10" />
+        <button
+          onClick={() => setAutoScroll(!autoScroll)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${
+            autoScroll ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10"
+          }`}
+        >
+          <MousePointer2 size={16} /> Auto-scroll {autoScroll ? "ON" : "OFF"}
+        </button>
+        {autoScroll && (
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-brand-muted">Velocidade</span>
             <input
-              type="range"
-              min={1}
-              max={15}
-              value={scrollSpeed}
+              type="range" min={1} max={10} value={scrollSpeed}
               onChange={(e) => setScrollSpeed(Number(e.target.value))}
-              className="flex-1 accent-brand-accent"
+              className="w-28 accent-brand-gold"
             />
-            <span className="text-sm font-bold w-6 text-right">{scrollSpeed}</span>
+            <span className="text-brand-gold">{scrollSpeed}</span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-brand-muted">Version</span>
-            <button className="flex items-center gap-1 text-sm font-bold bg-white/[0.06] px-3 py-1 rounded-lg">
-              {version} <ChevronDown size={14} />
-            </button>
-          </div>
+        )}
+      </div>
+
+      {/* Conteúdo completo da cifra com acordes clicáveis */}
+      <div
+        ref={contentRef}
+        className="cifra-content bg-brand-card rounded-2xl p-8 border border-white/5 max-h-[70vh] overflow-y-auto"
+      >
+        {renderContent(transposedContent)}
+      </div>
+
+      {/* Tooltip do acorde (hover) */}
+      {hoveredChord && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-brand-card border border-brand-gold/40 rounded-xl px-6 py-3 shadow-2xl z-50">
+          <p className="text-sm text-brand-muted">Acorde</p>
+          <p className="text-2xl font-bold text-brand-gold">{hoveredChord}</p>
+        </div>
+      )}
+
+      {/* Diagramas dos acordes no final */}
+      <div className="bg-brand-card rounded-2xl p-8 border border-white/5">
+        <h3 className="text-xl font-bold mb-4">Acordes usados nesta cifra</h3>
+        <div className="flex flex-wrap gap-3">
+          {chords.map((chord) => (
+            <span
+              key={chord}
+              className="chord bg-white/5 px-4 py-2 rounded-lg text-lg"
+              onMouseEnter={() => setHoveredChord(chord)}
+              onMouseLeave={() => setHoveredChord(null)}
+            >
+              {chord}
+            </span>
+          ))}
         </div>
       </div>
 
-      {/* Cifra + Player lado a lado */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* Coluna da cifra */}
-        <div className="lg:col-span-2">
-          {loading ? (
-            <div className="flex items-center justify-center py-24 text-brand-muted">
-              <Loader2 className="animate-spin mr-2" size={20} />
-              <p>Loading tab...</p>
-            </div>
-          ) : (
-            <div className="bg-[#1A1A1A] rounded-2xl p-6 md:p-10 border border-white/[0.06]">
-              {!tab && (
-                <div className="flex items-center gap-2 text-sm text-yellow-400/80 mb-4">
-                  <AlertTriangle size={16} />
-                  Preview tab — full version not found in database.
-                </div>
-              )}
-              <pre className="cifra-content text-brand-text">
-                {content || fallbackContent}
-              </pre>
-            </div>
-          )}
-        </div>
-
-        {/* Coluna lateral — acesso ao vídeo/áudio da música */}
-        <div className="space-y-4 lg:sticky lg:top-24">
-          {playerLoading ? (
-            <div className="flex items-center gap-2 text-sm text-brand-muted bg-[#1A1A1A] rounded-xl px-4 py-3 border border-white/[0.06]">
-              <Loader2 size={16} className="animate-spin" />
-              <span>Looking for the full song...</span>
-            </div>
-          ) : playerSource === "youtube" && youtubeId ? (
-            <div className="bg-[#1A1A1A] rounded-xl p-4 border border-white/[0.06] space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm font-bold">
-                  <Youtube size={16} className="text-brand-accent" />
-                  Listen — Full Song
-                </div>
-                <a
-                  href={`https://www.youtube.com/watch?v=${youtubeId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-xs font-bold bg-brand-accent text-black px-3 py-1.5 rounded-full hover:brightness-110 transition-all"
-                >
-                  <Youtube size={14} /> Watch on YouTube
-                </a>
-              </div>
-              <div className="relative w-full aspect-video overflow-hidden rounded-lg">
-                <iframe
-                  className="absolute inset-0 w-full h-full"
-                  src={`https://www.youtube.com/embed/${youtubeId}?autoplay=0&rel=0`}
-                  title={`${songName} - ${artistName}`}
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
-            </div>
-          ) : playerSource === "itunes" && previewUrl ? (
-            <div className="bg-[#1A1A1A] rounded-xl p-4 border border-white/[0.06] space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm font-bold">
-                  <Music2 size={16} className="text-brand-accent" />
-                  Listen — Preview
-                </div>
-                <a
-                  href={youtubeSearchUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-xs font-bold bg-brand-accent text-black px-3 py-1.5 rounded-full hover:brightness-110 transition-all"
-                >
-                  <Youtube size={14} /> Watch on YouTube
-                </a>
-              </div>
-              <audio controls src={previewUrl} className="w-full" preload="none">
-                Your browser does not support the audio element.
-              </audio>
-              <p className="text-[10px] text-brand-muted">
-                30-second preview via iTunes — full song not found on YouTube.
-              </p>
-            </div>
-          ) : (
-            /* Sugestão: músicas similares do mesmo artista */
-            <div className="bg-[#1A1A1A] rounded-xl p-6 border border-white/[0.06] space-y-4">
-              <div className="flex items-center gap-2 text-sm font-bold">
-                <ListMusic size={16} className="text-brand-accent" />
-                More from {artistName}
-              </div>
-              {similarTabs.length > 0 ? (
-                <div className="space-y-3">
-                  {similarTabs.map((t) => (
-                    <SimilarTabCard
-                      key={t.id}
-                      song={t.song}
-                      artist={t.artist || artistName}
-                      artistSlug={t.slug_artist || artistSlug}
-                      slugSong={t.slug_song}
-                      difficulty={t.difficulty}
-                      keySig={t.key_sig}
-                      views={t.views || 0}
-                      genre={t.genre || artistGenre}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-brand-muted">
-                  No other tabs available for {artistName} yet.
-                </p>
-              )}
-              <a
-                href={youtubeSearchUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block text-xs text-brand-accent hover:underline font-bold"
-              >
-                Search on YouTube
-              </a>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Histórico + Clean all (reseta transpose/auto-scroll) */}
-      <div className="flex items-center justify-between pt-2">
-        <div className="flex items-center gap-2 text-sm text-brand-muted">
-          <History size={16} />
-          <span>Contributors: ChordProof Community · Last verified: recently</span>
-        </div>
-        <CleanAllButton onClick={cleanAll} label="Reset controls" />
-      </div>
+      {/* Versões */}
+      <details className="bg-brand-card rounded-xl p-4 border border-white/5">
+        <summary className="flex items-center gap-2 cursor-pointer font-semibold">
+          <ChevronDown size={16} /> Outras versões
+        </summary>
+        <p className="text-sm text-brand-muted mt-3">Versão 1.0 (principal)</p>
+      </details>
     </div>
   );
 }
