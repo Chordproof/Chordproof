@@ -186,7 +186,6 @@ const CHORD_SHAPES: Record<string, number[]> = {
   A5: [-1, 0, 2, 2, -1, -1],
   B5: [-1, 2, 4, 4, -1, -1],
 };
-
 function ChordDiagram({ chord }: { chord: string }) {
   const shape = CHORD_SHAPES[chord];
 
