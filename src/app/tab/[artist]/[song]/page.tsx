@@ -28,7 +28,7 @@ function transposeChord(chord: string, semitones: number) {
 
 function transposeContent(content: string, semitones: number) {
   if (semitones === 0) return content;
-  const re = new RegExp(`\b${CHORD_PATTERN}\b`, "gi");
+  const re = new RegExp(String.raw`\b${CHORD_PATTERN}\b`, "gi");
   return content.replace(re, (chord) => {
     try {
       return transposeChord(chord, semitones);
@@ -39,11 +39,11 @@ function transposeContent(content: string, semitones: number) {
 }
 
 function extractChords(content: string) {
-  const re = new RegExp(`\b${CHORD_PATTERN}\b`, "gi");
+  const re = new RegExp(String.raw`\b${CHORD_PATTERN}\b`, "gi");
   const matches = content.match(re) || [];
   if (matches.length > 0) return Array.from(new Set(matches));
   // Plano B: divide por espaços e mantém só tokens que parecem acordes
-  const tokenRe = new RegExp(`^\b${CHORD_PATTERN}\b$`, "i");
+  const tokenRe = new RegExp(String.raw`^\b${CHORD_PATTERN}\b$`, "i");
   const tokens = content.split(/[\s\n\r\t]+/).map((t) =>
     t.replace(/^[\[\(\{\&lt;]+|[\]\)\}\>\,\.\;\!\?]+$/g, "")
   );
@@ -310,8 +310,8 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
 
   // Renderiza cada linha; acordes viram elementos clicáveis com diagrama no hover (CSS puro)
   const renderContent = (text: string) => {
-        const splitRe = new RegExp(`(\b${CHORD_PATTERN}\b)`, "gi");
-    const testRe = new RegExp(`^\b${CHORD_PATTERN}\b$`, "i");
+        const splitRe = new RegExp(String.raw`(\b${CHORD_PATTERN}\b)`, "gi");
+    const testRe = new RegExp(String.raw`^\b${CHORD_PATTERN}\b$`, "i");
     return text.split("\n").map((line, lineIdx) => {
       const isTabLine = /^\s*[eEBGDA]{1,2}\|/.test(line.trim());
       const parts = line.split(splitRe);
