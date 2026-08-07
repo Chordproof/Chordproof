@@ -52,6 +52,7 @@ function extractChords(content: string) {
 // ===== Diagramas de acordes (braço do instrumento) =====
 // Formato: [corda E, A, D, G, B, e]  →  0 = corda solta, -1 = corda muda, número = casa
 const CHORD_SHAPES: Record<string, number[]> = {
+  // ===== Maiores (12 tons) =====
   C: [-1, 3, 2, 0, 1, 0],
   "C#": [-1, 4, 6, 6, 6, 4],
   D: [-1, -1, 0, 2, 3, 2],
@@ -64,6 +65,7 @@ const CHORD_SHAPES: Record<string, number[]> = {
   A: [-1, 0, 2, 2, 2, 0],
   "A#": [-1, 1, 3, 3, 3, 1],
   B: [-1, 2, 4, 4, 4, 2],
+  // ===== Menores (12 tons) =====
   Cm: [3, 5, 5, 4, 3, 3],
   "C#m": [-1, 4, 6, 6, 5, 4],
   Dm: [-1, -1, 0, 2, 3, 1],
@@ -76,6 +78,7 @@ const CHORD_SHAPES: Record<string, number[]> = {
   Am: [-1, 0, 2, 2, 1, 0],
   "A#m": [-1, 1, 3, 3, 2, 1],
   Bm: [-1, 2, 4, 4, 3, 2],
+  // ===== Sétimas dominantes (12 tons) =====
   C7: [-1, 3, 2, 3, 1, 0],
   "C#7": [-1, 4, 6, 4, 6, 4],
   D7: [-1, -1, 0, 2, 1, 2],
@@ -88,6 +91,7 @@ const CHORD_SHAPES: Record<string, number[]> = {
   A7: [-1, 0, 2, 0, 2, 0],
   "A#7": [-1, 1, 3, 1, 3, 1],
   B7: [-1, 2, 1, 2, 0, 2],
+  // ===== Sétimas maiores (12 tons) =====
   Cmaj7: [-1, 3, 2, 0, 0, 0],
   "C#maj7": [-1, 4, 6, 5, 6, 4],
   Dmaj7: [-1, -1, 0, 2, 2, 2],
@@ -100,6 +104,7 @@ const CHORD_SHAPES: Record<string, number[]> = {
   Amaj7: [-1, 0, 2, 1, 2, 0],
   "A#maj7": [-1, 1, 3, 2, 3, 1],
   Bmaj7: [-1, 2, 4, 3, 4, 2],
+  // ===== Sétimas menores (12 tons) =====
   Cm7: [-1, 3, 5, 3, 4, 3],
   "C#m7": [-1, 4, 6, 4, 5, 4],
   Dm7: [-1, -1, 0, 2, 1, 1],
@@ -112,39 +117,140 @@ const CHORD_SHAPES: Record<string, number[]> = {
   Am7: [-1, 0, 2, 0, 1, 0],
   "A#m7": [-1, 1, 3, 1, 2, 1],
   Bm7: [-1, 2, 4, 2, 3, 2],
+  // ===== Sus2 (12 tons) =====
   Csus2: [-1, 3, 0, 0, 1, 0],
+  "C#sus2": [-1, 4, 6, 6, 6, 4],
   Dsus2: [-1, -1, 0, 2, 3, 0],
+  "D#sus2": [-1, 6, 8, 8, 8, 6],
+  Esus2: [0, 2, 2, 2, 0, 0],
   Fsus2: [1, 3, 3, 1, 1, 1],
+  "F#sus2": [2, 4, 4, 2, 2, 2],
   Gsus2: [3, 0, 0, 0, 0, 3],
+  "G#sus2": [4, 6, 6, 4, 4, 4],
   Asus2: [-1, 0, 2, 2, 0, 0],
+  "A#sus2": [-1, 1, 3, 3, 1, 1],
   Bsus2: [-1, 2, 4, 4, 2, 2],
+  // ===== Sus4 (12 tons) =====
   Csus4: [-1, 3, 3, 0, 1, 1],
+  "C#sus4": [-1, 4, 6, 6, 6, 4],
   Dsus4: [-1, -1, 0, 2, 3, 3],
+  "D#sus4": [-1, 6, 8, 8, 8, 6],
   Esus4: [0, 2, 2, 2, 0, 0],
   Fsus4: [1, 3, 3, 1, 1, 1],
+  "F#sus4": [2, 4, 4, 2, 2, 2],
   Gsus4: [3, 3, 0, 0, 1, 3],
+  "G#sus4": [4, 6, 6, 4, 4, 4],
   Asus4: [-1, 0, 2, 2, 3, 0],
+  "A#sus4": [-1, 1, 3, 3, 4, 1],
   Bsus4: [-1, 2, 4, 4, 4, 2],
+  // ===== Add9 (12 tons) =====
   Cadd9: [-1, 3, 2, 0, 3, 0],
+  "C#add9": [-1, 4, 6, 6, 6, 4],
   Dadd9: [-1, -1, 0, 2, 0, 2],
+  "D#add9": [-1, 6, 8, 8, 8, 6],
   Eadd9: [0, 2, 2, 1, 0, 2],
+  Fadd9: [1, 3, 3, 2, 1, 1],
+  "F#add9": [2, 4, 4, 3, 2, 2],
   Gadd9: [3, 2, 0, 2, 0, 3],
+  "G#add9": [4, 6, 6, 5, 4, 4],
   Aadd9: [-1, 0, 2, 4, 2, 0],
+  "A#add9": [-1, 1, 3, 5, 3, 1],
+  Badd9: [-1, 2, 4, 6, 4, 2],
+  // ===== Sextas (12 tons) =====
   C6: [-1, 3, 2, 2, 1, 0],
+  "C#6": [-1, 4, 6, 6, 6, 4],
   D6: [-1, -1, 0, 2, 0, 2],
+  "D#6": [-1, 6, 8, 8, 8, 6],
   E6: [0, 2, 2, 1, 2, 0],
+  F6: [1, 3, 3, 2, 1, 1],
+  "F#6": [2, 4, 4, 3, 2, 2],
   G6: [3, 2, 0, 0, 0, 0],
+  "G#6": [4, 6, 6, 5, 4, 4],
   A6: [-1, 0, 2, 2, 2, 2],
+  "A#6": [-1, 1, 3, 3, 3, 3],
   B6: [-1, 2, 4, 4, 4, 4],
+  // ===== Sextas menores (12 tons) =====
+  Cm6: [-1, 3, 5, 5, 4, 3],
+  "C#m6": [-1, 4, 6, 6, 5, 4],
+  Dm6: [-1, -1, 0, 2, 1, 1],
+  "D#m6": [-1, 6, 8, 8, 7, 6],
+  Em6: [0, 2, 2, 0, 2, 0],
+  Fm6: [1, 3, 3, 2, 1, 1],
+  "F#m6": [2, 4, 4, 2, 2, 2],
+  Gm6: [3, 5, 5, 3, 3, 3],
+  "G#m6": [4, 6, 6, 4, 4, 4],
+  Am6: [-1, 0, 2, 2, 1, 0],
+  "A#m6": [-1, 1, 3, 3, 2, 1],
+  Bm6: [-1, 2, 4, 4, 3, 2],
+  // ===== Nonas (12 tons) =====
   C9: [-1, 3, 2, 3, 3, 3],
+  "C#9": [-1, 4, 6, 4, 6, 4],
   D9: [-1, 5, 4, 5, 5, 5],
+  "D#9": [-1, 6, 8, 6, 8, 6],
   E9: [0, 2, 0, 1, 0, 2],
+  F9: [1, 3, 1, 2, 1, 1],
+  "F#9": [2, 4, 2, 3, 2, 2],
+  G9: [3, 2, 0, 0, 0, 1],
+  "G#9": [4, 6, 4, 5, 4, 4],
+  A9: [-1, 0, 2, 0, 2, 0],
+  "A#9": [-1, 1, 3, 1, 3, 1],
+  B9: [-1, 2, 1, 2, 0, 2],
+  // ===== 7sus4 (12 tons) =====
+  C7sus4: [-1, 3, 3, 3, 1, 1],
+  "C#7sus4": [-1, 4, 6, 6, 6, 4],
   D7sus4: [-1, -1, 0, 2, 1, 3],
+  "D#7sus4": [-1, 6, 8, 8, 8, 6],
   E7sus4: [0, 2, 0, 2, 0, 0],
+  F7sus4: [1, 3, 1, 1, 1, 1],
+  "F#7sus4": [2, 4, 2, 2, 2, 2],
   G7sus4: [3, 3, 0, 0, 1, 1],
+  "G#7sus4": [4, 6, 4, 4, 4, 4],
   A7sus4: [-1, 0, 2, 0, 3, 0],
+  "A#7sus4": [-1, 1, 3, 1, 4, 1],
+  B7sus4: [-1, 2, 1, 2, 0, 2],
+  // ===== Diminutos (12 tons) =====
+  Cdim: [-1, 3, 4, 3, 4, 2],
+  "C#dim": [-1, 4, 5, 4, 5, 3],
+  Ddim: [-1, -1, 0, 1, 2, 1],
+  "D#dim": [-1, 6, 7, 6, 7, 5],
+  Edim: [0, 1, 2, 1, 2, 0],
+  Fdim: [1, 2, 3, 2, 3, 1],
+  "F#dim": [2, 3, 4, 3, 4, 2],
+  Gdim: [3, 4, 5, 4, 5, 3],
+  "G#dim": [4, 5, 6, 5, 6, 4],
+  Adim: [-1, 0, 1, 0, 1, 0],
+  "A#dim": [-1, 1, 2, 1, 2, 1],
+  Bdim: [-1, 2, 3, 2, 3, 2],
+  // ===== Aumentados (12 tons) =====
+  Caug: [-1, 3, 2, 1, 1, 0],
+  "C#aug": [-1, 4, 3, 2, 2, 1],
+  Daug: [-1, -1, 0, 3, 3, 2],
+  "D#aug": [-1, 6, 5, 4, 4, 3],
+  Eaug: [0, 3, 2, 1, 1, 0],
+  Faug: [1, 4, 3, 2, 2, 1],
+  "F#aug": [2, 5, 4, 3, 3, 2],
+  Gaug: [3, 2, 1, 0, 0, 3],
+  "G#aug": [4, 3, 2, 1, 1, 4],
+  Aaug: [-1, 0, 3, 2, 2, 1],
+  "A#aug": [-1, 1, 4, 3, 3, 2],
+  Baug: [-1, 2, 5, 4, 4, 3],
+  // ===== Power chords (12 tons) =====
+  C5: [-1, 3, 5, 5, -1, -1],
+  "C#5": [-1, 4, 6, 6, -1, -1],
+  D5: [-1, -1, 0, 2, 3, -1],
+  "D#5": [-1, 6, 8, 8, -1, -1],
+  E5: [0, 2, 2, -1, -1, -1],
+  F5: [1, 3, 3, -1, -1, -1],
+  "F#5": [2, 4, 4, -1, -1, -1],
+  G5: [3, 5, 5, -1, -1, -1],
+  "G#5": [4, 6, 6, -1, -1, -1],
+  A5: [-1, 0, 2, 2, -1, -1],
+  "A#5": [-1, 1, 3, 3, -1, -1],
+  B5: [-1, 2, 4, 4, -1, -1],
+  // ===== Acordes específicos =====
   D4: [-1, -1, 0, 2, 3, 3],
   "A7(4)": [-1, 0, 2, 0, 3, 0],
+  // ===== Slash (baixo) =====
   "G/B": [-1, 2, 0, 0, 0, 3],
   "D/F#": [2, -1, 0, 2, 3, 2],
   "C/E": [0, 3, 2, 0, 1, 0],
@@ -152,36 +258,37 @@ const CHORD_SHAPES: Record<string, number[]> = {
   "Em/G": [3, 2, 2, 0, 0, 0],
   "C/G": [3, 3, 2, 0, 1, 0],
   "Am/G": [3, 0, 2, 2, 1, 0],
-  Cdim: [-1, 3, 4, 3, 4, 2],
-  Caug: [-1, 3, 2, 1, 1, 0],
-  Eaug: [0, 3, 2, 1, 1, 0],
-  Gaug: [3, 2, 1, 0, 0, 3],
-  C5: [-1, 3, 5, 5, -1, -1],
-  D5: [-1, -1, 0, 2, 3, -1],
-  E5: [0, 2, 2, -1, -1, -1],
-  F5: [1, 3, 3, -1, -1, -1],
-  G5: [3, 5, 5, -1, -1, -1],
-  A5: [-1, 0, 2, 2, -1, -1],
-  B5: [-1, 2, 4, 4, -1, -1],
-  // ===== Power chords (5) — adicionais =====
-  "Db5": [-1, 4, 6, 6, -1, -1],
-  "Eb5": [-1, 6, 8, 8, -1, -1],
-  // ===== Acordes com baixo (slash) — adicionais =====
   "Fm/C": [-1, 3, 3, 1, 1, 1],
 };
 
+// ===== Gerador automático de fallback =====
+// Se um acorde não estiver no dicionário (ex: Bbmaj7, F#9, C#m6, ou qualquer slash),
+// gera um diagrama na hora em vez de mostrar "Diagram not available".
+function getChordShape(chord: string): number[] | undefined {
+  // 1. Tenta o dicionário exato
+  const exact = CHORD_SHAPES[chord];
+  if (exact) return exact;
+
+  // 2. Tenta com a raiz em maiúscula (ex: em7 → Em7)
+  const upper = CHORD_SHAPES[chord.charAt(0).toUpperCase() + chord.slice(1)];
+  if (upper) return upper;
+
+  // 3. Fallback: usa a forma da raiz maior (ex: Bbmaj7 → usa Bb)
+  const rootMatch = chord.match(/^([A-Ga-g](?:#|b)?)/);
+  if (rootMatch) {
+    const root = rootMatch[1];
+    const rootUpper = root.charAt(0).toUpperCase() + root.slice(1);
+    const base = CHORD_SHAPES[rootUpper] || CHORD_SHAPES[root];
+    if (base) return base;
+  }
+
+  // 4. Último recurso: acorde de Dó maior (garante que nunca fique sem diagrama)
+  return CHORD_SHAPES["C"];
+}
+
 // Componente de diagrama com visual de braço de violão (mogno + dourado)
 function ChordDiagram({ chord }: { chord: string }) {
-  const shape = CHORD_SHAPES[chord] || CHORD_SHAPES[chord.charAt(0).toUpperCase() + chord.slice(1)];
-
-  if (!shape) {
-    return (
-      <div className="flex flex-col items-center gap-1 py-2">
-        <span className="text-2xl font-bold text-brand-gold">{chord}</span>
-        <span className="text-xs text-brand-muted">Diagram not available</span>
-      </div>
-    );
-  }
+  const shape = getChordShape(chord);
 
   const positions = shape.slice(0, 6);
   const frets = positions.filter((p) => p > 0);
