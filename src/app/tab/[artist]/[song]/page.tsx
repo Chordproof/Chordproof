@@ -7,6 +7,7 @@ import { BadgeCheck, Bookmark, Share2, Play, ChevronDown, MousePointer2, Youtube
 
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
+// Padrão que reconhece acordes simples e complexos: C, Em7, D4, A7(4), C9, G/B, etc.
 const CHORD_PATTERN =
   "[A-Ga-g](?:#|b)?(?:[0-9]|M|m|7|9|11|13|4|6|add|sus|dim|aug|\([0-9]+\)|\/[A-Ga-g](?:#|b)?)*";
 
@@ -27,7 +28,7 @@ function transposeChord(chord: string, semitones: number) {
 
 function transposeContent(content: string, semitones: number) {
   if (semitones === 0) return content;
-  const re = new RegExp(String.raw`\b${CHORD_PATTERN}\b`, "gi");
+  const re = new RegExp("\b" + CHORD_PATTERN + "\b", "gi");
   return content.replace(re, (chord) => {
     try {
       return transposeChord(chord, semitones);
@@ -38,18 +39,20 @@ function transposeContent(content: string, semitones: number) {
 }
 
 function extractChords(content: string) {
-  const re = new RegExp(String.raw`\b${CHORD_PATTERN}\b`, "gi");
+  const re = new RegExp("\b" + CHORD_PATTERN + "\b", "gi");
   const matches = content.match(re) || [];
   if (matches.length > 0) return Array.from(new Set(matches));
-  const tokenRe = new RegExp(String.raw`^\b${CHORD_PATTERN}\b$`, "i");
+  const tokenRe = new RegExp("^\b" + CHORD_PATTERN + "\b$", "i");
   const tokens = content.split(/[\s\n\r\t]+/).map((t) =>
     t.replace(/^[\[\(\{\&lt;]+|[\]\)\}\>\,\.\;\¡\?]+$/g, "")
   );
   return Array.from(new Set(tokens.filter((t) => tokenRe.test(t))));
 }
 
-// ===== Diagramas de acordes =====
+// ===== Diagramas de acordes (braço do instrumento) =====
+// Formato: [corda E, A, D, G, B, e]  →  0 = corda solta, -1 = corda muda, número = casa
 const CHORD_SHAPES: Record<string, number[]> = {
+  // ===== Maiores (12 tons) =====
   C: [-1, 3, 2, 0, 1, 0],
   "C#": [-1, 4, 6, 6, 6, 4],
   D: [-1, -1, 0, 2, 3, 2],
@@ -62,6 +65,7 @@ const CHORD_SHAPES: Record<string, number[]> = {
   A: [-1, 0, 2, 2, 2, 0],
   "A#": [-1, 1, 3, 3, 3, 1],
   B: [-1, 2, 4, 4, 4, 2],
+  // ===== Menores (12 tons) =====
   Cm: [3, 5, 5, 4, 3, 3],
   "C#m": [-1, 4, 6, 6, 5, 4],
   Dm: [-1, -1, 0, 2, 3, 1],
@@ -74,6 +78,7 @@ const CHORD_SHAPES: Record<string, number[]> = {
   Am: [-1, 0, 2, 2, 1, 0],
   "A#m": [-1, 1, 3, 3, 2, 1],
   Bm: [-1, 2, 4, 4, 3, 2],
+  // ===== Sétimas dominantes (12 tons) =====
   C7: [-1, 3, 2, 3, 1, 0],
   "C#7": [-1, 4, 6, 4, 6, 4],
   D7: [-1, -1, 0, 2, 1, 2],
@@ -86,6 +91,7 @@ const CHORD_SHAPES: Record<string, number[]> = {
   A7: [-1, 0, 2, 0, 2, 0],
   "A#7": [-1, 1, 3, 1, 3, 1],
   B7: [-1, 2, 1, 2, 0, 2],
+  // ===== Sétimas maiores (12 tons) =====
   Cmaj7: [-1, 3, 2, 0, 0, 0],
   "C#maj7": [-1, 4, 6, 5, 6, 4],
   Dmaj7: [-1, -1, 0, 2, 2, 2],
@@ -98,6 +104,7 @@ const CHORD_SHAPES: Record<string, number[]> = {
   Amaj7: [-1, 0, 2, 1, 2, 0],
   "A#maj7": [-1, 1, 3, 2, 3, 1],
   Bmaj7: [-1, 2, 4, 3, 4, 2],
+  // ===== Sétimas menores (12 tons) =====
   Cm7: [-1, 3, 5, 3, 4, 3],
   "C#m7": [-1, 4, 6, 4, 5, 4],
   Dm7: [-1, -1, 0, 2, 1, 1],
@@ -110,6 +117,7 @@ const CHORD_SHAPES: Record<string, number[]> = {
   Am7: [-1, 0, 2, 0, 1, 0],
   "A#m7": [-1, 1, 3, 1, 2, 1],
   Bm7: [-1, 2, 4, 2, 3, 2],
+  // ===== Sus2 (12 tons) =====
   Csus2: [-1, 3, 0, 0, 1, 0],
   "C#sus2": [-1, 4, 6, 6, 6, 4],
   Dsus2: [-1, -1, 0, 2, 3, 0],
@@ -122,6 +130,7 @@ const CHORD_SHAPES: Record<string, number[]> = {
   Asus2: [-1, 0, 2, 2, 0, 0],
   "A#sus2": [-1, 1, 3, 3, 1, 1],
   Bsus2: [-1, 2, 4, 4, 2, 2],
+  // ===== Sus4 (12 tons) =====
   Csus4: [-1, 3, 3, 0, 1, 1],
   "C#sus4": [-1, 4, 6, 6, 6, 4],
   Dsus4: [-1, -1, 0, 2, 3, 3],
@@ -134,6 +143,7 @@ const CHORD_SHAPES: Record<string, number[]> = {
   Asus4: [-1, 0, 2, 2, 3, 0],
   "A#sus4": [-1, 1, 3, 3, 4, 1],
   Bsus4: [-1, 2, 4, 4, 4, 2],
+  // ===== Add9 (12 tons) =====
   Cadd9: [-1, 3, 2, 0, 3, 0],
   "C#add9": [-1, 4, 6, 6, 6, 4],
   Dadd9: [-1, -1, 0, 2, 0, 2],
@@ -146,6 +156,7 @@ const CHORD_SHAPES: Record<string, number[]> = {
   Aadd9: [-1, 0, 2, 4, 2, 0],
   "A#add9": [-1, 1, 3, 5, 3, 1],
   Badd9: [-1, 2, 4, 6, 4, 2],
+  // ===== Sextas (12 tons) =====
   C6: [-1, 3, 2, 2, 1, 0],
   "C#6": [-1, 4, 6, 6, 6, 4],
   D6: [-1, -1, 0, 2, 0, 2],
@@ -158,6 +169,7 @@ const CHORD_SHAPES: Record<string, number[]> = {
   A6: [-1, 0, 2, 2, 2, 2],
   "A#6": [-1, 1, 3, 3, 3, 3],
   B6: [-1, 2, 4, 4, 4, 4],
+  // ===== Sextas menores (12 tons) =====
   Cm6: [-1, 3, 5, 5, 4, 3],
   "C#m6": [-1, 4, 6, 6, 5, 4],
   Dm6: [-1, -1, 0, 2, 1, 1],
@@ -170,6 +182,7 @@ const CHORD_SHAPES: Record<string, number[]> = {
   Am6: [-1, 0, 2, 2, 1, 0],
   "A#m6": [-1, 1, 3, 3, 2, 1],
   Bm6: [-1, 2, 4, 4, 3, 2],
+  // ===== Nonas (12 tons) =====
   C9: [-1, 3, 2, 3, 3, 3],
   "C#9": [-1, 4, 6, 4, 6, 4],
   D9: [-1, 5, 4, 5, 5, 5],
@@ -182,6 +195,7 @@ const CHORD_SHAPES: Record<string, number[]> = {
   A9: [-1, 0, 2, 0, 2, 0],
   "A#9": [-1, 1, 3, 1, 3, 1],
   B9: [-1, 2, 1, 2, 0, 2],
+  // ===== 7sus4 (12 tons) =====
   C7sus4: [-1, 3, 3, 3, 1, 1],
   "C#7sus4": [-1, 4, 6, 6, 6, 4],
   D7sus4: [-1, -1, 0, 2, 1, 3],
@@ -194,6 +208,7 @@ const CHORD_SHAPES: Record<string, number[]> = {
   A7sus4: [-1, 0, 2, 0, 3, 0],
   "A#7sus4": [-1, 1, 3, 1, 4, 1],
   B7sus4: [-1, 2, 1, 2, 0, 2],
+  // ===== Diminutos (12 tons) =====
   Cdim: [-1, 3, 4, 3, 4, 2],
   "C#dim": [-1, 4, 5, 4, 5, 3],
   Ddim: [-1, -1, 0, 1, 2, 1],
@@ -206,6 +221,7 @@ const CHORD_SHAPES: Record<string, number[]> = {
   Adim: [-1, 0, 1, 0, 1, 0],
   "A#dim": [-1, 1, 2, 1, 2, 1],
   Bdim: [-1, 2, 3, 2, 3, 2],
+  // ===== Aumentados (12 tons) =====
   Caug: [-1, 3, 2, 1, 1, 0],
   "C#aug": [-1, 4, 3, 2, 2, 1],
   Daug: [-1, -1, 0, 3, 3, 2],
@@ -218,6 +234,7 @@ const CHORD_SHAPES: Record<string, number[]> = {
   Aaug: [-1, 0, 3, 2, 2, 1],
   "A#aug": [-1, 1, 4, 3, 3, 2],
   Baug: [-1, 2, 5, 4, 4, 3],
+  // ===== Power chords (12 tons) =====
   C5: [-1, 3, 5, 5, -1, -1],
   "C#5": [-1, 4, 6, 6, -1, -1],
   D5: [-1, -1, 0, 2, 3, -1],
@@ -230,8 +247,10 @@ const CHORD_SHAPES: Record<string, number[]> = {
   A5: [-1, 0, 2, 2, -1, -1],
   "A#5": [-1, 1, 3, 3, -1, -1],
   B5: [-1, 2, 4, 4, -1, -1],
+  // ===== Acordes específicos =====
   D4: [-1, -1, 0, 2, 3, 3],
   "A7(4)": [-1, 0, 2, 0, 3, 0],
+  // ===== Slash (baixo) =====
   "G/B": [-1, 2, 0, 0, 0, 3],
   "D/F#": [2, -1, 0, 2, 3, 2],
   "C/E": [0, 3, 2, 0, 1, 0],
@@ -242,11 +261,19 @@ const CHORD_SHAPES: Record<string, number[]> = {
   "Fm/C": [-1, 3, 3, 1, 1, 1],
 };
 
+// ===== Gerador automático de fallback =====
+// Se um acorde não estiver no dicionário (ex: Bbmaj7, F#9, C#m6, ou qualquer slash),
+// gera um diagrama na hora em vez de mostrar "Diagram not available".
 function getChordShape(chord: string): number[] | undefined {
+  // 1. Tenta o dicionário exato
   const exact = CHORD_SHAPES[chord];
   if (exact) return exact;
+
+  // 2. Tenta com a raiz em maiúscula (ex: em7 → Em7)
   const upper = CHORD_SHAPES[chord.charAt(0).toUpperCase() + chord.slice(1)];
   if (upper) return upper;
+
+  // 3. Fallback: usa a forma da raiz maior (ex: Bbmaj7 → usa Bb)
   const rootMatch = chord.match(/^([A-Ga-g](?:#|b)?)/);
   if (rootMatch) {
     const root = rootMatch[1];
@@ -254,9 +281,12 @@ function getChordShape(chord: string): number[] | undefined {
     const base = CHORD_SHAPES[rootUpper] || CHORD_SHAPES[root];
     if (base) return base;
   }
+
+  // 4. Último recurso: acorde de Dó maior (garante que nunca fique sem diagrama)
   return CHORD_SHAPES["C"];
 }
 
+// Componente de diagrama com visual de braço de violão (mogno + dourado)
 function ChordDiagram({ chord }: { chord: string }) {
   const shape = getChordShape(chord);
 
@@ -271,7 +301,9 @@ function ChordDiagram({ chord }: { chord: string }) {
   const woodY = 26;
   const woodH = 112;
 
-  const gradId = `neckWood-${chord.replace(/[^a-zA-Z0-9]/g, "")}-${ChordDiagram.__counter++}`;
+  // ID único por instância (concatenação de strings — sem crases, sem risco de erro)
+  const gradId =
+    "neckWood-" + chord.replace(/[^a-zA-Z0-9]/g, "") + "-" + ChordDiagram.__counter++;
 
   return (
     <svg width="120" height="160" viewBox="0 0 120 160" className="mx-auto">
@@ -283,12 +315,15 @@ function ChordDiagram({ chord }: { chord: string }) {
         </linearGradient>
       </defs>
 
-      <rect x={woodX} y={woodY} width={woodW} height={woodH} rx="8" fill={`url(#${gradId})`} />
+      {/* Corpo do braço (madeira mogno) */}
+      <rect x={woodX} y={woodY} width={woodW} height={woodH} rx="8" fill={"url(#" + gradId + ")"} />
 
+      {/* Marcas de casa (dots decorativos do braço) */}
       {[2, 4].map((fret) => (
         <circle key={fret} cx={57} cy={topY + fret * fretGap} r="4" fill="#4A2E14" opacity="0.5" />
       ))}
 
+      {/* Trastes */}
       {[0, 1, 2, 3, 4].map((f) => (
         <line
           key={f}
@@ -301,12 +336,14 @@ function ChordDiagram({ chord }: { chord: string }) {
         />
       ))}
 
+      {/* Número do traste (quando começa além da casa 1) */}
       {baseFret > 1 && (
         <text x={10} y={topY + fretGap / 2 + 4} fontSize="11" fill="#E8B84B" fontWeight="bold">
           {baseFret}
         </text>
       )}
 
+      {/* Cordas */}
       {stringXs.map((x, i) => (
         <line
           key={i}
@@ -320,6 +357,7 @@ function ChordDiagram({ chord }: { chord: string }) {
         />
       ))}
 
+      {/* Dedilhados e indicações (○ corda solta, × corda muda) */}
       {positions.map((pos, i) => {
         const x = stringXs[i];
         if (pos === 0) {
@@ -329,7 +367,7 @@ function ChordDiagram({ chord }: { chord: string }) {
             </text>
           );
         }
-        if (pos &lt; 0) {
+        if (pos < 0) {
           return (
             <text key={i} x={x} y={topY - 10} fontSize="13" textAnchor="middle" fill="#F5EFE0">
               ×
@@ -339,12 +377,15 @@ function ChordDiagram({ chord }: { chord: string }) {
         const y = topY + (pos - baseFret) * fretGap + fretGap / 2;
         return (
           <g key={i}>
+            {/* Bolinha dourada clássica com contorno escuro */}
             <circle cx={x} cy={y} r="7" fill="#E8B84B" stroke="#3A2413" strokeWidth="1.5" />
+            {/* Brilho interno (efeito gloss) */}
             <circle cx={x - 2.2} cy={y - 2.2} r="2.4" fill="#FCE3A0" opacity="0.85" />
           </g>
         );
       })}
 
+      {/* Nome do acorde */}
       <text x="60" y="154" fontSize="16" fontWeight="bold" textAnchor="middle" fill="#E8B84B">
         {chord}
       </text>
@@ -352,6 +393,7 @@ function ChordDiagram({ chord }: { chord: string }) {
   );
 }
 
+// Contador global para garantir IDs únicos entre todos os diagramas da página
 ChordDiagram.__counter = 0;
 
 export default function TabDetail({ params }: { params: { artist: string; song: string } }) {
@@ -379,6 +421,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
     fetchTab();
   }, [params.artist, params.song]);
 
+  // Vídeo: usa o video_id do banco (se existir) ou busca um vídeo incorporável via API
   useEffect(() => {
     if (!tab) return;
     if (tab.video_id) {
@@ -387,7 +430,8 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       return;
     }
     setVideoLoading(true);
-    fetch(`/api/youtube-search?q=${encodeURIComponent(`${tab.song} ${tab.artist}`)}`)
+    const query = tab.song + " " + tab.artist;
+    fetch("/api/youtube-search?q=" + encodeURIComponent(query))
       .then((r) => r.json())
       .then((data) => {
         setVideoId(data.videoId || null);
@@ -399,6 +443,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       });
   }, [tab]);
 
+  // Auto-scroll suave (rola a página inteira)
   useEffect(() => {
     if (!autoScroll) return;
     const interval = setInterval(() => {
@@ -416,9 +461,10 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   // Campo de tablatura (aceita nomes comuns de coluna)
   const tablature = tab.tablature || tab.tab || tab.tab_content || "";
 
+  // Renderiza cada linha; acordes viram elementos clicáveis com diagrama no hover
   const renderContent = (text: string) => {
-    const splitRe = new RegExp(String.raw`(\b${CHORD_PATTERN}\b)`, "gi");
-    const testRe = new RegExp(String.raw`^\b${CHORD_PATTERN}\b$`, "i");
+    const splitRe = new RegExp("(\b" + CHORD_PATTERN + "\b)", "gi");
+    const testRe = new RegExp("^\b" + CHORD_PATTERN + "\b$", "i");
     return text.split("\n").map((line, lineIdx) => {
       const isTabLine = /^\s*[eEBGDA]{1,2}\|/.test(line.trim());
       const parts = line.split(splitRe);
@@ -433,6 +479,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
                   onClick={() => setSelectedChord(part)}
                 >
                   <span className="chord">{part}</span>
+                  {/* Tooltip com o braço do instrumento (aparece no hover) */}
                   <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-[60] bg-brand-card border border-brand-gold/40 rounded-xl p-2 shadow-2xl w-48 pointer-events-none">
                     <ChordDiagram chord={part} />
                     <span className="block text-center text-[10px] text-brand-muted">Click to enlarge</span>
@@ -449,6 +496,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
+      {/* Breadcrumbs */}
       <nav className="text-sm text-brand-muted">
         <ol className="flex gap-2">
           <li>
@@ -460,13 +508,14 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
           </li>
           <li>/</li>
           <li>
-            <Link href={`/artist/${tab.slug_artist}`} className="hover:text-white capitalize">
+            <Link href={"/artist/" + tab.slug_artist} className="hover:text-white capitalize">
               {tab.artist}
             </Link>
           </li>
         </ol>
       </nav>
 
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start gap-6">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
@@ -477,8 +526,9 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
               </div>
             )}
           </div>
+          {/* Artista clicável */}
           <Link
-            href={`/artist/${tab.slug_artist}`}
+            href={"/artist/" + tab.slug_artist}
             className="text-xl text-brand-muted capitalize hover:text-brand-gold transition-colors"
           >
             {tab.artist}
@@ -509,14 +559,13 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         </div>
       </div>
 
+      {/* Controles: transposição + auto-scroll */}
       <div className="flex flex-wrap items-center gap-4 bg-brand-card rounded-xl p-4 border border-white/5">
         <TransposeControls transpose={transpose} onTranspose={setTranspose} />
         <div className="h-6 w-px bg-white/10" />
         <button
           onClick={() => setAutoScroll(!autoScroll)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${
-            autoScroll ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10"
-          }`}
+          className={"flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition " + (autoScroll ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}
         >
           <MousePointer2 size={16} /> Auto-scroll {autoScroll ? "ON" : "OFF"}
         </button>
@@ -533,13 +582,15 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         )}
       </div>
 
+      {/* Conteúdo + vídeo lateral */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
+          {/* Cifra completa */}
           <div className="cifra-content bg-brand-card rounded-2xl p-8 border border-white/5">
             {renderContent(transposedContent)}
           </div>
 
-          {/* ⬇️ NOVO: seção de tablatura */}
+          {/* Seção de tablatura */}
           {tablature && (
             <div className="bg-brand-card rounded-2xl p-6 border border-white/5">
               <h3 className="text-xl font-bold mb-4">Tablature</h3>
@@ -551,6 +602,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
             </div>
           )}
 
+          {/* Diagramas dos acordes no final */}
           <div className="bg-brand-card rounded-2xl p-8 border border-white/5">
             <h3 className="text-xl font-bold mb-2">Chords used in this tab</h3>
             <p className="text-sm text-brand-muted mb-6">
@@ -574,6 +626,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
             )}
           </div>
 
+          {/* Versões */}
           <details className="bg-brand-card rounded-xl p-4 border border-white/5">
             <summary className="flex items-center gap-2 cursor-pointer font-semibold">
               <ChevronDown size={16} /> Other versions
@@ -582,6 +635,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
           </details>
         </div>
 
+        {/* Vídeo embutido (fica visível enquanto rola a cifra) */}
         <aside className="space-y-6 lg:sticky lg:top-24 h-fit">
           <div className="bg-brand-card rounded-2xl p-4 border border-white/5">
             <h3 className="flex items-center gap-2 font-bold mb-3">
@@ -590,20 +644,23 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
             {videoId ? (
               <div>
                 <iframe
-                  src={`https://www.youtube.com/embed/${videoId}`}
-                  title={`${tab.song} - ${tab.artist}`}
+                  src={"https://www.youtube.com/embed/" + videoId}
+                  title={tab.song + " - " + tab.artist}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
                   className="w-full aspect-video rounded-xl border border-white/5"
                 />
                 <a
-                  href={`https://www.youtube.com/watch?v=${videoId}`}
+                  href={"https://www.youtube.com/watch?v=" + videoId}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 w-full mt-3 bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-xl transition text-sm"
                 >
                   <ExternalLink size={16} /> Watch on YouTube
                 </a>
+                <p className="text-xs text-brand-muted mt-2">
+                  We automatically picked a video that allows embedding on this site.
+                </p>
               </div>
             ) : (
               <div className="w-full aspect-video rounded-xl border border-white/5 bg-white/5 flex items-center justify-center">
@@ -616,6 +673,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         </aside>
       </div>
 
+      {/* Modal do acorde (clique) */}
       {selectedChord && (
         <div
           className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4"
