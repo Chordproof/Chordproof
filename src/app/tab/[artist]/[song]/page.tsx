@@ -288,7 +288,7 @@ function getChordShape(chord: string): number[] | undefined {
 
 // Componente de diagrama com visual de braço de violão (mogno + dourado)
 function ChordDiagram({ chord }: { chord: string }) {
-  const shape = getChordShape(chord);
+  const shape = getChordShape(chord)!;
 
   const positions = shape.slice(0, 6);
   const frets = positions.filter((p) => p > 0);
