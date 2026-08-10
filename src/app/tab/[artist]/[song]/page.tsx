@@ -463,8 +463,8 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
 
   // Renderiza cada linha; acordes viram elementos clicáveis com diagrama no hover
   const renderContent = (text: string) => {
-    const splitRe = new RegExp("(\b" + CHORD_PATTERN + "\b)", "gi");
-    const testRe = new RegExp("^\b" + CHORD_PATTERN + "\b$", "i");
+    const splitRe = new RegExp(String.raw`(\b${CHORD_PATTERN}\b)`, "gi");
+const testRe = new RegExp(String.raw`^\b${CHORD_PATTERN}\b$`, "i");
     return text.split("\n").map((line, lineIdx) => {
       const isTabLine = /^\s*[eEBGDA]{1,2}\|/.test(line.trim());
       const parts = line.split(splitRe);
