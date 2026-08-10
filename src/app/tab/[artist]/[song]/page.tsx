@@ -28,7 +28,7 @@ function transposeChord(chord: string, semitones: number) {
 
 function transposeContent(content: string, semitones: number) {
   if (semitones === 0) return content;
-  const re = new RegExp("\b" + CHORD_PATTERN + "\b", "gi");
+  const re = new RegExp(String.raw`\b${CHORD_PATTERN}\b`, "gi");
   return content.replace(re, (chord) => {
     try {
       return transposeChord(chord, semitones);
@@ -39,10 +39,10 @@ function transposeContent(content: string, semitones: number) {
 }
 
 function extractChords(content: string) {
-  const re = new RegExp("\b" + CHORD_PATTERN + "\b", "gi");
+  const re = new RegExp(String.raw`\b${CHORD_PATTERN}\b`, "gi");
   const matches = content.match(re) || [];
   if (matches.length > 0) return Array.from(new Set(matches));
-  const tokenRe = new RegExp("^\b" + CHORD_PATTERN + "\b$", "i");
+  const tokenRe = new RegExp(String.raw`^\b${CHORD_PATTERN}\b$`, "i");
   const tokens = content.split(/[\s\n\r\t]+/).map((t) =>
     t.replace(/^[\[\(\{\<]+|[\]\)\}\>\,\.\;\¡\?]+$/g, "")
   );
