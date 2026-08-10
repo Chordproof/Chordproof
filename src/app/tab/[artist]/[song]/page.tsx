@@ -44,7 +44,7 @@ function extractChords(content: string) {
   if (matches.length > 0) return Array.from(new Set(matches));
   const tokenRe = new RegExp("^\b" + CHORD_PATTERN + "\b$", "i");
   const tokens = content.split(/[\s\n\r\t]+/).map((t) =>
-    t.replace(/^[\[\(\{\&lt;]+|[\]\)\}\>\,\.\;\¡\?]+$/g, "")
+    t.replace(/^[\[\(\{\<]+|[\]\)\}\>\,\.\;\¡\?]+$/g, "")
   );
   return Array.from(new Set(tokens.filter((t) => tokenRe.test(t))));
 }
