@@ -272,10 +272,9 @@ function splitIntoSections(text: string): TabSection[] {
     } else if (current) {
       current.lines.push(line);
     } else {
-      if (!sections.length) {
-        current = { title: "Intro", lines: [] };
-        sections.push(current);
-      }
+      // CORREÇÃO: garante que current nunca é null aqui
+      current = { title: "Intro", lines: [] };
+      sections.push(current);
       current.lines.push(line);
     }
   }
@@ -295,10 +294,9 @@ function splitTabIntoSections(tab: string): TabSection[] {
     } else if (current) {
       current.lines.push(line);
     } else {
-      if (!sections.length) {
-        current = { title: "Tab", lines: [] };
-        sections.push(current);
-      }
+      // CORREÇÃO: garante que current nunca é null aqui
+      current = { title: "Tab", lines: [] };
+      sections.push(current);
       current.lines.push(line);
     }
   }
