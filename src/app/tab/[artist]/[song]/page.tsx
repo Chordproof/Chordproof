@@ -10,7 +10,7 @@ export default function TabDetail({ params }: { params: { artist: string, song: 
   const [showTabs, setShowTabs] = useState(true); // NOVO: controla a tablatura
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll: rola o conteúdo suavemente quando ativado
+  // Auto-scroll: rola o conteúdo automaticamente quando ON
   useEffect(() => {
     if (!autoScroll || !contentRef.current) return;
     const interval = setInterval(() => {
@@ -19,10 +19,10 @@ export default function TabDetail({ params }: { params: { artist: string, song: 
     return () => clearInterval(interval);
   }, [autoScroll, scrollSpeed]);
 
-  // Conteúdo da cifra com tablatura EMBUTIDA no meio da letra
-  // (no app real, vem do banco via Supabase)
+  // Conteúdo da cifra (no app real, vem do banco via Supabase)
+  // A tablatura fica EMBUTIDA no meio da letra, onde o riff/solo acontece
   const rawContent = `
-[Intro]
+[Verse 1]
 Em                C
 There's a lady who's sure all that glitters is gold
 
@@ -34,33 +34,22 @@ D|7-------6-------5-------4-------3---------------|
 Em                C
 And she's buying a stairway to heaven
 
-[Verse 1]
-C                D
-When she gets there she knows if the stores are all closed
+[Chorus]
+C                 D
+Ooh, ooh, and she's buying a stairway to heaven
 
-e|--0-2-----2-0-----0-------------------3-----3-3p222|
-B|--1-------3-------1-----0h1-----1-----1---0-----3-3|
-G|--2-----0-------2-------2-------2-----0---------0--|
-D|--------2-----0-------3---------------------2------|
-A|--0-0-2-3-----------------------0-----0-2-3--------|
-
-C                D
-With a word she can get what she came for
-
-e|--2-----2--0-----0--------------------------2-0-0-0|
-B|--1---3--------1-----0h1-------------1------3---1-1|
-G|--0-------2--------2-------2---------0------2-----2|
-D|--------2-----0--------3-------------------2-------|
-A|--0-2-3------------------------0-----0-2-3---------|
+e|--5--7-----7--8-----8-2-----2-0-------0--------|
+B|----5-----5-------5-------3-------1---1---1-----|
+G|--5---------5-------5-------2-------2-------2---|
+D|7-------6-------5-------4-------3---------------|
 `;
 
   // Filtra as linhas de tablatura quando showTabs = false
-  // e aplica a classe .tab-line nas linhas visíveis
-  function renderContent(rawContent: string, showTabs: boolean) {
-    return rawContent.split("\n").map((line, i) => {
-      // Detecta se a linha é tablatura (começa com e|, B|, G|, D|, A|, E|)
+  // Detecta linhas que começam com e|, B|, G|, D|, A|, E| (padrão universal de tab ASCII)
+  function renderContent(raw: string, show: boolean) {
+    return raw.split("\n").map((line, i) => {
       const isTabLine = /^[eBGDAE]\|/.test(line.trim());
-      if (isTabLine && !showTabs) return null; // oculta quando toggle OFF
+      if (isTabLine && !show) return null; // oculta quando toggle OFF
       return (
         <div key={i} className={isTabLine ? "tab-line" : undefined}>
           {line || "\u00A0"} {/* preserva linhas em branco */}
@@ -119,7 +108,7 @@ A|--0-2-3------------------------0-----0-2-3---------|
           <Play size={16} /> Auto-scroll {autoScroll ? "ON" : "OFF"}
         </button>
 
-        {/* Toggle de tablatura */}
+        {/* NOVO: Toggle de tablatura */}
         <button
           onClick={() => setShowTabs(!showTabs)}
           className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-colors ${
