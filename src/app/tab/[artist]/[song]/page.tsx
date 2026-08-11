@@ -272,7 +272,6 @@ function splitIntoSections(text: string): TabSection[] {
     } else if (current) {
       current.lines.push(line);
     } else {
-      // CORREÇÃO: garante que current nunca é null aqui
       current = { title: "Intro", lines: [] };
       sections.push(current);
       current.lines.push(line);
@@ -281,20 +280,23 @@ function splitIntoSections(text: string): TabSection[] {
   return sections;
 }
 
+// Quebra a tablatura em seções, reconhecendo vários formatos de marcador:
+// "Intro:", "Verse 1", "Chorus Fill:", "_Solo part 1:_", "Rhythm Fill 2:", "Outro:", etc.
 function splitTabIntoSections(tab: string): TabSection[] {
   const lines = tab.split("\n");
   const sections: TabSection[] = [];
   let current: TabSection | null = null;
-  const markerRe = /^(intro|verse|pre[- ]?chorus|chorus|bridge|solo|outro|riff|fill|final|ending|parte|part)\b/i;
+  // Reconhece marcadores de seção em vários formatos
+  const markerRe =
+    /^\s*(?:_\s*)?(intro|verse|pre[- ]?chorus|chorus|bridge|solo|outro|riff|fill|final|ending|parte|part|guitar|rhythm|lead|base|verse solo|solo fill|chorus fill|rhythm fill)(?:\s+(?:part|fill|solo|riff)?\s*\d*)?\s*:?\s*_?\s*$/i;
   for (const line of lines) {
     const trimmed = line.trim();
     if (markerRe.test(trimmed) && trimmed.length <= 60) {
-      current = { title: trimmed.replace(/[:=\-]+$/, "").trim(), lines: [] };
+      current = { title: trimmed.replace(/[:=\-_]+$/g, "").trim(), lines: [] };
       sections.push(current);
     } else if (current) {
       current.lines.push(line);
     } else {
-      // CORREÇÃO: garante que current nunca é null aqui
       current = { title: "Tab", lines: [] };
       sections.push(current);
       current.lines.push(line);
@@ -307,18 +309,49 @@ function normalizeSection(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+// Extrai o "tipo" da seção (intro, verse, chorus, solo, bridge, outro, etc.)
+function sectionType(s: string): string {
+  const n = normalizeSection(s);
+  const types = ["intro", "verse", "prechorus", "chorus", "bridge", "solo", "outro", "riff", "fill", "final", "ending"];
+  for (const t of types) {
+    if (n.includes(t)) return t;
+  }
+  return "";
+}
+
+// Extrai o número da seção (ex: "Verse 2" → 2, "Solo part 1" → 1)
+function sectionNumber(s: string): number {
+  const m = s.match(/(\d+)/);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+// Casa a seção da cifra com a seção da tablatura
 function pickTabSection(contentTitle: string, tabSections: TabSection[], used: Set<number>) {
   const norm = normalizeSection(contentTitle);
+  const cType = sectionType(contentTitle);
+  const cNum = sectionNumber(contentTitle);
+
   let bestIdx = -1;
   let bestScore = 0;
+
   tabSections.forEach((s, i) => {
     if (used.has(i)) return;
     const sn = normalizeSection(s.title);
+    const sType = sectionType(s.title);
+    const sNum = sectionNumber(s.title);
+
     let score = 0;
+    // 1. Nome exato
     if (norm === sn) score = 100;
-    else if (norm && sn && (norm.includes(sn) || sn.includes(norm))) score = 50;
-    else {
-      const kws = ["intro", "verse", "pre-chorus", "chorus", "bridge", "solo", "outro", "riff", "fill", "final", "ending"];
+    // 2. Mesmo tipo E mesmo número (ex: Verse 2 ↔ Verse 2)
+    else if (cType && cType === sType && cNum === sNum && cNum > 0) score = 90;
+    // 3. Mesmo tipo, número diferente ou sem número (ex: Chorus ↔ Chorus Fill)
+    else if (cType && cType === sType) score = 70;
+    // 4. Tipo contido (ex: "Solo" ↔ "Solo part 1", "Chorus" ↔ "Chorus Fill")
+    else if (cType && sType && (cType.includes(sType) || sType.includes(cType))) score = 60;
+    // 5. Palavra-chave comum
+    else if (cType && sType) {
+      const kws = ["intro", "verse", "prechorus", "chorus", "bridge", "solo", "outro", "riff", "fill", "final", "ending"];
       for (const k of kws) {
         if (norm.includes(k) || sn.includes(k)) {
           const a = norm.replace(k, "").trim().slice(0, 4);
@@ -328,11 +361,13 @@ function pickTabSection(contentTitle: string, tabSections: TabSection[], used: S
         }
       }
     }
+
     if (score > bestScore) {
       bestScore = score;
       bestIdx = i;
     }
   });
+
   return bestScore >= 30 ? bestIdx : -1;
 }
 
