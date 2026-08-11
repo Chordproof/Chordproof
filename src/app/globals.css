@@ -6,10 +6,10 @@
   --foreground-rgb: 224, 224, 224;
   --background-start-rgb: 15, 15, 15;
   --background-end-rgb: 10, 10, 10;
-  /* Cores das linhas de tablatura (verde, combinando com o auto-scroll) */
-  --tab-color: #4ade80;
-  --tab-bg: rgba(74, 222, 128, 0.06);
-  --tab-border: rgba(74, 222, 128, 0.2);
+  /* Cores das linhas de tablatura (DOURADO, combinando com o tema) */
+  --tab-color: #f0b429;
+  --tab-bg: rgba(240, 180, 41, 0.07);
+  --tab-border: rgba(240, 180, 41, 0.25);
 }
 
 body {
@@ -32,7 +32,7 @@ body {
   cursor: pointer;
 }
 
-/* Linhas de tablatura embutidas na cifra */
+/* Linhas de tablatura embutidas na cifra (dourado) */
 .tab-line {
   color: var(--tab-color);
   background: var(--tab-bg);
@@ -48,8 +48,8 @@ body {
 }
 
 .tab-line:hover {
-  background: rgba(74, 222, 128, 0.12);
-  border-left-color: #4ade80;
+  background: rgba(240, 180, 41, 0.14);
+  border-left-color: #f0b429;
 }
 
 .gold-seal-anim {
