@@ -4,16 +4,17 @@
 
 :root {
   --foreground-rgb: 224, 224, 224;
-  --background-start-rgb: 18, 18, 18;
+  --background-start-rgb: 15, 15, 15;
   --background-end-rgb: 10, 10, 10;
+  /* Novas variáveis para as linhas de tablatura */
+  --tab-color: #7dd3fc;        /* azul claro (sky-300) */
+  --tab-bg: rgba(125, 211, 252, 0.06);  /* fundo sutil */
+  --tab-border: rgba(125, 211, 252, 0.15);
 }
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(to bottom,
-    rgb(var(--background-start-rgb)),
-    rgb(var(--background-end-rgb))
-  );
+  background: linear-gradient(to bottom, transparent, rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
   min-height: 100vh;
 }
 
@@ -26,21 +27,59 @@ body {
 }
 
 .chord {
-  color: #1ED760;
+  color: #f0b429;
   font-weight: 700;
   cursor: pointer;
 }
 
+/* ============================================
+   .tab-line — destaca as linhas de tablatura
+   ============================================ */
+.tab-line {
+  color: var(--tab-color);
+  background: var(--tab-bg);
+  border-left: 3px solid var(--tab-border);
+  padding-left: 0.75rem;
+  margin: 0.25rem 0;
+  border-radius: 0 4px 4px 0;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  display: block;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+/* Hover: realça um pouco mais para indicar interatividade */
+.tab-line:hover {
+  background: rgba(125, 211, 252, 0.12);
+  border-left-color: #7dd3fc;
+}
+
+/* Estado oculto (quando o toggle de tablatura está OFF) */
+.tab-line.hidden-tab {
+  display: none;
+}
+
+.gold-seal-anim {
+  animation: pulse-gold 2s infinite;
+}
+
+@keyframes pulse-gold {
+  0% { filter: drop-shadow(0 0 2px #f0b429); }
+  50% { filter: drop-shadow(0 0 8px #f0b429); }
+  100% { filter: drop-shadow(0 0 2px #f0b429); }
+}
+
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #0f0f0f;
 }
 ::-webkit-scrollbar-thumb {
   background: #333;
-  border-radius: 3px;
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #1ED760;
+  background: #f0b429;
 }
