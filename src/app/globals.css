@@ -6,9 +6,9 @@
   --foreground-rgb: 224, 224, 224;
   --background-start-rgb: 15, 15, 15;
   --background-end-rgb: 10, 10, 10;
-  /* Novas variáveis para as linhas de tablatura (dourado/verde do tema) */
-  --tab-color: #4ade80;              /* verde (combina com o auto-scroll) */
-  --tab-bg: rgba(74, 222, 128, 0.06); /* fundo verde sutil */
+  /* Cores das linhas de tablatura (verde, combinando com o auto-scroll) */
+  --tab-color: #4ade80;
+  --tab-bg: rgba(74, 222, 128, 0.06);
   --tab-border: rgba(74, 222, 128, 0.2);
 }
 
@@ -32,9 +32,7 @@ body {
   cursor: pointer;
 }
 
-/* ============================================
-   .tab-line — destaca as linhas de tablatura
-   ============================================ */
+/* Linhas de tablatura embutidas na cifra */
 .tab-line {
   color: var(--tab-color);
   background: var(--tab-bg);
