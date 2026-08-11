@@ -6,10 +6,10 @@
   --foreground-rgb: 224, 224, 224;
   --background-start-rgb: 15, 15, 15;
   --background-end-rgb: 10, 10, 10;
-  /* Novas variáveis para as linhas de tablatura */
-  --tab-color: #7dd3fc;        /* azul claro (sky-300) */
-  --tab-bg: rgba(125, 211, 252, 0.06);  /* fundo sutil */
-  --tab-border: rgba(125, 211, 252, 0.15);
+  /* Novas variáveis para as linhas de tablatura (dourado/verde do tema) */
+  --tab-color: #4ade80;              /* verde (combina com o auto-scroll) */
+  --tab-bg: rgba(74, 222, 128, 0.06); /* fundo verde sutil */
+  --tab-border: rgba(74, 222, 128, 0.2);
 }
 
 body {
@@ -49,15 +49,9 @@ body {
   overflow-x: auto;
 }
 
-/* Hover: realça um pouco mais para indicar interatividade */
 .tab-line:hover {
-  background: rgba(125, 211, 252, 0.12);
-  border-left-color: #7dd3fc;
-}
-
-/* Estado oculto (quando o toggle de tablatura está OFF) */
-.tab-line.hidden-tab {
-  display: none;
+  background: rgba(74, 222, 128, 0.12);
+  border-left-color: #4ade80;
 }
 
 .gold-seal-anim {
