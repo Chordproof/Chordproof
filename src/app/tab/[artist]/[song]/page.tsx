@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import TransposeControls from "@/components/TransposeControls";
@@ -7,34 +7,42 @@ import { BadgeCheck, Bookmark, Share2, Play, ChevronDown, MousePointer2, Youtube
 
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-// Padrão de acordes: raiz MAIÚSCULA [A-G] para evitar falsos positivos
-// em palavras minúsculas das letras (a, e, g, am, em...)
+// Padrão que reconhece acordes simples e complexos: C, Em7, D4, A7(4), C9, G/B, etc.
 const CHORD_PATTERN =
-  "[A-G](?:#|b)?(?:[0-9]|M|m|7|9|11|13|4|6|add|sus|dim|aug|\([0-9]+\)|\/[A-G](?:#|b)?)*";
+  "[A-Ga-g](?:#|b)?(?:[0-9]|M|m|7|9|11|13|4|6|add|sus|dim|aug|\([0-9]+\)|\/[A-Ga-g](?:#|b)?)*";
 
 function transposeChord(chord: string, semitones: number) {
-  const match = chord.match(/^([A-G])(#|b)?(.*)$/);
+  const match = chord.match(/^([A-Ga-g])(#|b)?(.*)$/);
   if (!match) return chord;
   const root = match[1];
   const acc = match[2];
   const rest = match[3];
+  const isLower = root === root.toLowerCase();
   let idx = NOTES.indexOf(root.toUpperCase());
   if (acc === "#") idx = (idx + 1) % 12;
   if (acc === "b") idx = (idx + 11) % 12;
   const newRoot = NOTES[((idx + semitones) % 12 + 12) % 12];
-  return newRoot + rest;
+  return (isLower ? newRoot.toLowerCase() : newRoot) + rest;
 }
 
+// Transpõe a cifra, mas NUNCA transpõe linhas de tablatura (e|, B|, 1|, ...)
 function transposeContent(content: string, semitones: number) {
   if (semitones === 0) return content;
   const re = new RegExp(String.raw`\b${CHORD_PATTERN}\b`, "gi");
-  return content.replace(re, (chord) => {
-    try {
-      return transposeChord(chord, semitones);
-    } catch {
-      return chord;
-    }
-  });
+  return content
+    .split("\n")
+    .map((line) => {
+      const t = line.trim();
+      if (/^\s*[eEBGDA]{1,2}\|/.test(t) || /^\s*[1-6]\|/.test(t)) return line;
+      return line.replace(re, (chord) => {
+        try {
+          return transposeChord(chord, semitones);
+        } catch {
+          return chord;
+        }
+      });
+    })
+    .join("\n");
 }
 
 function extractChords(content: string) {
@@ -152,7 +160,7 @@ function getChordShape(chord: string): number[] | undefined {
   if (exact) return exact;
   const upper = CHORD_SHAPES[chord.charAt(0).toUpperCase() + chord.slice(1)];
   if (upper) return upper;
-  const rootMatch = chord.match(/^([A-G](?:#|b)?)/);
+  const rootMatch = chord.match(/^([A-Ga-g](?:#|b)?)/);
   if (rootMatch) {
     const root = rootMatch[1];
     const rootUpper = root.charAt(0).toUpperCase() + root.slice(1);
@@ -249,6 +257,87 @@ function ChordDiagram({ chord }: { chord: string }) {
 }
 ChordDiagram.__counter = 0;
 
+// ===== Intercalação da tablatura dentro da cifra =====
+type TabSection = { title: string; lines: string[] };
+
+function splitIntoSections(text: string): TabSection[] {
+  const lines = text.split("\n");
+  const sections: TabSection[] = [];
+  let current: TabSection | null = null;
+  for (const line of lines) {
+    const m = line.trim().match(/^\[([^\]]+)\]$/);
+    if (m) {
+      current = { title: m[1].trim(), lines: [] };
+      sections.push(current);
+    } else if (current) {
+      current.lines.push(line);
+    } else {
+      if (!sections.length) {
+        current = { title: "Intro", lines: [] };
+        sections.push(current);
+      }
+      current.lines.push(line);
+    }
+  }
+  return sections;
+}
+
+function splitTabIntoSections(tab: string): TabSection[] {
+  const lines = tab.split("\n");
+  const sections: TabSection[] = [];
+  let current: TabSection | null = null;
+  const markerRe = /^(intro|verse|pre[- ]?chorus|chorus|bridge|solo|outro|riff|fill|final|ending|parte|part)\b/i;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (markerRe.test(trimmed) && trimmed.length <= 60) {
+      current = { title: trimmed.replace(/[:=\-]+$/, "").trim(), lines: [] };
+      sections.push(current);
+    } else if (current) {
+      current.lines.push(line);
+    } else {
+      if (!sections.length) {
+        current = { title: "Tab", lines: [] };
+        sections.push(current);
+      }
+      current.lines.push(line);
+    }
+  }
+  return sections;
+}
+
+function normalizeSection(s: string) {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function pickTabSection(contentTitle: string, tabSections: TabSection[], used: Set<number>) {
+  const norm = normalizeSection(contentTitle);
+  let bestIdx = -1;
+  let bestScore = 0;
+  tabSections.forEach((s, i) => {
+    if (used.has(i)) return;
+    const sn = normalizeSection(s.title);
+    let score = 0;
+    if (norm === sn) score = 100;
+    else if (norm && sn && (norm.includes(sn) || sn.includes(norm))) score = 50;
+    else {
+      const kws = ["intro", "verse", "pre-chorus", "chorus", "bridge", "solo", "outro", "riff", "fill", "final", "ending"];
+      for (const k of kws) {
+        if (norm.includes(k) || sn.includes(k)) {
+          const a = norm.replace(k, "").trim().slice(0, 4);
+          const b = sn.replace(k, "").trim().slice(0, 4);
+          if (a === b && a !== "") score = 30;
+          break;
+        }
+      }
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestIdx = i;
+    }
+  });
+  return bestScore >= 30 ? bestIdx : -1;
+}
+
 export default function TabDetail({ params }: { params: { artist: string; song: string } }) {
   const [tab, setTab] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -259,7 +348,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const [selectedChord, setSelectedChord] = useState<string | null>(null);
   const [videoId, setVideoId] = useState<string | null>(null);
   const [videoLoading, setVideoLoading] = useState(false);
-  const [showTabs, setShowTabs] = useState(true); // NOVO: toggle de tablatura
+  const [showTabs, setShowTabs] = useState(true); // toggle de tablatura
 
   useEffect(() => {
     async function fetchTab() {
@@ -275,6 +364,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
     fetchTab();
   }, [params.artist, params.song]);
 
+  // Vídeo: usa o video_id do banco (se existir) ou busca um vídeo incorporável via API
   useEffect(() => {
     if (!tab) return;
     if (tab.video_id) {
@@ -296,6 +386,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       });
   }, [tab]);
 
+  // Auto-scroll suave (rola a página inteira)
   useEffect(() => {
     if (!autoScroll) return;
     const interval = setInterval(() => {
@@ -311,41 +402,98 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const chords = extractChords(transposedContent);
   const tablature = tab.tablature || tab.tab || tab.tab_content || "";
 
-  const renderContent = (text: string) => {
-    const splitRe = new RegExp(String.raw`(\b${CHORD_PATTERN}\b)`, "gi");
-    const testRe = new RegExp(String.raw`^\b${CHORD_PATTERN}\b$`, "i");
-    return text.split("\n").map((line, lineIdx) => {
-      const isTabLine = /^\s*[eEBGDA]{1,2}\|/.test(line.trim());
-      // Oculta as linhas de tablatura quando o toggle está OFF
-      if (isTabLine && !showTabs) return null;
-      const parts = line.split(splitRe);
+  const splitRe = new RegExp(String.raw`(\b${CHORD_PATTERN}\b)`, "gi");
+  const testRe = new RegExp(String.raw`^\b${CHORD_PATTERN}\b$`, "i");
+  const isTabLineRegex = /^\s*[eEBGDA]{1,2}\|/;
+
+  // Renderiza uma linha: tablatura vira .tab-line; o resto vira acordes clicáveis
+  const renderLine = (line: string, key: string, isTabLine: boolean) => {
+    if (isTabLine) {
       return (
-        <div key={lineIdx} className={isTabLine ? "tab-line" : ""}>
-          {parts.map((part, i) => {
-            if (testRe.test(part)) {
-              return (
-                <span
-                  key={i}
-                  className="relative inline-block group"
-                  onClick={() => setSelectedChord(part)}
-                >
-                  <span className="chord">{part}</span>
-                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-[60] bg-brand-card border border-brand-gold/40 rounded-xl p-2 shadow-2xl w-48 pointer-events-none">
-                    <ChordDiagram chord={part} />
-                    <span className="block text-center text-[10px] text-brand-muted">Click to enlarge</span>
-                  </span>
-                </span>
-              );
-            }
-            return <span key={i}>{part}</span>;
-          })}
+        <div key={key} className="tab-line">
+          {line || "\u00A0"}
         </div>
       );
+    }
+    const parts = line.split(splitRe);
+    return (
+      <div key={key}>
+        {parts.map((part, i) => {
+          if (testRe.test(part)) {
+            return (
+              <span
+                key={key + "-p" + i}
+                className="relative inline-block group"
+                onClick={() => setSelectedChord(part)}
+              >
+                <span className="chord">{part}</span>
+                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-[60] bg-brand-card border border-brand-gold/40 rounded-xl p-2 shadow-2xl w-48 pointer-events-none">
+                  <ChordDiagram chord={part} />
+                  <span className="block text-center text-[10px] text-brand-muted">Click to enlarge</span>
+                </span>
+              </span>
+            );
+          }
+          return <span key={key + "-p" + i}>{part}</span>;
+        })}
+      </div>
+    );
+  };
+
+  // Renderiza a cifra inteira com a tablatura intercalada nas seções corretas
+  const renderContent = (text: string) => {
+    const sections = splitIntoSections(text);
+    const tabSections = tablature ? splitTabIntoSections(tablature) : [];
+    const usedTab = new Set<number>();
+    const nodes: ReactNode[] = [];
+    const unmatched: TabSection[] = [];
+
+    sections.forEach((sec, secIdx) => {
+      nodes.push(
+        <div key={"h-" + secIdx} className="mt-4 mb-1 font-bold text-brand-gold">
+          [{sec.title}]
+        </div>
+      );
+      sec.lines.forEach((line, li) => {
+        const isTabLine = isTabLineRegex.test(line.trim()) || /^\s*[1-6]\|/.test(line.trim());
+        if (isTabLine && !showTabs) return;
+        nodes.push(renderLine(line, "l-" + secIdx + "-" + li, isTabLine));
+      });
+      // Tablatura embutida desta seção (intro, verso, refrão, solo, etc.)
+      if (showTabs && tabSections.length) {
+        const idx = pickTabSection(sec.title, tabSections, usedTab);
+        if (idx >= 0) {
+          usedTab.add(idx);
+          const ts = tabSections[idx];
+          ts.lines.forEach((line, li) => {
+            nodes.push(renderLine(line, "t-" + secIdx + "-" + idx + "-" + li, true));
+          });
+        }
+      }
     });
+
+    // Parte da tablatura que não casou com nenhuma seção vai para o final
+    tabSections.forEach((ts, i) => {
+      if (!usedTab.has(i)) unmatched.push(ts);
+    });
+    if (showTabs && unmatched.length) {
+      nodes.push(
+        <div key="unmatched-h" className="mt-6 mb-1 font-bold text-brand-muted">
+          Tablatura
+        </div>
+      );
+      unmatched.forEach((ts, u) => {
+        ts.lines.forEach((line, li) => {
+          nodes.push(renderLine(line, "u-" + u + "-" + li, true));
+        });
+      });
+    }
+    return nodes;
   };
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
+      {/* Breadcrumbs */}
       <nav className="text-sm text-brand-muted">
         <ol className="flex gap-2">
           <li><Link href="/" className="hover:text-white">Home</Link></li>
@@ -356,6 +504,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         </ol>
       </nav>
 
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start gap-6">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
@@ -366,7 +515,10 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
               </div>
             )}
           </div>
-          <Link href={"/artist/" + tab.slug_artist} className="text-xl text-brand-muted capitalize hover:text-brand-gold transition-colors">
+          <Link
+            href={"/artist/" + tab.slug_artist}
+            className="text-xl text-brand-muted capitalize hover:text-brand-gold transition-colors"
+          >
             {tab.artist}
           </Link>
           <div className="flex gap-4 pt-2">
@@ -390,7 +542,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         </div>
       </div>
 
-      {/* Controles: transposição + auto-scroll (verde quando ON) + toggle de tablatura */}
+      {/* Controles: transposição + auto-scroll (verde) + tablatura (dourado) */}
       <div className="flex flex-wrap items-center gap-4 bg-brand-card rounded-xl p-4 border border-white/5">
         <TransposeControls transpose={transpose} onTranspose={setTranspose} />
         <div className="h-6 w-px bg-white/10" />
@@ -419,24 +571,13 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         )}
       </div>
 
+      {/* Conteúdo + vídeo lateral */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          {/* Cifra completa (conteúdo real do banco) */}
+          {/* Cifra completa com tablatura intercalada no meio */}
           <div className="cifra-content bg-brand-card rounded-2xl p-8 border border-white/5">
             {renderContent(transposedContent)}
           </div>
-
-          {/* Seção de tablatura (campo separado) */}
-          {tablature && (
-            <div className="bg-brand-card rounded-2xl p-6 border border-white/5">
-              <h3 className="text-xl font-bold mb-4">Tablature</h3>
-              <div className="overflow-x-auto">
-                <pre className="font-mono text-sm leading-relaxed text-brand-text whitespace-pre">
-                  {tablature}
-                </pre>
-              </div>
-            </div>
-          )}
 
           {/* Diagramas dos acordes no final */}
           <div className="bg-brand-card rounded-2xl p-8 border border-white/5">
@@ -462,6 +603,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
             )}
           </div>
 
+          {/* Versões */}
           <details className="bg-brand-card rounded-xl p-4 border border-white/5">
             <summary className="flex items-center gap-2 cursor-pointer font-semibold">
               <ChevronDown size={16} /> Other versions
@@ -470,7 +612,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
           </details>
         </div>
 
-        {/* Vídeo embutido (restaurado) */}
+        {/* Vídeo embutido (fica visível enquanto rola a cifra) */}
         <aside className="space-y-6 lg:sticky lg:top-24 h-fit">
           <div className="bg-brand-card rounded-2xl p-4 border border-white/5">
             <h3 className="flex items-center gap-2 font-bold mb-3">
