@@ -7,8 +7,8 @@ import { BadgeCheck, Bookmark, Share2, Play, ChevronDown, MousePointer2, Youtube
 
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-// CORRIGIDO: raiz MAIÚSCULA [A-G] para não detectar letras minúsculas
-// (a, e, g, am, em) dentro das palavras da letra como acordes.
+// Raiz MAIÚSCULA [A-G] para não detectar letras minúsculas (a, e, g, am, em)
+// dentro das palavras da letra como acordes.
 const CHORD_PATTERN =
   "[A-G](?:#|b)?(?:[0-9]|M|m|7|9|11|13|4|6|add|sus|dim|aug|\([0-9]+\)|\/[A-G](?:#|b)?)*";
 
