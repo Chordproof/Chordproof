@@ -6,7 +6,6 @@
   --foreground-rgb: 224, 224, 224;
   --background-start-rgb: 15, 15, 15;
   --background-end-rgb: 10, 10, 10;
-  /* Cores das linhas de tablatura (DOURADO) */
   --tab-color: #f0b429;
   --tab-bg: rgba(240, 180, 41, 0.07);
   --tab-border: rgba(240, 180, 41, 0.25);
@@ -26,14 +25,12 @@ body {
   letter-spacing: 0.02em;
 }
 
-/* Acordes em VERDE (Spotify) */
 .chord {
   color: #1ED760;
   font-weight: 700;
   cursor: pointer;
 }
 
-/* Linhas de tablatura embutidas na cifra (DOURADO) */
 .tab-line {
   color: var(--tab-color);
   background: var(--tab-bg);
