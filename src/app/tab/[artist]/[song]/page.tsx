@@ -51,7 +51,7 @@ function extractChords(content: string) {
   if (matches.length > 0) return Array.from(new Set(matches));
   const tokenRe = new RegExp(String.raw`^\b${CHORD_PATTERN}\b$`, "i");
   const tokens = content.split(/[\s\n\r\t]+/).map((t) =>
-    t.replace(/^[\[\(\{\<]+|[\]\)\}\>\,\.\;\¡\?]+$/g, "")
+    t.replace(/^[\[\(\{\&lt;]+|[\]\)\}\>\,\.\;\¡\?]+$/g, "")
   );
   return Array.from(new Set(tokens.filter((t) => tokenRe.test(t))));
 }
@@ -234,7 +234,7 @@ function ChordDiagram({ chord }: { chord: string }) {
             </text>
           );
         }
-        if (pos < 0) {
+        if (pos &lt; 0) {
           return (
             <text key={i} x={x} y={topY - 10} fontSize="13" textAnchor="middle" fill="#F5EFE0">
               ×
@@ -291,7 +291,7 @@ function splitTabIntoSections(tab: string): TabSection[] {
     /^\s*(?:_\s*)?(intro|verse|pre[- ]?chorus|chorus|bridge|solo|outro|riff|fill|final|ending|parte|part|guitar|rhythm|lead|base|verse solo|solo fill|chorus fill|rhythm fill)(?:\s+(?:part|fill|solo|riff)?\s*\d*)?\s*:?\s*_?\s*$/i;
   for (const line of lines) {
     const trimmed = line.trim();
-    if (markerRe.test(trimmed) && trimmed.length <= 60) {
+    if (markerRe.test(trimmed) && trimmed.length &lt;= 60) {
       current = { title: trimmed.replace(/[:=\-_]+$/g, "").trim(), lines: [] };
       sections.push(current);
     } else if (current) {
