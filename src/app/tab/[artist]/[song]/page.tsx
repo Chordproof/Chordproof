@@ -7,21 +7,22 @@ import { BadgeCheck, Bookmark, Share2, Play, ChevronDown, MousePointer2, Youtube
 
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
+// CORRIGIDO: raiz MAIÚSCULA [A-G] para não detectar letras minúsculas
+// (a, e, g, am, em) dentro das palavras da letra como acordes.
 const CHORD_PATTERN =
-  "[A-Ga-g](?:#|b)?(?:[0-9]|M|m|7|9|11|13|4|6|add|sus|dim|aug|\([0-9]+\)|\/[A-Ga-g](?:#|b)?)*";
+  "[A-G](?:#|b)?(?:[0-9]|M|m|7|9|11|13|4|6|add|sus|dim|aug|\([0-9]+\)|\/[A-G](?:#|b)?)*";
 
 function transposeChord(chord: string, semitones: number) {
-  const match = chord.match(/^([A-Ga-g])(#|b)?(.*)$/);
+  const match = chord.match(/^([A-G])(#|b)?(.*)$/);
   if (!match) return chord;
   const root = match[1];
   const acc = match[2];
   const rest = match[3];
-  const isLower = root === root.toLowerCase();
   let idx = NOTES.indexOf(root.toUpperCase());
   if (acc === "#") idx = (idx + 1) % 12;
   if (acc === "b") idx = (idx + 11) % 12;
   const newRoot = NOTES[((idx + semitones) % 12 + 12) % 12];
-  return (isLower ? newRoot.toLowerCase() : newRoot) + rest;
+  return newRoot + rest;
 }
 
 function transposeContent(content: string, semitones: number) {
@@ -157,7 +158,7 @@ function getChordShape(chord: string): number[] | undefined {
   if (exact) return exact;
   const upper = CHORD_SHAPES[chord.charAt(0).toUpperCase() + chord.slice(1)];
   if (upper) return upper;
-  const rootMatch = chord.match(/^([A-Ga-g](?:#|b)?)/);
+  const rootMatch = chord.match(/^([A-G](?:#|b)?)/);
   if (rootMatch) {
     const root = rootMatch[1];
     const rootUpper = root.charAt(0).toUpperCase() + root.slice(1);
