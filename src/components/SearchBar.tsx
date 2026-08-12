@@ -1,13 +1,14 @@
 "use client";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
-// Ajuste aqui a rota de destino da busca, se necessário
+// Rota de destino da busca — ajuste aqui se a sua página de resultados for outra
 const SEARCH_ROUTE = "/browse?q=";
 
-// Sugestões de exemplo (substitua pelos dados reais do seu banco)
-const SUGGESTIONS = [
+// Sugestões de fallback (usadas se o Supabase não retornar nada ou falhar)
+const FALLBACK_SUGGESTIONS = [
   "Stairway to Heaven",
   "Wonderwall",
   "Hotel California",
@@ -18,14 +19,43 @@ const SUGGESTIONS = [
 
 export default function SearchBar({ large = false }: { large?: boolean }) {
   const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const filtered = query.trim()
-    ? SUGGESTIONS.filter((s) =>
-        s.toLowerCase().includes(query.trim().toLowerCase())
-      ).slice(0, 6)
-    : [];
+  // Autocomplete com debounce de 300ms
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const { data } = await supabase
+          .from("tabs")
+          .select("song")
+          .ilike("song", `%${q}%`)
+          .limit(6);
+        const songs = (data || []).map((row) => row.song);
+        setSuggestions(
+          songs.length
+            ? songs
+            : FALLBACK_SUGGESTIONS.filter((s) =>
+                s.toLowerCase().includes(q.toLowerCase())
+              )
+        );
+      } catch {
+        setSuggestions(
+          FALLBACK_SUGGESTIONS.filter((s) =>
+            s.toLowerCase().includes(q.toLowerCase())
+          )
+        );
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -57,6 +87,7 @@ export default function SearchBar({ large = false }: { large?: boolean }) {
           }
         />
         <input
+          ref={inputRef}
           type="search"
           value={query}
           onChange={(e) => {
@@ -67,10 +98,7 @@ export default function SearchBar({ large = false }: { large?: boolean }) {
           onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
           placeholder={large ? "Search songs, artists..." : "Search..."}
           aria-label="Search songs and artists"
-          className={
-            "w-full bg-transparent outline-none placeholder:text-brand-muted/70 " +
-            "text-brand-text font-mono"
-          }
+          className="w-full bg-transparent outline-none placeholder:text-brand-muted/70 text-brand-text font-mono"
         />
         {query && (
           <button
@@ -78,6 +106,7 @@ export default function SearchBar({ large = false }: { large?: boolean }) {
             onClick={() => {
               setQuery("");
               setShowSuggestions(false);
+              inputRef.current?.focus();
             }}
             aria-label="Clear search"
             className="text-brand-muted hover:text-brand-gold transition-colors shrink-0"
@@ -87,10 +116,9 @@ export default function SearchBar({ large = false }: { large?: boolean }) {
         )}
       </div>
 
-      {/* Autocomplete dropdown */}
-      {showSuggestions && filtered.length > 0 && (
+      {showSuggestions && suggestions.length > 0 && (
         <ul className="absolute left-0 right-0 mt-2 bg-brand-card border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
-          {filtered.map((s) => (
+          {suggestions.map((s) => (
             <li key={s}>
               <button
                 type="button"
