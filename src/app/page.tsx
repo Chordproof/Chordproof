@@ -153,12 +153,12 @@ export default function Home() {
           </Link>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <TabCard song="Wonderwall" artist="Oasis" difficulty="Beginner" isVerified={true} key_sig="F#m" />
-          <TabCard song="Hotel California" artist="Eagles" difficulty="Advanced" isVerified={true} key_sig="Bm" />
-          <TabCard song="Perfect" artist="Ed Sheeran" difficulty="Beginner" isVerified={true} key_sig="Ab" />
-          <TabCard song="Hallelujah" artist="Jeff Buckley" difficulty="Intermediate" isVerified={true} key_sig="C" />
-          <TabCard song="Creep" artist="Radiohead" difficulty="Beginner" isVerified={true} key_sig="G" />
-          <TabCard song="Stairway to Heaven" artist="Led Zeppelin" difficulty="Advanced" isVerified={true} key_sig="Am" />
+          <TabCard song="Wonderwall" artist="Oasis" difficulty="Beginner" is_verified={true} key_sig="F#m" />
+          <TabCard song="Hotel California" artist="Eagles" difficulty="Advanced" is_verified={true} key_sig="Bm" />
+          <TabCard song="Perfect" artist="Ed Sheeran" difficulty="Beginner" is_verified={true} key_sig="Ab" />
+          <TabCard song="Hallelujah" artist="Jeff Buckley" difficulty="Intermediate" is_verified={true} key_sig="C" />
+          <TabCard song="Creep" artist="Radiohead" difficulty="Beginner" is_verified={true} key_sig="G" />
+          <TabCard song="Stairway to Heaven" artist="Led Zeppelin" difficulty="Advanced" is_verified={true} key_sig="Am" />
         </div>
       </section>
 
