@@ -1,48 +1,57 @@
 "use client";
-import { Search } from "lucide-react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { Search } from "lucide-react";
 
-interface SearchBarProps {
-  large?: boolean;
-  onSearch?: (query: string) => void;
-  initialValue?: string;
-}
-
-export default function SearchBar({ large, onSearch, initialValue = "" }: SearchBarProps) {
-  const [query, setQuery] = useState(initialValue);
+export default function SearchBar({ large = false }: { large?: boolean }) {
+  const [query, setQuery] = useState("");
   const router = useRouter();
 
-  // Busca ao vivo: a cada tecla digitada, dispara o filtro
-  const handleChange = (value: string) => {
-    setQuery(value);
-    if (onSearch) onSearch(value);
-  };
-
-  // Enter: navega para /browse?q= (usado na home, onde não há onSearch)
-  const handleSubmit = () => {
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
     const q = query.trim();
     if (!q) return;
-    if (!onSearch) {
-      router.push(`/browse?q=${encodeURIComponent(q)}`);
-    }
-  };
+    router.push("/browse?q=" + encodeURIComponent(q));
+  }
 
   return (
-    <div className={`relative ${large ? "w-full" : "w-full max-w-md"}`}>
-      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted" size={large ? 24 : 20} />
-      <input
-        type="text"
-        placeholder="Search songs, artists, or chords..."
-        value={query}
-        onChange={(e) => handleChange(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") handleSubmit();
-        }}
-        className={`w-full bg-white/5 border border-white/10 rounded-full pl-12 pr-6 text-white placeholder-brand-muted focus:outline-none focus:border-brand-accent transition ${
-          large ? "py-4 text-lg" : "py-3 text-sm"
-        }`}
-      />
-    </div>
+    <form onSubmit={handleSubmit} className="w-full" role="search">
+      <div
+        className={
+          "flex items-center gap-3 rounded-full border border-white/10 bg-brand-card/60 " +
+          "focus-within:border-brand-gold/60 focus-within:ring-2 focus-within:ring-brand-gold/20 " +
+          "transition-all duration-200 " +
+          (large ? "px-6 py-4 text-lg" : "px-4 py-2.5 text-sm")
+        }
+      >
+        <Search
+          className={
+            "text-brand-muted shrink-0 " + (large ? "w-6 h-6" : "w-4 h-4")
+          }
+        />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={large ? "Search songs, artists..." : "Search..."}
+          aria-label="Search songs and artists"
+          className={
+            "w-full bg-transparent outline-none placeholder:text-brand-muted/70 " +
+            "text-brand-text " +
+            (large ? "font-mono" : "font-mono")
+          }
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            aria-label="Clear search"
+            className="text-brand-muted hover:text-brand-gold transition-colors shrink-0"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+    </form>
   );
 }
