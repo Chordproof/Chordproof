@@ -7,8 +7,6 @@ import { BadgeCheck, Bookmark, Share2, Play, ChevronDown, MousePointer2, Youtube
 
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-// Raiz MAIÚSCULA [A-G] para não detectar letras minúsculas (a, e, g, am, em)
-// dentro das palavras da letra como acordes.
 const CHORD_PATTERN =
   "[A-G](?:#|b)?(?:[0-9]|M|m|7|9|11|13|4|6|add|sus|dim|aug|\([0-9]+\)|\/[A-G](?:#|b)?)*";
 
@@ -255,108 +253,6 @@ function ChordDiagram({ chord }: { chord: string }) {
 }
 ChordDiagram.__counter = 0;
 
-type TabSection = { title: string; lines: string[] };
-
-function splitIntoSections(text: string): TabSection[] {
-  const lines = text.split("\n");
-  const sections: TabSection[] = [];
-  let current: TabSection | null = null;
-  for (const line of lines) {
-    const m = line.trim().match(/^\[([^\]]+)\]$/);
-    if (m) {
-      current = { title: m[1].trim(), lines: [] };
-      sections.push(current);
-    } else if (current) {
-      current.lines.push(line);
-    } else {
-      current = { title: "Intro", lines: [] };
-      sections.push(current);
-      current.lines.push(line);
-    }
-  }
-  return sections;
-}
-
-function splitTabIntoSections(tab: string): TabSection[] {
-  const lines = tab.split("\n");
-  const sections: TabSection[] = [];
-  let current: TabSection | null = null;
-  const markerRe =
-    /^\s*(?:_\s*)?(intro|verse|pre[- ]?chorus|chorus|bridge|solo|outro|riff|fill|final|ending|parte|part|guitar|rhythm|lead|base|verse solo|solo fill|chorus fill|rhythm fill)(?:\s+(?:part|fill|solo|riff)?\s*\d*)?\s*:?\s*_?\s*$/i;
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (markerRe.test(trimmed) && trimmed.length <= 60) {
-      current = { title: trimmed.replace(/[:=\-_]+$/g, "").trim(), lines: [] };
-      sections.push(current);
-    } else if (current) {
-      current.lines.push(line);
-    } else {
-      current = { title: "Tab", lines: [] };
-      sections.push(current);
-      current.lines.push(line);
-    }
-  }
-  return sections;
-}
-
-function normalizeSection(s: string) {
-  return s.toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
-function sectionType(s: string): string {
-  const n = normalizeSection(s);
-  const types = ["intro", "verse", "prechorus", "chorus", "bridge", "solo", "outro", "riff", "fill", "final", "ending"];
-  for (const t of types) {
-    if (n.includes(t)) return t;
-  }
-  return "";
-}
-
-function sectionNumber(s: string): number {
-  const m = s.match(/(\d+)/);
-  return m ? parseInt(m[1], 10) : 0;
-}
-
-function pickTabSection(contentTitle: string, tabSections: TabSection[], used: Set<number>) {
-  const norm = normalizeSection(contentTitle);
-  const cType = sectionType(contentTitle);
-  const cNum = sectionNumber(contentTitle);
-
-  let bestIdx = -1;
-  let bestScore = 0;
-
-  tabSections.forEach((s, i) => {
-    if (used.has(i)) return;
-    const sn = normalizeSection(s.title);
-    const sType = sectionType(s.title);
-    const sNum = sectionNumber(s.title);
-
-    let score = 0;
-    if (norm === sn) score = 100;
-    else if (cType && cType === sType && cNum === sNum && cNum > 0) score = 90;
-    else if (cType && cType === sType) score = 70;
-    else if (cType && sType && (cType.includes(sType) || sType.includes(cType))) score = 60;
-    else if (cType && sType) {
-      const kws = ["intro", "verse", "prechorus", "chorus", "bridge", "solo", "outro", "riff", "fill", "final", "ending"];
-      for (const k of kws) {
-        if (norm.includes(k) || sn.includes(k)) {
-          const a = norm.replace(k, "").trim().slice(0, 4);
-          const b = sn.replace(k, "").trim().slice(0, 4);
-          if (a === b && a !== "") score = 30;
-          break;
-        }
-      }
-    }
-
-    if (score > bestScore) {
-      bestScore = score;
-      bestIdx = i;
-    }
-  });
-
-  return bestScore >= 30 ? bestIdx : -1;
-}
-
 export default function TabDetail({ params }: { params: { artist: string; song: string } }) {
   const [tab, setTab] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -417,7 +313,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
 
   const transposedContent = transposeContent(tab.content, transpose);
   const chords = extractChords(transposedContent);
-  const tablature = tab.tablature || tab.tab || tab.tab_content || "";
 
   const splitRe = new RegExp(String.raw`(\b${CHORD_PATTERN}\b)`, "gi");
   const testRe = new RegExp(String.raw`^\b${CHORD_PATTERN}\b$`, "i");
@@ -456,52 +351,13 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
     );
   };
 
+  // Renderiza o content com a tablatura já embutida (linhas e|, B|, G|, D|)
   const renderContent = (text: string) => {
-    const sections = splitIntoSections(text);
-    const tabSections = tablature ? splitTabIntoSections(tablature) : [];
-    const usedTab = new Set<number>();
-    const nodes: ReactNode[] = [];
-    const unmatched: TabSection[] = [];
-
-    sections.forEach((sec, secIdx) => {
-      nodes.push(
-        <div key={"h-" + secIdx} className="mt-4 mb-1 font-bold text-brand-gold">
-          [{sec.title}]
-        </div>
-      );
-      sec.lines.forEach((line, li) => {
-        const isTabLine = isTabLineRegex.test(line.trim()) || /^\s*[1-6]\|/.test(line.trim());
-        if (isTabLine && !showTabs) return;
-        nodes.push(renderLine(line, "l-" + secIdx + "-" + li, isTabLine));
-      });
-      if (showTabs && tabSections.length) {
-        const idx = pickTabSection(sec.title, tabSections, usedTab);
-        if (idx >= 0) {
-          usedTab.add(idx);
-          const ts = tabSections[idx];
-          ts.lines.forEach((line, li) => {
-            nodes.push(renderLine(line, "t-" + secIdx + "-" + idx + "-" + li, true));
-          });
-        }
-      }
+    return text.split("\n").map((line, idx) => {
+      const isTabLine = isTabLineRegex.test(line.trim()) || /^\s*[1-6]\|/.test(line.trim());
+      if (isTabLine && !showTabs) return null;
+      return renderLine(line, "l-" + idx, isTabLine);
     });
-
-    tabSections.forEach((ts, i) => {
-      if (!usedTab.has(i)) unmatched.push(ts);
-    });
-    if (showTabs && unmatched.length) {
-      nodes.push(
-        <div key="unmatched-h" className="mt-6 mb-1 font-bold text-brand-muted">
-          Tablatura
-        </div>
-      );
-      unmatched.forEach((ts, u) => {
-        ts.lines.forEach((line, li) => {
-          nodes.push(renderLine(line, "u-" + u + "-" + li, true));
-        });
-      });
-    }
-    return nodes;
   };
 
   return (
