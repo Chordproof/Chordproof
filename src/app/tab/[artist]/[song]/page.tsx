@@ -7,7 +7,6 @@ import { BadgeCheck, Bookmark, Share2, Play, ChevronDown, MousePointer2, Youtube
 
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-// Padrão que reconhece acordes simples e complexos: C, Em7, D4, A7(4), C9, G/B, etc.
 const CHORD_PATTERN =
   "[A-Ga-g](?:#|b)?(?:[0-9]|M|m|7|9|11|13|4|6|add|sus|dim|aug|\([0-9]+\)|\/[A-Ga-g](?:#|b)?)*";
 
@@ -25,7 +24,6 @@ function transposeChord(chord: string, semitones: number) {
   return (isLower ? newRoot.toLowerCase() : newRoot) + rest;
 }
 
-// Transpõe a cifra, mas NUNCA transpõe linhas de tablatura (e|, B|, 1|, ...)
 function transposeContent(content: string, semitones: number) {
   if (semitones === 0) return content;
   const re = new RegExp(String.raw`\b${CHORD_PATTERN}\b`, "gi");
@@ -56,7 +54,6 @@ function extractChords(content: string) {
   return Array.from(new Set(tokens.filter((t) => tokenRe.test(t))));
 }
 
-// ===== Diagramas de acordes (braço do instrumento) =====
 const CHORD_SHAPES: Record<string, number[]> = {
   C: [-1, 3, 2, 0, 1, 0], "C#": [-1, 4, 6, 6, 6, 4],
   D: [-1, -1, 0, 2, 3, 2], "D#": [-1, 6, 8, 8, 8, 6],
@@ -234,7 +231,7 @@ function ChordDiagram({ chord }: { chord: string }) {
             </text>
           );
         }
-        if (pos &lt; 0) {
+        if (pos < 0) {
           return (
             <text key={i} x={x} y={topY - 10} fontSize="13" textAnchor="middle" fill="#F5EFE0">
               ×
@@ -257,7 +254,6 @@ function ChordDiagram({ chord }: { chord: string }) {
 }
 ChordDiagram.__counter = 0;
 
-// ===== Intercalação da tablatura dentro da cifra =====
 type TabSection = { title: string; lines: string[] };
 
 function splitIntoSections(text: string): TabSection[] {
@@ -280,18 +276,15 @@ function splitIntoSections(text: string): TabSection[] {
   return sections;
 }
 
-// Quebra a tablatura em seções, reconhecendo vários formatos de marcador:
-// "Intro:", "Verse 1", "Chorus Fill:", "_Solo part 1:_", "Rhythm Fill 2:", "Outro:", etc.
 function splitTabIntoSections(tab: string): TabSection[] {
   const lines = tab.split("\n");
   const sections: TabSection[] = [];
   let current: TabSection | null = null;
-  // Reconhece marcadores de seção em vários formatos
   const markerRe =
     /^\s*(?:_\s*)?(intro|verse|pre[- ]?chorus|chorus|bridge|solo|outro|riff|fill|final|ending|parte|part|guitar|rhythm|lead|base|verse solo|solo fill|chorus fill|rhythm fill)(?:\s+(?:part|fill|solo|riff)?\s*\d*)?\s*:?\s*_?\s*$/i;
   for (const line of lines) {
     const trimmed = line.trim();
-    if (markerRe.test(trimmed) && trimmed.length &lt;= 60) {
+    if (markerRe.test(trimmed) && trimmed.length <= 60) {
       current = { title: trimmed.replace(/[:=\-_]+$/g, "").trim(), lines: [] };
       sections.push(current);
     } else if (current) {
@@ -309,7 +302,6 @@ function normalizeSection(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
-// Extrai o "tipo" da seção (intro, verse, chorus, solo, bridge, outro, etc.)
 function sectionType(s: string): string {
   const n = normalizeSection(s);
   const types = ["intro", "verse", "prechorus", "chorus", "bridge", "solo", "outro", "riff", "fill", "final", "ending"];
@@ -319,13 +311,11 @@ function sectionType(s: string): string {
   return "";
 }
 
-// Extrai o número da seção (ex: "Verse 2" → 2, "Solo part 1" → 1)
 function sectionNumber(s: string): number {
   const m = s.match(/(\d+)/);
   return m ? parseInt(m[1], 10) : 0;
 }
 
-// Casa a seção da cifra com a seção da tablatura
 function pickTabSection(contentTitle: string, tabSections: TabSection[], used: Set<number>) {
   const norm = normalizeSection(contentTitle);
   const cType = sectionType(contentTitle);
@@ -341,15 +331,10 @@ function pickTabSection(contentTitle: string, tabSections: TabSection[], used: S
     const sNum = sectionNumber(s.title);
 
     let score = 0;
-    // 1. Nome exato
     if (norm === sn) score = 100;
-    // 2. Mesmo tipo E mesmo número (ex: Verse 2 ↔ Verse 2)
     else if (cType && cType === sType && cNum === sNum && cNum > 0) score = 90;
-    // 3. Mesmo tipo, número diferente ou sem número (ex: Chorus ↔ Chorus Fill)
     else if (cType && cType === sType) score = 70;
-    // 4. Tipo contido (ex: "Solo" ↔ "Solo part 1", "Chorus" ↔ "Chorus Fill")
     else if (cType && sType && (cType.includes(sType) || sType.includes(cType))) score = 60;
-    // 5. Palavra-chave comum
     else if (cType && sType) {
       const kws = ["intro", "verse", "prechorus", "chorus", "bridge", "solo", "outro", "riff", "fill", "final", "ending"];
       for (const k of kws) {
@@ -381,7 +366,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const [selectedChord, setSelectedChord] = useState<string | null>(null);
   const [videoId, setVideoId] = useState<string | null>(null);
   const [videoLoading, setVideoLoading] = useState(false);
-  const [showTabs, setShowTabs] = useState(true); // toggle de tablatura
+  const [showTabs, setShowTabs] = useState(true);
 
   useEffect(() => {
     async function fetchTab() {
@@ -397,7 +382,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
     fetchTab();
   }, [params.artist, params.song]);
 
-  // Vídeo: usa o video_id do banco (se existir) ou busca um vídeo incorporável via API
   useEffect(() => {
     if (!tab) return;
     if (tab.video_id) {
@@ -419,7 +403,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       });
   }, [tab]);
 
-  // Auto-scroll suave (rola a página inteira)
   useEffect(() => {
     if (!autoScroll) return;
     const interval = setInterval(() => {
@@ -439,7 +422,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const testRe = new RegExp(String.raw`^\b${CHORD_PATTERN}\b$`, "i");
   const isTabLineRegex = /^\s*[eEBGDA]{1,2}\|/;
 
-  // Renderiza uma linha: tablatura vira .tab-line; o resto vira acordes clicáveis
   const renderLine = (line: string, key: string, isTabLine: boolean) => {
     if (isTabLine) {
       return (
@@ -473,7 +455,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
     );
   };
 
-  // Renderiza a cifra inteira com a tablatura intercalada nas seções corretas
   const renderContent = (text: string) => {
     const sections = splitIntoSections(text);
     const tabSections = tablature ? splitTabIntoSections(tablature) : [];
@@ -492,7 +473,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         if (isTabLine && !showTabs) return;
         nodes.push(renderLine(line, "l-" + secIdx + "-" + li, isTabLine));
       });
-      // Tablatura embutida desta seção (intro, verso, refrão, solo, etc.)
       if (showTabs && tabSections.length) {
         const idx = pickTabSection(sec.title, tabSections, usedTab);
         if (idx >= 0) {
@@ -505,7 +485,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       }
     });
 
-    // Parte da tablatura que não casou com nenhuma seção vai para o final
     tabSections.forEach((ts, i) => {
       if (!usedTab.has(i)) unmatched.push(ts);
     });
@@ -526,7 +505,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      {/* Breadcrumbs */}
       <nav className="text-sm text-brand-muted">
         <ol className="flex gap-2">
           <li><Link href="/" className="hover:text-white">Home</Link></li>
@@ -537,7 +515,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         </ol>
       </nav>
 
-      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start gap-6">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
@@ -575,7 +552,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         </div>
       </div>
 
-      {/* Controles: transposição + auto-scroll (verde) + tablatura (dourado) */}
       <div className="flex flex-wrap items-center gap-4 bg-brand-card rounded-xl p-4 border border-white/5">
         <TransposeControls transpose={transpose} onTranspose={setTranspose} />
         <div className="h-6 w-px bg-white/10" />
@@ -604,15 +580,12 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         )}
       </div>
 
-      {/* Conteúdo + vídeo lateral */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          {/* Cifra completa com tablatura intercalada no meio */}
           <div className="cifra-content bg-brand-card rounded-2xl p-8 border border-white/5">
             {renderContent(transposedContent)}
           </div>
 
-          {/* Diagramas dos acordes no final */}
           <div className="bg-brand-card rounded-2xl p-8 border border-white/5">
             <h3 className="text-xl font-bold mb-2">Chords used in this tab</h3>
             <p className="text-sm text-brand-muted mb-6">
@@ -636,7 +609,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
             )}
           </div>
 
-          {/* Versões */}
           <details className="bg-brand-card rounded-xl p-4 border border-white/5">
             <summary className="flex items-center gap-2 cursor-pointer font-semibold">
               <ChevronDown size={16} /> Other versions
@@ -645,7 +617,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
           </details>
         </div>
 
-        {/* Vídeo embutido (fica visível enquanto rola a cifra) */}
         <aside className="space-y-6 lg:sticky lg:top-24 h-fit">
           <div className="bg-brand-card rounded-2xl p-4 border border-white/5">
             <h3 className="flex items-center gap-2 font-bold mb-3">
@@ -683,7 +654,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         </aside>
       </div>
 
-      {/* Modal do acorde (clique) */}
       {selectedChord && (
         <div
           className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4"
