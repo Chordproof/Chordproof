@@ -10,14 +10,15 @@ const CHROMATIC = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "
 const FLAT_TO_SHARP: Record<string, string> = {
   Db: "C#", Eb: "D#", Gb: "F#", Ab: "G#", Bb: "A#",
 };
-const CHORD_RE = /^[A-G](#|b)?(m|maj|min|dim|aug|sus|add|6|7|9|11|13|5|4|2)*\d*$/;
+const CHORD_TOKEN_RE = /([A-G][#b]?(?:m|maj|min|dim|aug|sus|add|5|6|7|9|11|13|4|2)*\d*)/g;
+const CHORD_STRICT_RE = /^[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|5|6|7|9|11|13|4|2)*\d*$/;
 
 function transposeChord(chord: string, steps: number): string {
   if (!steps) return chord;
-  const match = chord.match(/^([A-G](#|b)?)(.*)$/);
+  const match = chord.match(/^([A-G][#b]?)(.*)$/);
   if (!match) return chord;
   const root = FLAT_TO_SHARP[match[1]] || match[1];
-  const suffix = match[3];
+  const suffix = match[2];
   let idx = CHROMATIC.indexOf(root);
   if (idx === -1) return chord;
   idx = (idx + steps + 12) % 12;
@@ -43,43 +44,39 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         .eq("slug_song", params.song)
         .maybeSingle();
       if (!active) return;
-      if (error || !data) {
-        setNotFound(true);
-      } else {
-        setTab(data);
-      }
+      if (error || !data) setNotFound(true);
+      else setTab(data);
       setLoading(false);
     })();
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [params.artist, params.song]);
 
-  function renderContent(content: string) {
-    const lines = content.split("\n");
-    return lines.map((line, i) => {
-      const tokens = line.trim().split(/\s+/);
-      const allChords = tokens.length > 0 && tokens.every((t) => CHORD_RE.test(t));
-      if (!allChords) {
-        return <div key={i}>{line || "\u00A0"}</div>;
-      }
-      return (
-        <div key={i}>
-          {tokens.map((t, j) => (
-            <span key={j} className="chord">
-              {transposeChord(t, transpose)}{" "}
-            </span>
-          ))}
-        </div>
-      );
-    });
+  function renderLine(line: string, key: number) {
+    const tokens = line.trim().split(/\s+/).filter(Boolean);
+    const allChords = tokens.length > 0 && tokens.every((t) => CHORD_STRICT_RE.test(t));
+    if (!allChords) {
+      return <div key={key}>{line || "\u00A0"}</div>;
+    }
+    const nodes: React.ReactNode[] = [];
+    let last = 0;
+    let n = 0;
+    const re = new RegExp(CHORD_TOKEN_RE.source, "g");
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(line)) !== null) {
+      const token = m[1];
+      nodes.push(line.slice(last, m.index));
+      nodes.push(<span key={n++} className="chord">{transposeChord(token, transpose)}</span>);
+      last = m.index + token.length;
+    }
+    nodes.push(line.slice(last));
+    return <div key={key}>{nodes}</div>;
   }
 
   function chordsUsed(content: string): string[] {
     const seen: string[] = [];
     for (const line of content.split("\n")) {
-      const tokens = line.trim().split(/\s+/);
-      if (tokens.length > 0 && tokens.every((t) => CHORD_RE.test(t))) {
+      const tokens = line.trim().split(/\s+/).filter(Boolean);
+      if (tokens.length > 0 && tokens.every((t) => CHORD_STRICT_RE.test(t))) {
         for (const t of tokens) {
           const transposed = transposeChord(t, transpose);
           if (!seen.includes(transposed)) seen.push(transposed);
@@ -194,7 +191,9 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
 
       {/* Tab Content */}
       <div className="bg-brand-card rounded-2xl p-8 border border-white/5">
-        <div className="cifra-content">{renderContent(tab.content || "")}</div>
+        <div className="cifra-content whitespace-pre-wrap">
+          {(tab.content || "").split("\n").map((line, i) => renderLine(line, i))}
+        </div>
       </div>
 
       {/* Chords Used */}
