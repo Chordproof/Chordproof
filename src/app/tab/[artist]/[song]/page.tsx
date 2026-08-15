@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { buildTabMetadata, SITE_URL } from "@/lib/seo";
 import JsonLd from "@/components/JsonLd";
-import TabDetail from "./TabDetail";
+import TabView from "./TabView";
 
 export async function generateMetadata({ params }: { params: { artist: string; song: string } }) {
   try {
@@ -13,8 +13,8 @@ export async function generateMetadata({ params }: { params: { artist: string; s
       .maybeSingle();
     if (data) {
       return buildTabMetadata({
-        song: data.song || params.song,
-        artist: data.artist || params.artist,
+        song: data.song,
+        artist: data.artist,
         keySig: data.key_sig,
         difficulty: data.difficulty,
       });
@@ -36,7 +36,7 @@ export default function Page({ params }: { params: { artist: string; song: strin
           url: `${SITE_URL}/tab/${params.artist}/${params.song}`,
         }}
       />
-      <TabDetail params={params} />
+      <TabView params={params} />
     </div>
   );
 }
