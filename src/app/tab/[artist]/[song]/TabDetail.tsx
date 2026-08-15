@@ -192,7 +192,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       {/* Tab Content */}
       <div className="bg-brand-card rounded-2xl p-8 border border-white/5">
         <div className="cifra-content whitespace-pre-wrap">
-          {(tab.content || "").split("\n").map((line, i) => renderLine(line, i))}
+          {(tab.content || "").split("\n").map((line: string, i: number) => renderLine(line, i))}
         </div>
       </div>
 
