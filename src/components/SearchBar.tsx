@@ -1,13 +1,13 @@
+// src/components/SearchBar.tsx
 "use client";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { SITE_URL } from "@/lib/seo";
 
-// Rota de destino da busca — ajuste aqui se a sua página de resultados for outra
 const SEARCH_ROUTE = "/browse?q=";
 
-// Sugestões de fallback (usadas se o Supabase não retornar nada ou falhar)
 const FALLBACK_SUGGESTIONS = [
   "Stairway to Heaven",
   "Wonderwall",
@@ -24,10 +24,9 @@ export default function SearchBar({ large = false }: { large?: boolean }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Autocomplete com debounce de 300ms
   useEffect(() => {
     const q = query.trim();
-    if (q.length < 2) {
+    if (q.length &lt; 2) {
       setSuggestions([]);
       return;
     }
