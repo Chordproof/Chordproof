@@ -2,7 +2,7 @@
 export const SITE_URL = "https://chordproof.vercel.app"; // troque pelo domínio final
 export const SITE_NAME = "ChordProof";
 
-export function slugify(text: string) {
+export function slugify(text: string): string {
   return text
     .toLowerCase()
     .normalize("NFD")
@@ -11,7 +11,14 @@ export function slugify(text: string) {
     .replace(/(^-|-$)/g, "");
 }
 
-export function buildTabMetadata({ song, artist, keySig, difficulty }) {
+interface TabMetadataArgs {
+  song: string;
+  artist: string;
+  keySig?: string | null;
+  difficulty?: string | null;
+}
+
+export function buildTabMetadata({ song, artist, keySig, difficulty }: TabMetadataArgs) {
   const title = `${song} - ${artist} | Guitar Tab | ChordProof`;
   const description = `Verified guitar tab for ${song} by ${artist}. Key: ${keySig}, Difficulty: ${difficulty}. Accurate chords and tablature, no paywalls.`;
   return {
