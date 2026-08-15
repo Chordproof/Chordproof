@@ -1,4 +1,3 @@
-// src/components/JsonLd.tsx
 export default function JsonLd({ data }: { data: object }) {
   return (
     <script
