@@ -1,4 +1,3 @@
-// src/app/tab/[artist]/[song]/page.tsx
 import { supabase } from "@/lib/supabase";
 import { buildTabMetadata, SITE_URL } from "@/lib/seo";
 import JsonLd from "@/components/JsonLd";
@@ -22,7 +21,7 @@ export async function generateMetadata({ params }: { params: { artist: string; s
 
 export default function Page({ params }: { params: { artist: string; song: string } }) {
   return (
-    &lt;>
+    <div>
       <JsonLd
         data={{
           "@context": "https://schema.org",
@@ -34,6 +33,6 @@ export default function Page({ params }: { params: { artist: string; song: strin
         }}
       />
       <TabDetail params={params} />
-    </>
+    </div>
   );
 }
