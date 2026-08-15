@@ -1,4 +1,3 @@
-// src/app/sitemap.ts
 import { supabase } from "@/lib/supabase";
 import { SITE_URL } from "@/lib/seo";
 
