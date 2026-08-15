@@ -1,4 +1,3 @@
-// src/app/robots.ts
 import { SITE_URL } from "@/lib/seo";
 
 export default function robots() {
