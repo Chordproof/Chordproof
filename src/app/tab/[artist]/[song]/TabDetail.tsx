@@ -8,6 +8,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const [scrollSpeed, setScrollSpeed] = useState(5);
   const [version, setVersion] = useState("2.1");
   const [versionOpen, setVersionOpen] = useState(false);
+  const [transpose, setTranspose] = useState(0);
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
@@ -47,7 +48,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
 
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-4 bg-brand-card rounded-2xl p-4 border border-white/5">
-        <TransposeControls />
+        <TransposeControls transpose={transpose} onTranspose={setTranspose} />
         <div className="flex items-center gap-2">
           <button
             onClick={() => setAutoScroll(!autoScroll)}
