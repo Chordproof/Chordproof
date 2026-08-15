@@ -1,4 +1,3 @@
-// src/app/artist/[artist]/page.tsx
 import { supabase } from "@/lib/supabase";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
 import JsonLd from "@/components/JsonLd";
