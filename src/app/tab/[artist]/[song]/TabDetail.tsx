@@ -1,13 +1,13 @@
-// src/app/tab/[artist]/[song]/TabDetail.tsx
 "use client";
 import { useState } from "react";
 import TransposeControls from "@/components/TransposeControls";
-import { BadgeCheck, History, AlertTriangle, Share2, Bookmark, Play, ChevronDown, MousePointer2 } from "lucide-react";
+import { BadgeCheck, AlertTriangle, Share2, Bookmark, Play, ChevronDown, MousePointer2 } from "lucide-react";
 
 export default function TabDetail({ params }: { params: { artist: string; song: string } }) {
   const [autoScroll, setAutoScroll] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(5);
   const [version, setVersion] = useState("2.1");
+  const [versionOpen, setVersionOpen] = useState(false);
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
@@ -51,9 +51,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         <div className="flex items-center gap-2">
           <button
             onClick={() => setAutoScroll(!autoScroll)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition ${
-              autoScroll ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10"
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition ${autoScroll ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10"}`}
           >
             <MousePointer2 size={16} /> Auto-scroll
           </button>
@@ -70,16 +68,33 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         </div>
         <div className="ml-auto flex items-center gap-2">
           <span className="text-sm text-brand-muted">Version</span>
-          <button className="flex items-center gap-1 px-3 py-1.5 bg-white/5 rounded-lg text-sm">
-            {version} <ChevronDown size={14} />
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setVersionOpen(!versionOpen)}
+              className="flex items-center gap-1 px-3 py-1.5 bg-white/5 rounded-lg text-sm"
+            >
+              {version} <ChevronDown size={14} />
+            </button>
+            {versionOpen && (
+              <div className="absolute right-0 mt-1 bg-brand-card border border-white/10 rounded-lg shadow-xl overflow-hidden z-50">
+                {["2.1", "2.0", "1.0"].map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => { setVersion(v); setVersionOpen(false); }}
+                    className="block w-full text-left px-4 py-2 text-sm hover:bg-brand-gold/10 transition-colors"
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Content */}
       <div className="bg-brand-card rounded-2xl p-8 border border-white/5">
         <div className="cifra-content">
-          {/* A cifra completa vai aqui (vinda do banco) */}
           <p className="text-brand-muted italic">Tab content loads here from the database.</p>
         </div>
       </div>
