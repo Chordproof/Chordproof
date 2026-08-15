@@ -1,10 +1,8 @@
-// src/components/SearchBar.tsx
 "use client";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { SITE_URL } from "@/lib/seo";
 
 const SEARCH_ROUTE = "/browse?q=";
 
@@ -26,7 +24,7 @@ export default function SearchBar({ large = false }: { large?: boolean }) {
 
   useEffect(() => {
     const q = query.trim();
-    if (q.length &lt; 2) {
+    if (q.length === 0 || q.length === 1) {
       setSuggestions([]);
       return;
     }
