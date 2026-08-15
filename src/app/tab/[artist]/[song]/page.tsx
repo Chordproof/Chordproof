@@ -4,19 +4,23 @@ import JsonLd from "@/components/JsonLd";
 import TabDetail from "./TabDetail";
 
 export async function generateMetadata({ params }: { params: { artist: string; song: string } }) {
-  const { data } = await supabase
-    .from("tabs")
-    .select("song, artist, key_sig, difficulty")
-    .eq("slug_artist", params.artist)
-    .eq("slug_song", params.song)
-    .single();
-
-  return buildTabMetadata({
-    song: data?.song || params.song,
-    artist: data?.artist || params.artist,
-    keySig: data?.key_sig,
-    difficulty: data?.difficulty,
-  });
+  try {
+    const { data } = await supabase
+      .from("tabs")
+      .select("song, artist, key_sig, difficulty")
+      .eq("slug_artist", params.artist)
+      .eq("slug_song", params.song)
+      .maybeSingle();
+    if (data) {
+      return buildTabMetadata({
+        song: data.song || params.song,
+        artist: data.artist || params.artist,
+        keySig: data.key_sig,
+        difficulty: data.difficulty,
+      });
+    }
+  } catch {}
+  return buildTabMetadata({ song: params.song, artist: params.artist });
 }
 
 export default function Page({ params }: { params: { artist: string; song: string } }) {
