@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: { params: { artist: string; s
 
 export default function Page({ params }: { params: { artist: string; song: string } }) {
   return (
-    <div>
+    
       <JsonLd
         data={{
           "@context": "https://schema.org",
@@ -37,6 +37,8 @@ export default function Page({ params }: { params: { artist: string; song: strin
         }}
       />
       <TabView params={params} />
-    </div>
+    
+
+
   );
 }
