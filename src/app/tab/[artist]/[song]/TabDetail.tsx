@@ -197,12 +197,12 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   function renderLine(line: string, index: number): ReactNode {
     const trimmed = line.trim();
     if (!trimmed) {
-      return <div key={index} style={{ display: "block", whiteSpace: "pre-wrap" }}>&nbsp;</div>;
+      return <div key={index}>&nbsp;</div>;
     }
     const tokens = trimmed.split(/\s+/).filter(Boolean);
     const isChordLine = tokens.length > 0 && tokens.every((t: string) => CHORD_STRICT_RE.test(t));
     if (!isChordLine) {
-      return <div key={index} style={{ display: "block", whiteSpace: "pre-wrap", width: "100%" }}>{line}</div>;
+      return <div key={index}>{line}</div>;
     }
 
     const parts: ReactNode[] = [];
@@ -217,15 +217,8 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         <span
           key={count++}
           className="chord"
-          style={{ cursor: "pointer", textDecoration: "underline", textDecorationColor: "transparent" }}
           title={"Click to see diagram for " + chord}
           onClick={() => setActiveChord(chord)}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLSpanElement).style.textDecorationColor = "#f0b429";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLSpanElement).style.textDecorationColor = "transparent";
-          }}
         >
           {chord}
         </span>
@@ -233,7 +226,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       lastIndex = m.index + m[1].length;
     }
     parts.push(line.slice(lastIndex));
-    return <div key={index} style={{ display: "block", whiteSpace: "pre-wrap", width: "100%" }}>{parts}</div>;
+    return <div key={index}>{parts}</div>;
   }
 
   function chordsUsed(content: string): string[] {
@@ -264,12 +257,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       navigator.clipboard.writeText(window.location.href);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    }
-    if (typeof window !== "undefined" && (window as any).gtag) {
-      (window as any).gtag("event", "share_tab", {
-        event_category: "engagement",
-        event_label: params.song,
-      });
     }
   }
 
@@ -309,7 +296,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
-      {/* Breadcrumbs */}
       <nav className="text-sm text-brand-muted">
         <ol className="flex gap-2">
           <li><a href="/" className="hover:text-white">Home</a></li>
@@ -324,7 +310,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         </ol>
       </nav>
 
-      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start gap-6">
         <div className="space-y-2">
           <div className="flex items-center gap-3 flex-wrap">
@@ -373,7 +358,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         </div>
       </div>
 
-      {/* Controls */}
       <div className="flex flex-wrap items-center gap-4 bg-brand-card rounded-2xl p-4 border border-white/5">
         <TransposeControls transpose={transpose} onTranspose={setTranspose} />
         <div className="flex items-center gap-2">
@@ -405,14 +389,12 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         )}
       </div>
 
-      {/* Tab Content */}
       <div id="tab-content" className="bg-brand-card rounded-2xl p-8 border border-white/5">
-        <div className="cifra-content" style={{ whiteSpace: "pre-wrap", display: "block", width: "100%" }}>
+        <div className="cifra-content">
           {visibleLines.map((line: string, i: number) => renderLine(line, i))}
         </div>
       </div>
 
-      {/* Chords Used */}
       {chordsUsed(content).length > 0 && (
         <section className="space-y-3">
           <h2 className="text-2xl font-bold">Chords used in this tab</h2>
@@ -423,7 +405,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
                 key={c}
                 onClick={() => setActiveChord(c)}
                 className="chord px-4 py-2 bg-white/5 rounded-lg hover:bg-brand-gold/10 transition-colors"
-                style={{ cursor: "pointer" }}
               >
                 {c}
               </button>
@@ -432,7 +413,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         </section>
       )}
 
-      {/* Other versions */}
       {versions.length > 0 && (
         <section className="space-y-3">
           <h2 className="text-xl font-bold">Other versions</h2>
@@ -444,7 +424,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         </section>
       )}
 
-      {/* YouTube */}
       {youtubeId && (
         <section className="space-y-3">
           <h2 className="text-xl font-bold flex items-center gap-2">
@@ -459,14 +438,12 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         </section>
       )}
 
-      {/* Report */}
       <div className="flex items-center gap-2 text-sm text-brand-muted">
         <AlertTriangle size={16} className="text-brand-gold" />
         <span>Found an error? </span>
         <button className="text-brand-gold hover:underline">Report this tab</button>
       </div>
 
-      {/* Chord diagram modal */}
       {activeChord && <ChordDiagram chord={activeChord} onClose={() => setActiveChord(null)} />}
     </div>
   );
