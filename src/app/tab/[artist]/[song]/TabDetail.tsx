@@ -1,30 +1,18 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import TransposeControls from "@/components/TransposeControls";
 import {
-  BadgeCheck,
-  AlertTriangle,
-  Share2,
-  Bookmark,
-  Play,
-  MousePointer2,
-  Loader2,
-  ChevronDown,
-  Youtube,
-  X,
+  BadgeCheck, AlertTriangle, Share2, Bookmark, Play, MousePointer2,
+  Loader2, ChevronDown, Youtube, X,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 const CHROMATIC = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const FLAT_TO_SHARP: Record<string, string> = {
-  Db: "C#",
-  Eb: "D#",
-  Gb: "F#",
-  Ab: "G#",
-  Bb: "A#",
+  Db: "C#", Eb: "D#", Gb: "F#", Ab: "G#", Bb: "A#",
 };
-const CHORD_STRICT_RE = /^[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|6|7|9|11|13|5|4|2)*\d*$/;
 const CHORD_TOKEN_RE = /([A-G][#b]?(?:m|maj|min|dim|aug|sus|add|6|7|9|11|13|5|4|2)*\d*)/g;
+const CHORD_STRICT_RE = /^[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|6|7|9|11|13|5|4|2)*\d*$/;
 const TAB_LINE_RE = /[\d\-|]{4,}/;
 
 const CHORD_SHAPES: Record<string, number[]> = {
@@ -42,36 +30,30 @@ const CHORD_SHAPES: Record<string, number[]> = {
   D5: [-1, -1, 0, 2, 3, -1],
   G5: [3, 5, 5, -1, -1, -1],
   Bm: [-1, 2, 4, 4, 3, 2],
-  Fm: [2, 4, 4, 2, 2, 2],
+  Fm: [1, 3, 3, 1, 1, 1],
   B: [-1, 2, 4, 4, 4, 2],
-  B7: [-1, 2, 1, 2, 0, 2],
-  D7: [-1, -1, 0, 2, 1, 2],
-  A7: [-1, 0, 2, 0, 2, 0],
-  E7: [0, 2, 0, 1, 0, 0],
-  G7: [3, 2, 0, 0, 0, 1],
-  C7: [-1, 3, 2, 3, 1, 0],
-  Cadd9: [-1, 3, 2, 0, 3, 0],
-  Dsus4: [-1, -1, 0, 2, 3, 3],
-  Asus4: [-1, 0, 2, 2, 3, 0],
-  Esus4: [0, 2, 2, 2, 0, 0],
+  FsharpM: [2, 4, 4, 2, 2, 2],
+  CsharpM: [-1, 4, 6, 6, 5, 4],
+  GsharpM: [-1, 4, 6, 6, 4, 4],
+  DsharpM: [-1, -1, 0, 2, 3, 1],
+  AsharpM: [-1, 1, 3, 3, 2, 1],
 };
 
 function transposeChord(chord: string, steps: number): string {
-  if (steps === 0) return chord;
+  if (!steps) return chord;
   const match = chord.match(/^([A-G][#b]?)(.*)$/);
-  if (match === null) return chord;
+  if (!match) return chord;
   const root = FLAT_TO_SHARP[match[1]] || match[1];
-  const suffix = match[2];
   let idx = CHROMATIC.indexOf(root);
   if (idx === -1) return chord;
   idx = (idx + steps + 12) % 12;
-  return CHROMATIC[idx] + suffix;
+  return CHROMATIC[idx] + match[2];
 }
 
 function ChordDiagram({ chord, onClose }: { chord: string; onClose: () => void }) {
   const shape = CHORD_SHAPES[chord];
-  const posFrets = shape ? shape.filter(function (f) { return f > 0; }) : [];
-  const minPos = posFrets.length > 0 ? Math.min.apply(null, posFrets) : 0;
+  const posFrets = (shape || []).filter((f: number) => f > 0);
+  const minPos = posFrets.length > 0 ? Math.min(...posFrets) : 0;
   const baseFret = minPos > 3 ? minPos - 1 : 0;
   const fretRange = [baseFret + 1, baseFret + 2, baseFret + 3, baseFret + 4];
 
@@ -82,7 +64,7 @@ function ChordDiagram({ chord, onClose }: { chord: string; onClose: () => void }
     >
       <div
         className="bg-brand-card rounded-2xl p-6 border border-white/10 w-fit"
-        onClick={function (e) { e.stopPropagation(); }}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3">
           <span className="text-2xl font-bold text-brand-gold">{chord}</span>
@@ -98,35 +80,27 @@ function ChordDiagram({ chord, onClose }: { chord: string; onClose: () => void }
         {shape ? (
           <div className="flex flex-col">
             <div className="grid grid-cols-6 gap-0">
-              {shape.map(function (f, si) {
-                return (
+              {shape.map((f: number, si: number) => (
+                <div
+                  key={"m" + si}
+                  className="h-5 text-center text-xs text-brand-muted flex items-center justify-center"
+                >
+                  {f === 0 ? "o" : f === -1 ? "x" : si === 0 && baseFret > 0 ? baseFret : ""}
+                </div>
+              ))}
+            </div>
+            {fretRange.map((fret: number) => (
+              <div key={fret} className="grid grid-cols-6 gap-0">
+                {shape.map((f: number, si: number) => (
                   <div
                     key={si}
-                    className="h-5 text-center text-xs text-brand-muted flex items-center justify-center"
+                    className="relative h-8 flex items-center justify-center border-t border-white/15"
                   >
-                    {f === 0 ? "o" : f === -1 ? "x" : si === 0 && baseFret > 0 ? String(baseFret) : ""}
+                    {f === fret && <span className="w-3.5 h-3.5 rounded-full bg-brand-gold" />}
                   </div>
-                );
-              })}
-            </div>
-            {fretRange.map(function (fret) {
-              return (
-                <div key={fret} className="grid grid-cols-6 gap-0">
-                  {shape.map(function (f, si) {
-                    return (
-                      <div
-                        key={si}
-                        className="relative h-8 flex items-center justify-center border-t border-white/15"
-                      >
-                        {f === fret ? (
-                          <span className="w-3.5 h-3.5 rounded-full bg-brand-gold" />
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
+                ))}
+              </div>
+            ))}
           </div>
         ) : (
           <p className="text-sm text-brand-muted">Diagram not available for {chord}.</p>
@@ -149,58 +123,45 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const [activeChord, setActiveChord] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  useEffect(
-    function () {
-      let active = true;
-      (async function () {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from("tabs")
-          .select("*")
-          .eq("slug_artist", params.artist)
-          .eq("slug_song", params.song)
-          .maybeSingle();
-        if (active === false) return;
-        if (error || data === null) {
-          setNotFound(true);
-        } else {
-          setTab(data);
-        }
-        setLoading(false);
-      })();
-      return function () {
-        active = false;
-      };
-    },
-    [params.artist, params.song]
-  );
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("tabs")
+        .select("*")
+        .eq("slug_artist", params.artist)
+        .eq("slug_song", params.song)
+        .maybeSingle();
+      if (!active) return;
+      if (error || !data) {
+        setNotFound(true);
+      } else {
+        setTab(data);
+      }
+      setLoading(false);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [params.artist, params.song]);
 
-  useEffect(
-    function () {
-      if (autoScroll === false) return;
-      const id = setInterval(function () {
-        window.scrollBy({ top: scrollSpeed * 2, behavior: "smooth" });
-      }, 100);
-      return function () {
-        clearInterval(id);
-      };
-    },
-    [autoScroll, scrollSpeed]
-  );
+  useEffect(() => {
+    if (!autoScroll) return;
+    const id = setInterval(() => {
+      window.scrollBy({ top: scrollSpeed * 2, behavior: "smooth" });
+    }, 100);
+    return () => clearInterval(id);
+  }, [autoScroll, scrollSpeed]);
 
-  function renderLine(line: string, index: number) {
+  function renderLine(line: string, index: number): ReactNode {
     const trimmed = line.trim();
-    if (trimmed === "") {
-      return <div key={index}>&nbsp;</div>;
-    }
+    if (!trimmed) return <div key={index}>&nbsp;</div>;
     const tokens = trimmed.split(/\s+/).filter(Boolean);
-    const isChordLine =
-      tokens.length > 0 && tokens.every(function (t) { return CHORD_STRICT_RE.test(t); });
-    if (isChordLine === false) {
-      return <div key={index}>{line}</div>;
-    }
+    const isChordLine = tokens.length > 0 && tokens.every((t: string) => CHORD_STRICT_RE.test(t));
+    if (!isChordLine) return <div key={index}>{line}</div>;
 
-    const parts: React.ReactNode[] = [];
+    const parts: ReactNode[] = [];
     let lastIndex = 0;
     let count = 0;
     const re = new RegExp(CHORD_TOKEN_RE.source, "g");
@@ -210,16 +171,15 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       const chord = transposeChord(m[1], transpose);
       parts.push(
         <span
-          key={count}
+          key={count++}
           className="chord hover:underline cursor-pointer"
           title={"Click to enlarge " + chord}
-          onClick={function () { setActiveChord(chord); }}
+          onClick={() => setActiveChord(chord)}
         >
           {chord}
         </span>
       );
       lastIndex = m.index + m[1].length;
-      count = count + 1;
     }
     parts.push(line.slice(lastIndex));
     return <div key={index}>{parts}</div>;
@@ -228,17 +188,12 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   function chordsUsed(content: string): string[] {
     const seen: string[] = [];
     const lines = content.split("\n");
-    for (let i = 0; i &lt; lines.length; i++) {
-      const tokens = lines[i].trim().split(/\s+/).filter(Boolean);
-      if (
-        tokens.length > 0 &&
-        tokens.every(function (t) { return CHORD_STRICT_RE.test(t); })
-      ) {
-        for (let j = 0; j &lt; tokens.length; j++) {
-          const transposed = transposeChord(tokens[j], transpose);
-          if (seen.indexOf(transposed) === -1) {
-            seen.push(transposed);
-          }
+    for (const line of lines) {
+      const tokens = line.trim().split(/\s+/).filter(Boolean);
+      if (tokens.length > 0 && tokens.every((t: string) => CHORD_STRICT_RE.test(t))) {
+        for (const t of tokens) {
+          const transposed = transposeChord(t, transpose);
+          if (!seen.includes(transposed)) seen.push(transposed);
         }
       }
     }
@@ -246,10 +201,16 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   }
 
   function handleShare() {
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
+    if (navigator.clipboard) {
       navigator.clipboard.writeText(window.location.href);
       setCopied(true);
-      setTimeout(function () { setCopied(false); }, 2000);
+      setTimeout(() => setCopied(false), 2000);
+    }
+    if (typeof window !== "undefined" && (window as any).gtag) {
+      (window as any).gtag("event", "share_tab", {
+        event_category: "engagement",
+        event_label: params.song,
+      });
     }
   }
 
@@ -261,7 +222,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
     );
   }
 
-  if (notFound || tab === null) {
+  if (notFound || !tab) {
     return (
       <div className="text-center py-32 space-y-4">
         <h1 className="text-3xl font-bold">Tab not found</h1>
@@ -282,12 +243,9 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const youtubeId: string = tab.youtube_id || tab.video_id || "";
   const versions: string[] = Array.isArray(tab.versions) ? tab.versions : [];
 
-  const allLines = content.split("\n");
   const visibleLines = showTablature
-    ? allLines
-    : allLines.filter(function (l) { return TAB_LINE_RE.test(l) === false; });
-
-  const usedChords = chordsUsed(content);
+    ? content.split("\n")
+    : content.split("\n").filter((l: string) => !TAB_LINE_RE.test(l));
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
@@ -311,24 +269,24 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         <div className="space-y-2">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-4xl font-bold">{songName}</h1>
-            {tab.is_verified ? (
+            {tab.is_verified && (
               <div className="flex items-center gap-1 bg-brand-gold/10 text-brand-gold px-3 py-1 rounded-full text-xs font-bold gold-seal-anim">
                 <BadgeCheck size={14} /> VERIFIED
               </div>
-            ) : null}
+            )}
           </div>
           <p className="text-xl text-brand-muted">{artistName}</p>
           <div className="flex gap-4 pt-2 flex-wrap">
-            {tab.key_sig ? (
+            {tab.key_sig && (
               <span className="bg-white/5 px-3 py-1 rounded text-sm">
                 Key: <strong>{tab.key_sig}</strong>
               </span>
-            ) : null}
-            {tab.difficulty ? (
+            )}
+            {tab.difficulty && (
               <span className="bg-white/5 px-3 py-1 rounded text-sm">
                 Difficulty: <strong className="text-green-400">{tab.difficulty}</strong>
               </span>
-            ) : null}
+            )}
             <span className="bg-white/5 px-3 py-1 rounded text-sm">
               Version: <strong>1.0</strong>
             </span>
@@ -360,32 +318,26 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         <TransposeControls transpose={transpose} onTranspose={setTranspose} />
         <div className="flex items-center gap-2">
           <button
-            onClick={function () { setAutoScroll(!autoScroll); }}
-            className={
-              "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " +
-              (autoScroll ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")
-            }
+            onClick={() => setAutoScroll(!autoScroll)}
+            className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (autoScroll ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}
           >
             <MousePointer2 size={16} /> Auto-scroll {autoScroll ? "ON" : "OFF"}
           </button>
-          {autoScroll ? (
+          {autoScroll && (
             <input
               type="range"
               min={1}
               max={10}
               value={scrollSpeed}
-              onChange={function (e) { setScrollSpeed(Number(e.target.value)); }}
+              onChange={(e) => setScrollSpeed(Number(e.target.value))}
               className="w-32"
               aria-label="Scroll speed"
             />
-          ) : null}
+          )}
         </div>
         <button
-          onClick={function () { setShowTablature(!showTablature); }}
-          className={
-            "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " +
-            (showTablature ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")
-          }
+          onClick={() => setShowTablature(!showTablature)}
+          className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (showTablature ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}
         >
           <ChevronDown size={16} /> Tablatura {showTablature ? "ON" : "OFF"}
         </button>
@@ -394,49 +346,43 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       {/* Tab Content */}
       <div id="tab-content" className="bg-brand-card rounded-2xl p-8 border border-white/5">
         <div className="cifra-content whitespace-pre-wrap">
-          {visibleLines.map(function (line, i) { return renderLine(line, i); })}
+          {visibleLines.map((line: string, i: number) => renderLine(line, i))}
         </div>
       </div>
 
       {/* Chords Used */}
-      {usedChords.length > 0 ? (
+      {chordsUsed(content).length > 0 && (
         <section className="space-y-3">
           <h2 className="text-2xl font-bold">Chords used in this tab</h2>
-          <p className="text-sm text-brand-muted">
-            Hover over a chord in the tab, or view them all below:
-          </p>
+          <p className="text-sm text-brand-muted">Hover over a chord in the tab, or view them all below:</p>
           <div className="flex flex-wrap gap-2">
-            {usedChords.map(function (c) {
-              return (
-                <button
-                  key={c}
-                  onClick={function () { setActiveChord(c); }}
-                  className="chord px-4 py-2 bg-white/5 rounded-lg hover:bg-brand-gold/10 transition-colors"
-                >
-                  {c}
-                </button>
-              );
-            })}
+            {chordsUsed(content).map((c) => (
+              <button
+                key={c}
+                onClick={() => setActiveChord(c)}
+                className="chord px-4 py-2 bg-white/5 rounded-lg hover:bg-brand-gold/10 transition-colors"
+              >
+                {c}
+              </button>
+            ))}
           </div>
         </section>
-      ) : null}
+      )}
 
       {/* Other versions */}
-      {versions.length > 0 ? (
+      {versions.length > 0 && (
         <section className="space-y-3">
           <h2 className="text-xl font-bold">Other versions</h2>
           <select className="bg-brand-card border border-white/10 rounded-lg px-4 py-2 text-sm">
-            {versions.map(function (v) {
-              return (
-                <option key={v} value={v}>Version {v}</option>
-              );
-            })}
+            {versions.map((v: string) => (
+              <option key={v} value={v}>Version {v}</option>
+            ))}
           </select>
         </section>
-      ) : null}
+      )}
 
       {/* YouTube */}
-      {youtubeId !== "" ? (
+      {youtubeId && (
         <section className="space-y-3">
           <h2 className="text-xl font-bold flex items-center gap-2">
             <Youtube size={20} className="text-red-500" /> Watch on YouTube
@@ -448,7 +394,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
             allowFullScreen
           />
         </section>
-      ) : null}
+      )}
 
       {/* Report */}
       <div className="flex items-center gap-2 text-sm text-brand-muted">
@@ -458,9 +404,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       </div>
 
       {/* Chord diagram modal */}
-      {activeChord !== null ? (
-        <ChordDiagram chord={activeChord} onClose={function () { setActiveChord(null); }} />
-      ) : null}
+      {activeChord && <ChordDiagram chord={activeChord} onClose={() => setActiveChord(null)} />}
     </div>
   );
 }
