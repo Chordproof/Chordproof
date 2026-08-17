@@ -16,27 +16,67 @@ const CHORD_STRICT_RE = /^[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|6|7|9|11|13|5|4
 const TAB_LINE_RE = /[\d\-|]{4,}/;
 
 const CHORD_SHAPES: Record<string, number[]> = {
-  E: [0, 2, 2, 1, 0, 0],
-  Em: [0, 2, 2, 0, 0, 0],
-  A: [-1, 0, 2, 2, 2, 0],
-  Am: [-1, 0, 2, 2, 1, 0],
-  D: [-1, -1, 0, 2, 3, 2],
-  Dm: [-1, -1, 0, 2, 3, 1],
-  C: [-1, 3, 2, 0, 1, 0],
-  G: [3, 2, 0, 0, 0, 3],
-  F: [1, 3, 3, 2, 1, 1],
-  E5: [0, 2, 2, -1, -1, -1],
-  A5: [-1, 0, 2, 2, -1, -1],
-  D5: [-1, -1, 0, 2, 3, -1],
-  G5: [3, 5, 5, -1, -1, -1],
-  Bm: [-1, 2, 4, 4, 3, 2],
-  Fm: [1, 3, 3, 1, 1, 1],
-  B: [-1, 2, 4, 4, 4, 2],
-  FsharpM: [2, 4, 4, 2, 2, 2],
-  CsharpM: [-1, 4, 6, 6, 5, 4],
-  GsharpM: [-1, 4, 6, 6, 4, 4],
-  DsharpM: [-1, -1, 0, 2, 3, 1],
-  AsharpM: [-1, 1, 3, 3, 2, 1],
+  "E": [0, 2, 2, 1, 0, 0],
+  "Em": [0, 2, 2, 0, 0, 0],
+  "A": [-1, 0, 2, 2, 2, 0],
+  "Am": [-1, 0, 2, 2, 1, 0],
+  "D": [-1, -1, 0, 2, 3, 2],
+  "Dm": [-1, -1, 0, 2, 3, 1],
+  "C": [-1, 3, 2, 0, 1, 0],
+  "G": [3, 2, 0, 0, 0, 3],
+  "F": [1, 3, 3, 2, 1, 1],
+  "E5": [0, 2, 2, -1, -1, -1],
+  "A5": [-1, 0, 2, 2, -1, -1],
+  "D5": [-1, -1, 0, 2, 3, -1],
+  "G5": [3, 5, 5, -1, -1, -1],
+  "B5": [-1, 2, 4, 4, -1, -1],
+  "C5": [-1, 3, 5, 5, -1, -1],
+  "F5": [-1, -1, -1, 2, 3, 1],
+  "Bm": [-1, 2, 4, 4, 3, 2],
+  "F#m": [2, 4, 4, 2, 2, 2],
+  "C#m": [-1, 4, 6, 6, 5, 4],
+  "G#m": [-1, 4, 6, 6, 4, 4],
+  "D#m": [-1, -1, 0, 2, 3, 1],
+  "A#m": [-1, 1, 3, 3, 2, 1],
+  "B": [-1, 2, 4, 4, 4, 2],
+  "F#": [2, 4, 4, 3, 2, 2],
+  "C#": [-1, 4, 6, 6, 6, 4],
+  "G#": [4, 6, 6, 5, 4, 4],
+  "D#": [-1, -1, 0, 2, 3, -1],
+  "A#": [-1, 1, 3, 3, 3, 1],
+  "Bb": [-1, 1, 3, 3, 3, 1],
+  "Eb": [-1, -1, 0, 2, 3, -1],
+  "Ab": [4, 6, 6, 5, 4, 4],
+  "Db": [-1, -1, 4, 4, 4, 2],
+  "Gb": [2, 2, 3, 4, 4, 2],
+  "B7": [-1, 2, 1, 2, 0, 2],
+  "D7": [-1, -1, 0, 2, 1, 2],
+  "A7": [-1, 0, 2, 0, 2, 0],
+  "E7": [0, 2, 0, 1, 0, 0],
+  "G7": [3, 2, 0, 0, 0, 1],
+  "C7": [-1, 3, 2, 3, 1, 0],
+  "Am7": [-1, 0, 2, 0, 1, 0],
+  "Em7": [0, 2, 0, 0, 0, 0],
+  "Dm7": [-1, -1, 0, 2, 1, 1],
+  "Bm7": [-1, 2, 0, 2, 0, 2],
+  "Cmaj7": [-1, 3, 2, 0, 0, 0],
+  "Fmaj7": [-1, -1, 3, 2, 1, 0],
+  "Gmaj7": [3, 2, 0, 0, 0, 2],
+  "Dmaj7": [-1, -1, 0, 2, 2, 2],
+  "Amaj7": [-1, 0, 2, 1, 2, 0],
+  "Emaj7": [0, 2, 1, 1, 0, 0],
+  "Csus4": [-1, 3, 3, 0, 1, 0],
+  "Dsus4": [-1, -1, 0, 2, 3, 3],
+  "Asus4": [-1, 0, 2, 2, 3, 0],
+  "Esus4": [0, 2, 2, 2, 0, 0],
+  "Gsus4": [3, 3, 0, 0, 1, 3],
+  "Cadd9": [-1, 3, 2, 0, 3, 0],
+  "Dadd9": [-1, -1, 0, 2, 3, 0],
+  "Gadd9": [3, 0, 0, 0, 1, 3],
+  "Aadd9": [-1, 0, 2, 4, 2, 0],
+  "D9": [-1, -1, 0, 2, 1, 2],
+  "E9": [0, 2, 0, 1, 2, 0],
+  "A9": [-1, 0, 2, 4, 2, 0],
 };
 
 function transposeChord(chord: string, steps: number): string {
@@ -156,10 +196,14 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
 
   function renderLine(line: string, index: number): ReactNode {
     const trimmed = line.trim();
-    if (!trimmed) return <div key={index}>&nbsp;</div>;
+    if (!trimmed) {
+      return <div key={index} style={{ display: "block", whiteSpace: "pre-wrap" }}>&nbsp;</div>;
+    }
     const tokens = trimmed.split(/\s+/).filter(Boolean);
     const isChordLine = tokens.length > 0 && tokens.every((t: string) => CHORD_STRICT_RE.test(t));
-    if (!isChordLine) return <div key={index}>{line}</div>;
+    if (!isChordLine) {
+      return <div key={index} style={{ display: "block", whiteSpace: "pre-wrap", width: "100%" }}>{line}</div>;
+    }
 
     const parts: ReactNode[] = [];
     let lastIndex = 0;
@@ -172,9 +216,16 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       parts.push(
         <span
           key={count++}
-          className="chord hover:underline cursor-pointer"
-          title={"Click to enlarge " + chord}
+          className="chord"
+          style={{ cursor: "pointer", textDecoration: "underline", textDecorationColor: "transparent" }}
+          title={"Click to see diagram for " + chord}
           onClick={() => setActiveChord(chord)}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLSpanElement).style.textDecorationColor = "#f0b429";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLSpanElement).style.textDecorationColor = "transparent";
+          }}
         >
           {chord}
         </span>
@@ -182,7 +233,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       lastIndex = m.index + m[1].length;
     }
     parts.push(line.slice(lastIndex));
-    return <div key={index}>{parts}</div>;
+    return <div key={index} style={{ display: "block", whiteSpace: "pre-wrap", width: "100%" }}>{parts}</div>;
   }
 
   function chordsUsed(content: string): string[] {
@@ -198,6 +249,14 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       }
     }
     return seen;
+  }
+
+  function hasTablature(content: string): boolean {
+    const lines = content.split("\n");
+    for (const line of lines) {
+      if (TAB_LINE_RE.test(line)) return true;
+    }
+    return false;
   }
 
   function handleShare() {
@@ -240,8 +299,9 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const songName = tab.song || params.song.replace(/-/g, " ");
   const artistName = tab.artist || params.artist.replace(/-/g, " ");
   const content: string = tab.content || "";
-  const youtubeId: string = tab.youtube_id || tab.video_id || "";
+  const youtubeId: string = tab.youtube_id || tab.video_id || tab.youtube || tab.video_url || tab.yt_id || "";
   const versions: string[] = Array.isArray(tab.versions) ? tab.versions : [];
+  const contentHasTablature = hasTablature(content);
 
   const visibleLines = showTablature
     ? content.split("\n")
@@ -335,17 +395,19 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
             />
           )}
         </div>
-        <button
-          onClick={() => setShowTablature(!showTablature)}
-          className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (showTablature ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}
-        >
-          <ChevronDown size={16} /> Tablatura {showTablature ? "ON" : "OFF"}
-        </button>
+        {contentHasTablature && (
+          <button
+            onClick={() => setShowTablature(!showTablature)}
+            className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (showTablature ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}
+          >
+            <ChevronDown size={16} /> Tablatura {showTablature ? "ON" : "OFF"}
+          </button>
+        )}
       </div>
 
       {/* Tab Content */}
       <div id="tab-content" className="bg-brand-card rounded-2xl p-8 border border-white/5">
-        <div className="cifra-content whitespace-pre-wrap">
+        <div className="cifra-content" style={{ whiteSpace: "pre-wrap", display: "block", width: "100%" }}>
           {visibleLines.map((line: string, i: number) => renderLine(line, i))}
         </div>
       </div>
@@ -354,13 +416,14 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       {chordsUsed(content).length > 0 && (
         <section className="space-y-3">
           <h2 className="text-2xl font-bold">Chords used in this tab</h2>
-          <p className="text-sm text-brand-muted">Hover over a chord in the tab, or view them all below:</p>
+          <p className="text-sm text-brand-muted">Click a chord to see its diagram:</p>
           <div className="flex flex-wrap gap-2">
             {chordsUsed(content).map((c) => (
               <button
                 key={c}
                 onClick={() => setActiveChord(c)}
                 className="chord px-4 py-2 bg-white/5 rounded-lg hover:bg-brand-gold/10 transition-colors"
+                style={{ cursor: "pointer" }}
               >
                 {c}
               </button>
