@@ -7,81 +7,96 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-const CHROMATIC = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-const FLAT_TO_SHARP: Record<string, string> = {
-  Db: "C#", Eb: "D#", Gb: "F#", Ab: "G#", Bb: "A#",
-};
-const CHORD_TOKEN_RE = /([A-G][#b]?(?:m|maj|min|dim|aug|sus|add|6|7|9|11|13|5|4|2)*\d*)/g;
-const CHORD_STRICT_RE = /^[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|6|7|9|11|13|5|4|2)*\d*$/;
+const SHARP = "\x23";
+
+const CHROMATIC = [
+  "C", "C" + SHARP, "D", "D" + SHARP, "E", "F",
+  "F" + SHARP, "G", "G" + SHARP, "A", "A" + SHARP, "B",
+];
+
+const FLAT_TO_SHARP: Record<string, string> = {};
+FLAT_TO_SHARP["Db"] = "C" + SHARP;
+FLAT_TO_SHARP["Eb"] = "D" + SHARP;
+FLAT_TO_SHARP["Gb"] = "F" + SHARP;
+FLAT_TO_SHARP["Ab"] = "G" + SHARP;
+FLAT_TO_SHARP["Bb"] = "A" + SHARP;
+
+const CHORD_TOKEN_RE = new RegExp(
+  "([A-G][" + SHARP + "b]?(?:m|maj|min|dim|aug|sus|add|6|7|9|11|13|5|4|2)*\d*)",
+  "g"
+);
+const CHORD_STRICT_RE = new RegExp(
+  "^[A-G][" + SHARP + "b]?(?:m|maj|min|dim|aug|sus|add|6|7|9|11|13|5|4|2)*\d*$"
+);
 const TAB_LINE_RE = /[\d\-|]{4,}/;
 
-const CHORD_SHAPES: Record<string, number[]> = {
-  "E": [0, 2, 2, 1, 0, 0],
-  "Em": [0, 2, 2, 0, 0, 0],
-  "A": [-1, 0, 2, 2, 2, 0],
-  "Am": [-1, 0, 2, 2, 1, 0],
-  "D": [-1, -1, 0, 2, 3, 2],
-  "Dm": [-1, -1, 0, 2, 3, 1],
-  "C": [-1, 3, 2, 0, 1, 0],
-  "G": [3, 2, 0, 0, 0, 3],
-  "F": [1, 3, 3, 2, 1, 1],
-  "E5": [0, 2, 2, -1, -1, -1],
-  "A5": [-1, 0, 2, 2, -1, -1],
-  "D5": [-1, -1, 0, 2, 3, -1],
-  "G5": [3, 5, 5, -1, -1, -1],
-  "B5": [-1, 2, 4, 4, -1, -1],
-  "C5": [-1, 3, 5, 5, -1, -1],
-  "F5": [-1, -1, -1, 2, 3, 1],
-  "Bm": [-1, 2, 4, 4, 3, 2],
-  "F#m": [2, 4, 4, 2, 2, 2],
-  "C#m": [-1, 4, 6, 6, 5, 4],
-  "G#m": [-1, 4, 6, 6, 4, 4],
-  "D#m": [-1, -1, 0, 2, 3, 1],
-  "A#m": [-1, 1, 3, 3, 2, 1],
-  "B": [-1, 2, 4, 4, 4, 2],
-  "F#": [2, 4, 4, 3, 2, 2],
-  "C#": [-1, 4, 6, 6, 6, 4],
-  "G#": [4, 6, 6, 5, 4, 4],
-  "D#": [-1, -1, 0, 2, 3, -1],
-  "A#": [-1, 1, 3, 3, 3, 1],
-  "Bb": [-1, 1, 3, 3, 3, 1],
-  "Eb": [-1, -1, 0, 2, 3, -1],
-  "Ab": [4, 6, 6, 5, 4, 4],
-  "Db": [-1, -1, 4, 4, 4, 2],
-  "Gb": [2, 2, 3, 4, 4, 2],
-  "B7": [-1, 2, 1, 2, 0, 2],
-  "D7": [-1, -1, 0, 2, 1, 2],
-  "A7": [-1, 0, 2, 0, 2, 0],
-  "E7": [0, 2, 0, 1, 0, 0],
-  "G7": [3, 2, 0, 0, 0, 1],
-  "C7": [-1, 3, 2, 3, 1, 0],
-  "Am7": [-1, 0, 2, 0, 1, 0],
-  "Em7": [0, 2, 0, 0, 0, 0],
-  "Dm7": [-1, -1, 0, 2, 1, 1],
-  "Bm7": [-1, 2, 0, 2, 0, 2],
-  "Cmaj7": [-1, 3, 2, 0, 0, 0],
-  "Fmaj7": [-1, -1, 3, 2, 1, 0],
-  "Gmaj7": [3, 2, 0, 0, 0, 2],
-  "Dmaj7": [-1, -1, 0, 2, 2, 2],
-  "Amaj7": [-1, 0, 2, 1, 2, 0],
-  "Emaj7": [0, 2, 1, 1, 0, 0],
-  "Csus4": [-1, 3, 3, 0, 1, 0],
-  "Dsus4": [-1, -1, 0, 2, 3, 3],
-  "Asus4": [-1, 0, 2, 2, 3, 0],
-  "Esus4": [0, 2, 2, 2, 0, 0],
-  "Gsus4": [3, 3, 0, 0, 1, 3],
-  "Cadd9": [-1, 3, 2, 0, 3, 0],
-  "Dadd9": [-1, -1, 0, 2, 3, 0],
-  "Gadd9": [3, 0, 0, 0, 1, 3],
-  "Aadd9": [-1, 0, 2, 4, 2, 0],
-  "D9": [-1, -1, 0, 2, 1, 2],
-  "E9": [0, 2, 0, 1, 2, 0],
-  "A9": [-1, 0, 2, 4, 2, 0],
-};
+const CHORD_SHAPES: Record<string, number[]> = {};
+CHORD_SHAPES["E"] = [0, 2, 2, 1, 0, 0];
+CHORD_SHAPES["Em"] = [0, 2, 2, 0, 0, 0];
+CHORD_SHAPES["A"] = [-1, 0, 2, 2, 2, 0];
+CHORD_SHAPES["Am"] = [-1, 0, 2, 2, 1, 0];
+CHORD_SHAPES["D"] = [-1, -1, 0, 2, 3, 2];
+CHORD_SHAPES["Dm"] = [-1, -1, 0, 2, 3, 1];
+CHORD_SHAPES["C"] = [-1, 3, 2, 0, 1, 0];
+CHORD_SHAPES["G"] = [3, 2, 0, 0, 0, 3];
+CHORD_SHAPES["F"] = [1, 3, 3, 2, 1, 1];
+CHORD_SHAPES["E5"] = [0, 2, 2, -1, -1, -1];
+CHORD_SHAPES["A5"] = [-1, 0, 2, 2, -1, -1];
+CHORD_SHAPES["D5"] = [-1, -1, 0, 2, 3, -1];
+CHORD_SHAPES["G5"] = [3, 5, 5, -1, -1, -1];
+CHORD_SHAPES["B5"] = [-1, 2, 4, 4, -1, -1];
+CHORD_SHAPES["C5"] = [-1, 3, 5, 5, -1, -1];
+CHORD_SHAPES["F5"] = [-1, -1, -1, 2, 3, 1];
+CHORD_SHAPES["Bm"] = [-1, 2, 4, 4, 3, 2];
+CHORD_SHAPES["F" + SHARP + "m"] = [2, 4, 4, 2, 2, 2];
+CHORD_SHAPES["C" + SHARP + "m"] = [-1, 4, 6, 6, 5, 4];
+CHORD_SHAPES["G" + SHARP + "m"] = [-1, 4, 6, 6, 4, 4];
+CHORD_SHAPES["D" + SHARP + "m"] = [-1, -1, 0, 2, 3, 1];
+CHORD_SHAPES["A" + SHARP + "m"] = [-1, 1, 3, 3, 2, 1];
+CHORD_SHAPES["B"] = [-1, 2, 4, 4, 4, 2];
+CHORD_SHAPES["F" + SHARP] = [2, 4, 4, 3, 2, 2];
+CHORD_SHAPES["C" + SHARP] = [-1, 4, 6, 6, 6, 4];
+CHORD_SHAPES["G" + SHARP] = [4, 6, 6, 5, 4, 4];
+CHORD_SHAPES["D" + SHARP] = [-1, -1, 0, 2, 3, -1];
+CHORD_SHAPES["A" + SHARP] = [-1, 1, 3, 3, 3, 1];
+CHORD_SHAPES["Bb"] = [-1, 1, 3, 3, 3, 1];
+CHORD_SHAPES["Eb"] = [-1, -1, 0, 2, 3, -1];
+CHORD_SHAPES["Ab"] = [4, 6, 6, 5, 4, 4];
+CHORD_SHAPES["Db"] = [-1, -1, 4, 4, 4, 2];
+CHORD_SHAPES["Gb"] = [2, 2, 3, 4, 4, 2];
+CHORD_SHAPES["B7"] = [-1, 2, 1, 2, 0, 2];
+CHORD_SHAPES["D7"] = [-1, -1, 0, 2, 1, 2];
+CHORD_SHAPES["A7"] = [-1, 0, 2, 0, 2, 0];
+CHORD_SHAPES["E7"] = [0, 2, 0, 1, 0, 0];
+CHORD_SHAPES["G7"] = [3, 2, 0, 0, 0, 1];
+CHORD_SHAPES["C7"] = [-1, 3, 2, 3, 1, 0];
+CHORD_SHAPES["Am7"] = [-1, 0, 2, 0, 1, 0];
+CHORD_SHAPES["Em7"] = [0, 2, 0, 0, 0, 0];
+CHORD_SHAPES["Dm7"] = [-1, -1, 0, 2, 1, 1];
+CHORD_SHAPES["Bm7"] = [-1, 2, 0, 2, 0, 2];
+CHORD_SHAPES["Cmaj7"] = [-1, 3, 2, 0, 0, 0];
+CHORD_SHAPES["Fmaj7"] = [-1, -1, 3, 2, 1, 0];
+CHORD_SHAPES["Gmaj7"] = [3, 2, 0, 0, 0, 2];
+CHORD_SHAPES["Dmaj7"] = [-1, -1, 0, 2, 2, 2];
+CHORD_SHAPES["Amaj7"] = [-1, 0, 2, 1, 2, 0];
+CHORD_SHAPES["Emaj7"] = [0, 2, 1, 1, 0, 0];
+CHORD_SHAPES["Csus4"] = [-1, 3, 3, 0, 1, 0];
+CHORD_SHAPES["Dsus4"] = [-1, -1, 0, 2, 3, 3];
+CHORD_SHAPES["Asus4"] = [-1, 0, 2, 2, 3, 0];
+CHORD_SHAPES["Esus4"] = [0, 2, 2, 2, 0, 0];
+CHORD_SHAPES["Gsus4"] = [3, 3, 0, 0, 1, 3];
+CHORD_SHAPES["Cadd9"] = [-1, 3, 2, 0, 3, 0];
+CHORD_SHAPES["Dadd9"] = [-1, -1, 0, 2, 3, 0];
+CHORD_SHAPES["Gadd9"] = [3, 0, 0, 0, 1, 3];
+CHORD_SHAPES["Aadd9"] = [-1, 0, 2, 4, 2, 0];
+CHORD_SHAPES["D9"] = [-1, -1, 0, 2, 1, 2];
+CHORD_SHAPES["E9"] = [0, 2, 0, 1, 2, 0];
+CHORD_SHAPES["A9"] = [-1, 0, 2, 4, 2, 0];
 
 function transposeChord(chord: string, steps: number): string {
   if (!steps) return chord;
-  const match = chord.match(/^([A-G][#b]?)(.*)$/);
+  const re = new RegExp("^([A-G][" + SHARP + "b]?)(.*)$");
+  const match = chord.match(re);
   if (!match) return chord;
   const root = FLAT_TO_SHARP[match[1]] || match[1];
   let idx = CHROMATIC.indexOf(root);
