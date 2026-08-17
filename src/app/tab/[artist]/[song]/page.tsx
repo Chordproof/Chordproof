@@ -20,21 +20,23 @@ export async function generateMetadata({ params }: { params: { artist: string; s
 }
 
 export default function Page({ params }: { params: { artist: string; song: string } }) {
+  const tabUrl = SITE_URL + "/tab/" + params.artist + "/" + params.song;
+  const songName = params.song.replace(/-/g, " ");
+  const artistName = params.artist.replace(/-/g, " ");
+
   return (
-    
+    <div>
       <JsonLd
         data={{
           "@context": "https://schema.org",
           "@type": "MusicRecording",
-          name: params.song.replace(/-/g, " "),
-          byArtist: { "@type": "MusicGroup", name: params.artist.replace(/-/g, " ") },
+          name: songName,
+          byArtist: { "@type": "MusicGroup", name: artistName },
           inLanguage: "en",
-          url: `${SITE_URL}/tab/${params.artist}/${params.song}`,
+          url: tabUrl,
         }}
       />
       <TabDetail params={params} />
-    
-
-
+    </div>
   );
 }
