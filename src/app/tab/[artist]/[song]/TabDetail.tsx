@@ -12,7 +12,7 @@ import {
 } from "@/lib/chordData";
 import {
   MiniFretboard, ChordDiagram, ChordSpan, ThemePicker,
-  THEMES, THEME_KEYS, type ThemeKey,
+  THEMES, type ThemeKey,
 } from "@/lib/fretboard";
 
 export default function TabDetail({ params }: { params: { artist: string; song: string } }) {
