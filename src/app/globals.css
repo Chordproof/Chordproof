@@ -29,14 +29,14 @@ body {
 }
 
 .chord {
-  color: #f0b429;
+  color: #34d399;
   font-weight: 700;
   cursor: pointer;
 }
 
 .chord:hover {
   text-decoration: underline;
-  text-decoration-color: #f0b429;
+  text-decoration-color: #34d399;
 }
 
 .gold-seal-anim {
