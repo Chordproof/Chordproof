@@ -1,5 +1,5 @@
 "use client";
-import { type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 import { CHORD_TOKEN_RE, CHORD_STRICT_RE, TAB_LINE_RE, transposeChord } from "./chordData";
 import { ChordSpan } from "./fretboard";
