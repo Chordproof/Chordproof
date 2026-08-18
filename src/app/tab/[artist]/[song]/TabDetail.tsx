@@ -15,7 +15,15 @@ function MiniFretboard({ chord }: { chord: string }) {
   const shape = CHORD_SHAPES[chord];
   if (!shape) {
     return (
-      <div style={{background:"linear-gradient(180deg,#4a3020,#2a1810)",border:"2px solid #6a4a2a",borderRadius:"8px",padding:"6px",width:"90px",textAlign:"center",boxShadow:"0 4px 12px rgba(0,0,0,0.6)"}}>
+      <div style={{
+        background:"linear-gradient(180deg,#3a2418,#1a0e08)",
+        border:"2px solid #5a3a1a",
+        borderRadius:"6px",
+        padding:"6px",
+        width:"96px",
+        textAlign:"center",
+        boxShadow:"0 4px 12px rgba(0,0,0,0.6)",
+      }}>
         <div style={{color:"#f0b429",fontWeight:"bold",fontSize:"12px",marginBottom:"2px"}}>{chord}</div>
         <div style={{color:"#666",fontSize:"10px"}}>N/A</div>
       </div>
@@ -25,26 +33,77 @@ function MiniFretboard({ chord }: { chord: string }) {
   const minPos = posFrets.length > 0 ? Math.min(...posFrets) : 0;
   const baseFret = minPos > 3 ? minPos - 1 : 0;
   const frets = [baseFret+1, baseFret+2, baseFret+3, baseFret+4];
+  const stringWidths = [2.5, 2, 1.5, 1.2, 1, 0.8];
+
   return (
-    <div style={{background:"linear-gradient(180deg,#4a3020 0%,#3a2418 40%,#2a1810 100%)",border:"2px solid #6a4a2a",borderRadius:"8px",padding:"6px",width:"90px",boxShadow:"0 4px 12px rgba(0,0,0,0.6)"}}>
-      <div style={{color:"#f0b429",fontWeight:"bold",textAlign:"center",fontSize:"12px",marginBottom:"4px"}}>{chord}</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",marginBottom:"2px"}}>
+    <div style={{
+      background:"linear-gradient(180deg,#3a2418 0%,#2a1810 30%,#1e1208 60%,#2a1810 100%)",
+      border:"2px solid #4a2a10",
+      borderRadius:"6px",
+      padding:"5px",
+      width:"96px",
+      boxShadow:"0 4px 14px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,200,100,0.05)",
+    }}>
+      <div style={{color:"#f0b429",fontWeight:"bold",textAlign:"center",fontSize:"12px",marginBottom:"3px"}}>
+        {chord}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",marginBottom:"1px"}}>
         {shape.map((f:number,i:number) => (
-          <div key={i} style={{textAlign:"center",fontSize:"9px",color:f===-1?"#ff6b6b":f===0?"#69db7c":"#888"}}>
+          <div key={i} style={{textAlign:"center",fontSize:"9px",color:f===-1?"#ff6b6b":f===0?"#69db7c":"#555"}}>
             {f===-1?"\u00d7":f===0?"\u25cb":""}
           </div>
         ))}
       </div>
+      <div style={{
+        height:"3px",
+        background:"linear-gradient(180deg,#e8dcc8,#c4b496,#a09078)",
+        borderRadius:"1px",
+        marginBottom:"0",
+        boxShadow:"0 1px 2px rgba(0,0,0,0.4)",
+      }} />
       {frets.map((fret:number,fi:number) => (
-        <div key={fret} style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",borderTop:fi===0&&baseFret===0?"3px solid #9a7a4a":"1px solid #5a3a1a",height:"12px"}}>
+        <div key={fret} style={{position:"relative",height:"13px"}}>
+          <div style={{
+            position:"absolute",top:"0",left:"0",right:"0",height:"1px",
+            background:"linear-gradient(180deg,#8a8a8a,#5a5a5a,#3a3a3a)",
+            boxShadow:"0 1px 0 rgba(255,255,255,0.03)",
+          }} />
           {shape.map((f:number,i:number) => (
-            <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"center",borderRight:i<5?"1px solid #4a2a10":"none"}}>
-              {f===fret && <div style={{width:"8px",height:"8px",borderRadius:"50%",background:"radial-gradient(circle,#f0b429 30%,#c89615 100%)"}} />}
-            </div>
+            <div key={i} style={{
+              position:"absolute",
+              left:((i+0.5)/6*100)+"%",
+              top:"0",bottom:"0",
+              width:stringWidths[i]+"px",
+              marginLeft:-(stringWidths[i]/2)+"px",
+              background: i < 3
+                ? "linear-gradient(90deg,#8a7a5a,#d4c496,#8a7a5a)"
+                : "linear-gradient(90deg,#aaa,#eee,#aaa)",
+              borderRadius:"0.5px",
+              boxShadow:"0 0 1px rgba(0,0,0,0.3)",
+            }} />
+          ))}
+          {shape.map((f:number,i:number) => (
+            f===fret ? (
+              <div key={"d"+i} style={{
+                position:"absolute",
+                left:((i+0.5)/6*100)+"%",
+                top:"50%",
+                width:"9px",height:"9px",
+                marginLeft:"-4.5px",marginTop:"-4.5px",
+                borderRadius:"50%",
+                background:"radial-gradient(circle at 35% 30%,#ffd966,#f0b429 50%,#b8860b 100%)",
+                boxShadow:"0 1px 2px rgba(0,0,0,0.5), inset 0 -1px 1px rgba(0,0,0,0.2)",
+                zIndex:"2",
+              }} />
+            ) : null
           ))}
         </div>
       ))}
-      {baseFret > 0 && <div style={{textAlign:"right",fontSize:"8px",color:"#888",marginTop:"1px"}}>{baseFret+1}fr</div>}
+      {baseFret > 0 && (
+        <div style={{textAlign:"right",fontSize:"8px",color:"#888",marginTop:"1px"}}>
+          {baseFret+1}fr
+        </div>
+      )}
     </div>
   );
 }
@@ -55,37 +114,87 @@ function ChordDiagram({ chord, onClose }: { chord: string; onClose: () => void }
   const minPos = posFrets.length > 0 ? Math.min(...posFrets) : 0;
   const baseFret = minPos > 3 ? minPos - 1 : 0;
   const frets = [baseFret+1, baseFret+2, baseFret+3, baseFret+4];
+  const stringWidths = [4, 3.5, 3, 2.5, 2, 1.5];
+
   return (
-    <div style={{position:"fixed",inset:"0",zIndex:"9999",display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.8)",padding:"16px"}} onClick={onClose}>
-      <div style={{background:"linear-gradient(180deg,#4a3020 0%,#3a2418 40%,#2a1810 100%)",border:"3px solid #6a4a2a",borderRadius:"12px",padding:"20px",boxShadow:"0 8px 32px rgba(0,0,0,0.8)"}} onClick={(e) => e.stopPropagation()}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
-          <span style={{color:"#f0b429",fontWeight:"bold",fontSize:"24px"}}>{chord}</span>
-          <button onClick={onClose} style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:"50%",width:"32px",height:"32px",color:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><X size={18} /></button>
+    <div style={{position:"fixed",inset:"0",zIndex:"9999",display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.85)",padding:"16px"}} onClick={onClose}>
+      <div style={{
+        background:"linear-gradient(180deg,#3a2418 0%,#2a1810 30%,#1e1208 60%,#2a1810 100%)",
+        border:"3px solid #4a2a10",
+        borderRadius:"12px",
+        padding:"24px",
+        boxShadow:"0 8px 40px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,200,100,0.08)",
+      }} onClick={(e) => e.stopPropagation()}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}}>
+          <span style={{color:"#f0b429",fontWeight:"bold",fontSize:"28px"}}>{chord}</span>
+          <button onClick={onClose} style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:"50%",width:"36px",height:"36px",color:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <X size={18} />
+          </button>
         </div>
         {shape ? (
           <div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",marginBottom:"4px"}}>
               {shape.map((f:number,i:number) => (
-                <div key={i} style={{textAlign:"center",fontSize:"16px",color:f===-1?"#ff6b6b":f===0?"#69db7c":"#888"}}>
+                <div key={i} style={{textAlign:"center",fontSize:"18px",color:f===-1?"#ff6b6b":f===0?"#69db7c":"#555"}}>
                   {f===-1?"\u00d7":f===0?"\u25cb":""}
                 </div>
               ))}
             </div>
+            <div style={{
+              height:"6px",
+              background:"linear-gradient(180deg,#f0e4d0,#d4c4a6,#a09078)",
+              borderRadius:"2px",
+              marginBottom:"0",
+              boxShadow:"0 2px 4px rgba(0,0,0,0.5)",
+            }} />
             {frets.map((fret:number,fi:number) => (
-              <div key={fret} style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",borderTop:fi===0&&baseFret===0?"4px solid #9a7a4a":"2px solid #5a3a1a",height:"32px"}}>
+              <div key={fret} style={{position:"relative",height:"36px"}}>
+                <div style={{
+                  position:"absolute",top:"0",left:"0",right:"0",height:"2px",
+                  background:"linear-gradient(180deg,#9a9a9a,#6a6a6a,#3a3a3a)",
+                  boxShadow:"0 1px 0 rgba(255,255,255,0.05)",
+                }} />
                 {shape.map((f:number,i:number) => (
-                  <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"center",borderRight:i<5?"1px solid #4a2a10":"none"}}>
-                    {f===fret && <div style={{width:"20px",height:"20px",borderRadius:"50%",background:"radial-gradient(circle,#f0b429 30%,#c89615 100%)",boxShadow:"0 2px 4px rgba(0,0,0,0.5)"}} />}
-                  </div>
+                  <div key={i} style={{
+                    position:"absolute",
+                    left:((i+0.5)/6*100)+"%",
+                    top:"0",bottom:"0",
+                    width:stringWidths[i]+"px",
+                    marginLeft:-(stringWidths[i]/2)+"px",
+                    background: i < 3
+                      ? "linear-gradient(90deg,#8a7a5a,#e4d4a6,#8a7a5a)"
+                      : "linear-gradient(90deg,#bbb,#fff,#bbb)",
+                    borderRadius:"1px",
+                    boxShadow:"0 0 2px rgba(0,0,0,0.4)",
+                  }} />
+                ))}
+                {shape.map((f:number,i:number) => (
+                  f===fret ? (
+                    <div key={"d"+i} style={{
+                      position:"absolute",
+                      left:((i+0.5)/6*100)+"%",
+                      top:"50%",
+                      width:"22px",height:"22px",
+                      marginLeft:"-11px",marginTop:"-11px",
+                      borderRadius:"50%",
+                      background:"radial-gradient(circle at 35% 30%,#ffd966,#f0b429 50%,#b8860b 100%)",
+                      boxShadow:"0 2px 4px rgba(0,0,0,0.6), inset 0 -2px 2px rgba(0,0,0,0.25), inset 0 1px 1px rgba(255,255,255,0.3)",
+                      zIndex:"2",
+                    }} />
+                  ) : null
                 ))}
               </div>
             ))}
-            {baseFret > 0 && <div style={{textAlign:"right",fontSize:"12px",color:"#888",marginTop:"4px"}}>Starting at fret {baseFret+1}</div>}
+            {baseFret > 0 && (
+              <div style={{textAlign:"right",fontSize:"13px",color:"#888",marginTop:"6px"}}>
+                Starting at fret {baseFret+1}
+              </div>
+            )}
           </div>
         ) : (
           <p style={{color:"#9E9E9E",fontSize:"14px"}}>Diagram not available for {chord}.</p>
         )}
-        <p style={{color:"#666",fontSize:"11px",textAlign:"center",marginTop:"12px"}}>Click anywhere to close</p>
+        <p style={{color:"#666",fontSize:"11px",textAlign:"center",marginTop:"16px"}}>Click anywhere to close</p>
       </div>
     </div>
   );
