@@ -63,6 +63,7 @@ CHORD_SHAPES["D4"]=[-1,-1,0,2,3,3];
 CHORD_SHAPES["D2"]=[-1,-1,0,2,3,0];
 CHORD_SHAPES["D/F"+SHARP]=[-1,-1,0,2,3,2];
 CHORD_SHAPES["G/B"]=[-1,2,0,0,0,3];
+CHORD_SHAPES["Esus4/F"+SHARP]=[-1,-1,2,2,0,0];
 
 function transposeChord(chord: string, steps: number): string {
   if (!steps) return chord;
@@ -82,7 +83,7 @@ function MiniFretboard({ chord }: { chord: string }) {
   const shape = CHORD_SHAPES[chord];
   if (!shape) {
     return (
-      <div style={{background:"#2a1810",border:"2px solid #6a4a2a",borderRadius:"8px",padding:"6px",width:"88px",textAlign:"center",boxShadow:"0 4px 12px rgba(0,0,0,0.6)"}}>
+      <div style={{background:"linear-gradient(180deg,#4a3020,#2a1810)",border:"2px solid #6a4a2a",borderRadius:"8px",padding:"6px",width:"90px",textAlign:"center",boxShadow:"0 4px 12px rgba(0,0,0,0.6)"}}>
         <div style={{color:"#f0b429",fontWeight:"bold",fontSize:"12px",marginBottom:"2px"}}>{chord}</div>
         <div style={{color:"#666",fontSize:"10px"}}>N/A</div>
       </div>
@@ -99,7 +100,7 @@ function MiniFretboard({ chord }: { chord: string }) {
       border:"2px solid #6a4a2a",
       borderRadius:"8px",
       padding:"6px",
-      width:"88px",
+      width:"90px",
       boxShadow:"0 4px 12px rgba(0,0,0,0.6)",
     }}>
       <div style={{color:"#f0b429",fontWeight:"bold",textAlign:"center",fontSize:"12px",marginBottom:"4px"}}>
@@ -212,13 +213,13 @@ function ChordDiagram({ chord, onClose }: { chord: string; onClose: () => void }
   );
 }
 
-function ChordSpan({ chord, onHover, onClick }: { chord: string; onHover: (chord: string | null) => void; onClick: (chord: string) => void }) {
+function ChordSpan({ chord, onClick }: { chord: string; onClick: (chord: string) => void }) {
   const [showTip, setShowTip] = useState(false);
   return (
     <span
       style={{position:"relative",display:"inline-block",color:"#34d399",fontWeight:700,cursor:"pointer"}}
-      onMouseEnter={() => { setShowTip(true); onHover(chord); }}
-      onMouseLeave={() => { setShowTip(false); onHover(null); }}
+      onMouseEnter={() => setShowTip(true)}
+      onMouseLeave={() => setShowTip(false)}
       onClick={() => onClick(chord)}
     >
       {chord}
@@ -248,7 +249,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const [scrollSpeed, setScrollSpeed] = useState(5);
   const [showTablature, setShowTablature] = useState(true);
   const [activeChord, setActiveChord] = useState<string | null>(null);
-  const [hoveredChord, setHoveredChord] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -287,7 +287,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       chordParts.push(chordLine.slice(lastIndex, m.index));
       const chord = transposeChord(m[1], transpose);
       chordParts.push(
-        <ChordSpan key={count++} chord={chord} onHover={setHoveredChord} onClick={setActiveChord} />
+        <ChordSpan key={count++} chord={chord} onClick={setActiveChord} />
       );
       lastIndex = m.index + m[1].length;
     }
@@ -388,6 +388,40 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
     return result;
   }
 
+  function renderTablature(tablature: string): ReactNode {
+    if (!tablature || !tablature.trim()) return null;
+    const lines = tablature.split("\n");
+    return (
+      <div style={{
+        background:"#0a0a0a",
+        borderRadius:"12px",
+        padding:"16px",
+        border:"1px solid #333",
+        marginTop:"16px",
+        maxHeight:"500px",
+        overflowY:"auto",
+      }}>
+        <div style={{
+          color:"#f0b429",fontWeight:700,fontSize:"14px",marginBottom:"8px",
+          display:"flex",alignItems:"center",gap:"6px",
+        }}>
+          <ChevronDown size={16} /> Tablature Notation
+        </div>
+        {lines.map((line, i) => (
+          <div key={i} style={{
+            whiteSpace:"pre-wrap",
+            fontFamily:"monospace",
+            fontSize:"0.85em",
+            lineHeight:"1.4em",
+            color: TAB_LINE_RE.test(line) ? "#69db7c" : "#9E9E9E",
+          }}>
+            {line || "\u00a0"}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   function chordsUsed(content: string): string[] {
     const seen: string[] = [];
     const lines = content.split("\n");
@@ -434,9 +468,11 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const songName = tab.song || params.song.replace(/-/g, " ");
   const artistName = tab.artist || params.artist.replace(/-/g, " ");
   const content: string = tab.content || "";
+  const tablature: string = tab.tablature || "";
   const youtubeId: string = tab.youtube_id || tab.video_id || tab.youtube || tab.video_url || tab.yt_id || tab.youtube_url || tab.embed_url || "";
   const versions: string[] = Array.isArray(tab.versions) ? tab.versions : [];
   const usedChords = chordsUsed(content);
+  const hasTabContent = tablature && tablature.trim().length > 0;
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -467,6 +503,12 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
             )}
             {tab.difficulty && (
               <span className="bg-white/5 px-3 py-1 rounded text-sm">Difficulty: <strong className="text-green-400">{tab.difficulty}</strong></span>
+            )}
+            {tab.capo && (
+              <span className="bg-white/5 px-3 py-1 rounded text-sm">Capo: <strong>{tab.capo}</strong></span>
+            )}
+            {tab.views !== undefined && (
+              <span className="bg-white/5 px-3 py-1 rounded text-sm">{tab.views} views</span>
             )}
           </div>
         </div>
@@ -510,6 +552,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
             <div style={{fontFamily:"monospace",fontSize:"1rem",lineHeight:"1.6"}}>
               {renderContent(content)}
             </div>
+            {showTablature && hasTabContent && renderTablature(tablature)}
           </div>
 
           {usedChords.length > 0 && (
