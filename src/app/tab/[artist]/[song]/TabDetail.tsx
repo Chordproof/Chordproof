@@ -3,7 +3,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import TransposeControls from "@/components/TransposeControls";
 import {
   BadgeCheck, AlertTriangle, Share2, Bookmark, Play, MousePointer2,
-  Loader2, ChevronDown, Youtube, X,
+  Loader2, ChevronDown, Youtube, X, Palette,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import {
@@ -11,21 +11,66 @@ import {
   transposeChord, chordsUsed,
 } from "@/lib/chordData";
 
-function MiniFretboard({ chord }: { chord: string }) {
+type ThemeKey = "amber" | "classic" | "emerald" | "crimson" | "ocean";
+
+const THEMES: Record<ThemeKey, {
+  label: string; swatch: string;
+  wood: string; woodEnd: string; border: string; nut: string;
+  fret: string; stringThick: string; stringThin: string;
+  dot: string; dotHighlight: string; text: string; muted: string;
+  x: string; o: string;
+}> = {
+  amber: {
+    label: "Amber", swatch: "#f0b429",
+    wood: "#4a3020", woodEnd: "#2a1810", border: "#5a3a1a",
+    nut: "#f0e4d0", fret: "#9a9a9a", stringThick: "#d4c496", stringThin: "#eee",
+    dot: "#f0b429", dotHighlight: "#ffd966", text: "#f0b429", muted: "#a09070",
+    x: "#ff6b6b", o: "#69db7c",
+  },
+  classic: {
+    label: "Classic", swatch: "#333333",
+    wood: "#3a2418", woodEnd: "#1e1208", border: "#4a2a10",
+    nut: "#e8dcc8", fret: "#8a8a8a", stringThick: "#c4a46a", stringThin: "#ddd",
+    dot: "#333", dotHighlight: "#666", text: "#e0e0e0", muted: "#888",
+    x: "#ff6b6b", o: "#69db7c",
+  },
+  emerald: {
+    label: "Emerald", swatch: "#10b981",
+    wood: "#2a2418", woodEnd: "#1a1408", border: "#3a3a1a",
+    nut: "#e8e4d0", fret: "#8a9a8a", stringThick: "#a4c496", stringThin: "#dde",
+    dot: "#10b981", dotHighlight: "#34d399", text: "#34d399", muted: "#5a8a6a",
+    x: "#ff6b6b", o: "#69db7c",
+  },
+  crimson: {
+    label: "Crimson", swatch: "#dc2626",
+    wood: "#3a1818", woodEnd: "#1e0808", border: "#4a1a1a",
+    nut: "#e8d8d0", fret: "#9a8a8a", stringThick: "#c49696", stringThin: "#ddd",
+    dot: "#dc2626", dotHighlight: "#ff6b6b", text: "#ff6b6b", muted: "#a07070",
+    x: "#ff6b6b", o: "#69db7c",
+  },
+  ocean: {
+    label: "Ocean", swatch: "#2563eb",
+    wood: "#1a2438", woodEnd: "#0a121e", border: "#1a2a4a",
+    nut: "#d8e0f0", fret: "#8a9aaa", stringThick: "#96a4c4", stringThin: "#dde",
+    dot: "#2563eb", dotHighlight: "#60a5fa", text: "#60a5fa", muted: "#5a7090",
+    x: "#ff6b6b", o: "#69db7c",
+  },
+};
+
+const THEME_KEYS: ThemeKey[] = ["amber", "classic", "emerald", "crimson", "ocean"];
+
+function MiniFretboard({ chord, theme }: { chord: string; theme: typeof THEMES[ThemeKey] }) {
+  const C = theme;
   const shape = CHORD_SHAPES[chord];
   if (!shape) {
     return (
       <div style={{
-        background:"linear-gradient(180deg,#3a2418,#1a0e08)",
-        border:"2px solid #5a3a1a",
-        borderRadius:"8px",
-        padding:"8px",
-        width:"150px",
-        textAlign:"center",
-        boxShadow:"0 6px 20px rgba(0,0,0,0.7)",
+        background:"linear-gradient(180deg,"+C.wood+","+C.woodEnd+")",
+        border:"2px solid "+C.border, borderRadius:"8px", padding:"8px", width:"150px",
+        textAlign:"center", boxShadow:"0 6px 20px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,200,100,0.06)",
       }}>
-        <div style={{color:"#f0b429",fontWeight:"bold",fontSize:"14px",marginBottom:"4px"}}>{chord}</div>
-        <div style={{color:"#666",fontSize:"11px"}}>N/A</div>
+        <div style={{color:C.text,fontWeight:"bold",fontSize:"14px",marginBottom:"4px"}}>{chord}</div>
+        <div style={{color:C.muted,fontSize:"11px"}}>N/A</div>
       </div>
     );
   }
@@ -38,60 +83,37 @@ function MiniFretboard({ chord }: { chord: string }) {
 
   return (
     <div style={{
-      background:"linear-gradient(180deg,#4a3020 0%,#3a2418 25%,#2a1810 50%,#1e1208 75%,#2a1810 100%)",
-      border:"2px solid #5a3a1a",
-      borderRadius:"8px",
-      padding:"8px",
-      width:"150px",
+      background:"linear-gradient(180deg,"+C.wood+" 0%,"+C.wood+" 25%,"+C.woodEnd+" 50%,"+C.woodEnd+" 75%,"+C.wood+" 100%)",
+      border:"2px solid "+C.border, borderRadius:"8px", padding:"8px", width:"150px",
       boxShadow:"0 6px 20px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,200,100,0.06)",
     }}>
-      <div style={{color:"#f0b429",fontWeight:"bold",textAlign:"center",fontSize:"14px",marginBottom:"6px"}}>
-        {chord}
-      </div>
+      <div style={{color:C.text,fontWeight:"bold",textAlign:"center",fontSize:"14px",marginBottom:"6px"}}>{chord}</div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",marginBottom:"2px"}}>
         {shape.map((f:number,i:number) => (
-          <div key={i} style={{textAlign:"center",fontSize:"11px",color:f===-1?"#ff6b6b":f===0?"#69db7c":"#555"}}>
+          <div key={i} style={{textAlign:"center",fontSize:"11px",color:f===-1?C.x:f===0?C.o:C.muted,fontWeight:600}}>
             {f===-1?"\u00d7":f===0?"\u25cb":""}
           </div>
         ))}
       </div>
-      <div style={{
-        height:"5px",
-        background:"linear-gradient(180deg,#f0e4d0,#d4c4a6,#a09078)",
-        borderRadius:"2px",
-        boxShadow:"0 2px 3px rgba(0,0,0,0.5)",
-      }} />
+      <div style={{height:"5px",background:"linear-gradient(180deg,"+C.nut+",#c4b496,#a09078)",borderRadius:"2px",boxShadow:"0 2px 3px rgba(0,0,0,0.5)"}} />
       {frets.map((fret:number,fi:number) => (
         <div key={fret} style={{position:"relative",height:"22px"}}>
-          <div style={{
-            position:"absolute",top:"0",left:"0",right:"0",height:"2px",
-            background:"linear-gradient(180deg,#9a9a9a,#6a6a6a,#3a3a3a)",
-            boxShadow:"0 1px 0 rgba(255,255,255,0.04)",
-          }} />
+          <div style={{position:"absolute",top:"0",left:"0",right:"0",height:"2px",background:"linear-gradient(180deg,"+C.fret+",#5a5a5a,#3a3a3a)",boxShadow:"0 1px 0 rgba(255,255,255,0.04)"}} />
           {shape.map((f:number,i:number) => (
             <div key={i} style={{
-              position:"absolute",
-              left:((i+0.5)/6*100)+"%",
-              top:"0",bottom:"0",
-              width:stringW[i]+"px",
-              marginLeft:-(stringW[i]/2)+"px",
-              background: i < 3
-                ? "linear-gradient(90deg,#7a6a4a,#d4c496,#7a6a4a)"
-                : "linear-gradient(90deg,#aaa,#eee,#aaa)",
-              borderRadius:"1px",
-              boxShadow:"0 0 1px rgba(0,0,0,0.4)",
+              position:"absolute", left:((i+0.5)/6*100)+"%", top:"0", bottom:"0",
+              width:stringW[i]+"px", marginLeft:-(stringW[i]/2)+"px",
+              background: i < 3 ? "linear-gradient(90deg,"+C.stringThick+",#fff,"+C.stringThick+")" : "linear-gradient(90deg,"+C.stringThin+",#fff,"+C.stringThin+")",
+              borderRadius:"1px", boxShadow:"0 0 1px rgba(0,0,0,0.4)",
             }} />
           ))}
           {shape.map((f:number,i:number) => (
             f===fret ? (
               <div key={"d"+i} style={{
-                position:"absolute",
-                left:((i+0.5)/6*100)+"%",
-                top:"50%",
-                width:dotSize+"px",height:dotSize+"px",
-                marginLeft:-(dotSize/2)+"px",marginTop:-(dotSize/2)+"px",
+                position:"absolute", left:((i+0.5)/6*100)+"%", top:"50%",
+                width:dotSize+"px", height:dotSize+"px", marginLeft:-(dotSize/2)+"px", marginTop:-(dotSize/2)+"px",
                 borderRadius:"50%",
-                background:"radial-gradient(circle at 35% 30%,#ffd966,#f0b429 50%,#b8860b 100%)",
+                background:"radial-gradient(circle at 35% 30%,"+C.dotHighlight+","+C.dot+" 50%,"+C.dot+" 100%)",
                 boxShadow:"0 2px 3px rgba(0,0,0,0.6), inset 0 -2px 2px rgba(0,0,0,0.25), inset 0 1px 1px rgba(255,255,255,0.4)",
                 zIndex:"2",
               }} />
@@ -99,16 +121,13 @@ function MiniFretboard({ chord }: { chord: string }) {
           ))}
         </div>
       ))}
-      {baseFret > 0 && (
-        <div style={{textAlign:"right",fontSize:"10px",color:"#888",marginTop:"2px"}}>
-          {baseFret+1}fr
-        </div>
-      )}
+      {baseFret > 0 && <div style={{textAlign:"right",fontSize:"10px",color:C.muted,marginTop:"2px"}}>{baseFret+1}fr</div>}
     </div>
   );
 }
 
-function ChordDiagram({ chord, onClose }: { chord: string; onClose: () => void }) {
+function ChordDiagram({ chord, onClose, theme }: { chord: string; onClose: () => void; theme: typeof THEMES[ThemeKey] }) {
+  const C = theme;
   const shape = CHORD_SHAPES[chord];
   const posFrets = (shape||[]).filter((f:number) => f > 0);
   const minPos = posFrets.length > 0 ? Math.min(...posFrets) : 0;
@@ -120,14 +139,12 @@ function ChordDiagram({ chord, onClose }: { chord: string; onClose: () => void }
   return (
     <div style={{position:"fixed",inset:"0",zIndex:"9999",display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.85)",padding:"16px"}} onClick={onClose}>
       <div style={{
-        background:"linear-gradient(180deg,#4a3020 0%,#3a2418 25%,#2a1810 50%,#1e1208 75%,#2a1810 100%)",
-        border:"3px solid #5a3a1a",
-        borderRadius:"12px",
-        padding:"28px",
+        background:"linear-gradient(180deg,"+C.wood+" 0%,"+C.wood+" 25%,"+C.woodEnd+" 50%,"+C.woodEnd+" 75%,"+C.wood+" 100%)",
+        border:"3px solid "+C.border, borderRadius:"12px", padding:"28px",
         boxShadow:"0 8px 40px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,200,100,0.08)",
       }} onClick={(e) => e.stopPropagation()}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}}>
-          <span style={{color:"#f0b429",fontWeight:"bold",fontSize:"28px"}}>{chord}</span>
+          <span style={{color:C.text,fontWeight:"bold",fontSize:"28px"}}>{chord}</span>
           <button onClick={onClose} style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:"50%",width:"36px",height:"36px",color:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
             <X size={18} />
           </button>
@@ -136,49 +153,30 @@ function ChordDiagram({ chord, onClose }: { chord: string; onClose: () => void }
           <div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",marginBottom:"4px"}}>
               {shape.map((f:number,i:number) => (
-                <div key={i} style={{textAlign:"center",fontSize:"20px",color:f===-1?"#ff6b6b":f===0?"#69db7c":"#555"}}>
+                <div key={i} style={{textAlign:"center",fontSize:"20px",color:f===-1?C.x:f===0?C.o:C.muted,fontWeight:600}}>
                   {f===-1?"\u00d7":f===0?"\u25cb":""}
                 </div>
               ))}
             </div>
-            <div style={{
-              height:"8px",
-              background:"linear-gradient(180deg,#f0e4d0,#d4c4a6,#a09078)",
-              borderRadius:"2px",
-              marginBottom:"0",
-              boxShadow:"0 2px 4px rgba(0,0,0,0.5)",
-            }} />
+            <div style={{height:"8px",background:"linear-gradient(180deg,"+C.nut+",#d4c4a6,#a09078)",borderRadius:"2px",boxShadow:"0 2px 4px rgba(0,0,0,0.5)"}} />
             {frets.map((fret:number,fi:number) => (
               <div key={fret} style={{position:"relative",height:"44px"}}>
-                <div style={{
-                  position:"absolute",top:"0",left:"0",right:"0",height:"3px",
-                  background:"linear-gradient(180deg,#9a9a9a,#6a6a6a,#3a3a3a)",
-                  boxShadow:"0 1px 0 rgba(255,255,255,0.05)",
-                }} />
+                <div style={{position:"absolute",top:"0",left:"0",right:"0",height:"3px",background:"linear-gradient(180deg,"+C.fret+",#6a6a6a,#3a3a3a)",boxShadow:"0 1px 0 rgba(255,255,255,0.05)"}} />
                 {shape.map((f:number,i:number) => (
                   <div key={i} style={{
-                    position:"absolute",
-                    left:((i+0.5)/6*100)+"%",
-                    top:"0",bottom:"0",
-                    width:stringW[i]+"px",
-                    marginLeft:-(stringW[i]/2)+"px",
-                    background: i < 3
-                      ? "linear-gradient(90deg,#7a6a4a,#e4d4a6,#7a6a4a)"
-                      : "linear-gradient(90deg,#bbb,#fff,#bbb)",
-                    borderRadius:"1px",
-                    boxShadow:"0 0 2px rgba(0,0,0,0.4)",
+                    position:"absolute", left:((i+0.5)/6*100)+"%", top:"0", bottom:"0",
+                    width:stringW[i]+"px", marginLeft:-(stringW[i]/2)+"px",
+                    background: i < 3 ? "linear-gradient(90deg,"+C.stringThick+",#fff,"+C.stringThick+")" : "linear-gradient(90deg,"+C.stringThin+",#fff,"+C.stringThin+")",
+                    borderRadius:"1px", boxShadow:"0 0 2px rgba(0,0,0,0.4)",
                   }} />
                 ))}
                 {shape.map((f:number,i:number) => (
                   f===fret ? (
                     <div key={"d"+i} style={{
-                      position:"absolute",
-                      left:((i+0.5)/6*100)+"%",
-                      top:"50%",
-                      width:dotSize+"px",height:dotSize+"px",
-                      marginLeft:-(dotSize/2)+"px",marginTop:-(dotSize/2)+"px",
+                      position:"absolute", left:((i+0.5)/6*100)+"%", top:"50%",
+                      width:dotSize+"px", height:dotSize+"px", marginLeft:-(dotSize/2)+"px", marginTop:-(dotSize/2)+"px",
                       borderRadius:"50%",
-                      background:"radial-gradient(circle at 35% 30%,#ffd966,#f0b429 50%,#b8860b 100%)",
+                      background:"radial-gradient(circle at 35% 30%,"+C.dotHighlight+","+C.dot+" 50%,"+C.dot+" 100%)",
                       boxShadow:"0 3px 5px rgba(0,0,0,0.6), inset 0 -3px 3px rgba(0,0,0,0.25), inset 0 2px 2px rgba(255,255,255,0.4)",
                       zIndex:"2",
                     }} />
@@ -186,22 +184,18 @@ function ChordDiagram({ chord, onClose }: { chord: string; onClose: () => void }
                 ))}
               </div>
             ))}
-            {baseFret > 0 && (
-              <div style={{textAlign:"right",fontSize:"14px",color:"#888",marginTop:"6px"}}>
-                Starting at fret {baseFret+1}
-              </div>
-            )}
+            {baseFret > 0 && <div style={{textAlign:"right",fontSize:"14px",color:C.muted,marginTop:"6px"}}>Starting at fret {baseFret+1}</div>}
           </div>
         ) : (
-          <p style={{color:"#9E9E9E",fontSize:"14px"}}>Diagram not available for {chord}.</p>
+          <p style={{color:C.muted,fontSize:"14px"}}>Diagram not available for {chord}.</p>
         )}
-        <p style={{color:"#666",fontSize:"11px",textAlign:"center",marginTop:"16px"}}>Click anywhere to close</p>
+        <p style={{color:C.muted,fontSize:"11px",textAlign:"center",marginTop:"16px"}}>Click anywhere to close</p>
       </div>
     </div>
   );
 }
 
-function ChordSpan({ chord, onClick }: { chord: string; onClick: (chord: string) => void }) {
+function ChordSpan({ chord, onClick, theme }: { chord: string; onClick: (chord: string) => void; theme: typeof THEMES[ThemeKey] }) {
   const [showTip, setShowTip] = useState(false);
   return (
     <span style={{position:"relative",display:"inline-block",color:"#34d399",fontWeight:700,cursor:"pointer"}}
@@ -211,10 +205,57 @@ function ChordSpan({ chord, onClick }: { chord: string; onClick: (chord: string)
       {chord}
       {showTip && (
         <span style={{position:"absolute",bottom:"100%",left:"50%",transform:"translateX(-50%)",marginBottom:"10px",zIndex:"9999",display:"block"}}>
-          <MiniFretboard chord={chord} />
+          <MiniFretboard chord={chord} theme={theme} />
         </span>
       )}
     </span>
+  );
+}
+
+function ThemePicker({ current, onChange }: { current: ThemeKey; onChange: (k: ThemeKey) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{position:"relative"}}>
+      <button
+        onClick={() => setOpen(!open)}
+        className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (open ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}
+      >
+        <Palette size={16} /> Theme: {THEMES[current].label}
+        <ChevronDown size={14} />
+      </button>
+      {open && (
+        <div style={{
+          position:"absolute", top:"100%", right:"0", marginTop:"8px",
+          background:"#1a1a2e", border:"1px solid #333", borderRadius:"12px",
+          padding:"8px", zIndex:"9999", minWidth:"180px",
+          boxShadow:"0 8px 24px rgba(0,0,0,0.6)",
+        }}>
+          {THEME_KEYS.map((k) => (
+            <button
+              key={k}
+              onClick={() => { onChange(k); setOpen(false); }}
+              style={{
+                display:"flex", alignItems:"center", gap:"10px",
+                width:"100%", padding:"8px 12px",
+                background: k === current ? "rgba(240,180,41,0.1)" : "transparent",
+                border:"none", borderRadius:"8px", cursor:"pointer",
+                color: k === current ? "#f0b429" : "#e0e0e0",
+                fontSize:"13px", fontWeight: k === current ? 700 : 400,
+              }}
+            >
+              <span style={{
+                width:"16px", height:"16px", borderRadius:"50%",
+                background:"radial-gradient(circle at 35% 30%,"+THEMES[k].dotHighlight+","+THEMES[k].dot+")",
+                border:"1px solid "+THEMES[k].border,
+                flexShrink:0,
+              }} />
+              {THEMES[k].label}
+              {k === current && <BadgeCheck size={14} style={{marginLeft:"auto"}} />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -230,6 +271,18 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const [copied, setCopied] = useState(false);
   const [youtubeId, setYoutubeId] = useState<string>("");
   const [youtubeLoading, setYoutubeLoading] = useState(false);
+  const [themeKey, setThemeKey] = useState<ThemeKey>("amber");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("chordproof-theme") as ThemeKey | null;
+    if (saved && THEMES[saved]) setThemeKey(saved);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("chordproof-theme", themeKey);
+  }, [themeKey]);
+
+  const theme = THEMES[themeKey];
 
   useEffect(() => {
     let active = true;
@@ -272,7 +325,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       if (m[0] === "") { re.lastIndex++; continue; }
       parts.push(chordLine.slice(li, m.index));
       const ch = transposeChord(m[1], transpose);
-      parts.push(<ChordSpan key={c++} chord={ch} onClick={setActiveChord} />);
+      parts.push(<ChordSpan key={c++} chord={ch} onClick={setActiveChord} theme={theme} />);
       li = m.index + m[1].length;
     }
     parts.push(chordLine.slice(li));
@@ -414,8 +467,11 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
           {autoScroll && <input type="range" min={1} max={10} value={scrollSpeed} onChange={(e) => setScrollSpeed(Number(e.target.value))} className="w-32" aria-label="Scroll speed" />}
         </div>
         <button onClick={() => setShowTablature(!showTablature)} className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (showTablature ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}>
-          <ChevronDown size={16} /> Tablatura {showTablature ? "ON" : "OFF"}
+          <ChevronDown size={16} /> Tablature {showTablature ? "ON" : "OFF"}
         </button>
+        <div className="ml-auto">
+          <ThemePicker current={themeKey} onChange={setThemeKey} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -431,7 +487,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
               <p className="text-sm text-brand-muted">Hover over a chord in the tab to see its shape. Click to enlarge:</p>
               <div style={{display:"flex",flexWrap:"wrap",gap:"16px"}}>
                 {usedChords.map((c) => (
-                  <div key={c} onClick={() => setActiveChord(c)} style={{cursor:"pointer"}}><MiniFretboard chord={c} /></div>
+                  <div key={c} onClick={() => setActiveChord(c)} style={{cursor:"pointer"}}><MiniFretboard chord={c} theme={theme} /></div>
                 ))}
               </div>
             </section>
@@ -486,7 +542,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
         </div>
       </div>
 
-      {activeChord && <ChordDiagram chord={activeChord} onClose={() => setActiveChord(null)} />}
+      {activeChord && <ChordDiagram chord={activeChord} onClose={() => setActiveChord(null)} theme={theme} />}
     </div>
   );
 }
