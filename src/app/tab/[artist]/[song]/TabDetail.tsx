@@ -63,7 +63,6 @@ CHORD_SHAPES["D4"]=[-1,-1,0,2,3,3];
 CHORD_SHAPES["D2"]=[-1,-1,0,2,3,0];
 CHORD_SHAPES["D/F"+SHARP]=[-1,-1,0,2,3,2];
 CHORD_SHAPES["G/B"]=[-1,2,0,0,0,3];
-CHORD_SHAPES["Esus4/F"+SHARP]=[-1,-1,2,2,0,0];
 
 function transposeChord(chord: string, steps: number): string {
   if (!steps) return chord;
@@ -250,6 +249,8 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const [showTablature, setShowTablature] = useState(true);
   const [activeChord, setActiveChord] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [youtubeId, setYoutubeId] = useState<string>("");
+  const [youtubeLoading, setYoutubeLoading] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -267,6 +268,27 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
     })();
     return () => { active = false; };
   }, [params.artist, params.song]);
+
+  useEffect(() => {
+    if (!tab) return;
+    const existingId = tab.youtube_id || tab.video_id || tab.youtube || tab.video_url || tab.yt_id || "";
+    if (existingId) {
+      setYoutubeId(existingId);
+      return;
+    }
+    setYoutubeLoading(true);
+    const artistName = tab.artist || params.artist.replace(/-/g, " ");
+    const songName = tab.song || params.song.replace(/-/g, " ");
+    const query = encodeURIComponent(artistName + " " + songName + " official");
+    const url = "/api/youtube?q=" + query;
+    fetch(url)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.videoId) setYoutubeId(data.videoId);
+      })
+      .catch(() => {})
+      .finally(() => setYoutubeLoading(false));
+  }, [tab]);
 
   useEffect(() => {
     if (!autoScroll) return;
@@ -469,7 +491,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const artistName = tab.artist || params.artist.replace(/-/g, " ");
   const content: string = tab.content || "";
   const tablature: string = tab.tablature || "";
-  const youtubeId: string = tab.youtube_id || tab.video_id || tab.youtube || tab.video_url || tab.yt_id || tab.youtube_url || tab.embed_url || "";
   const versions: string[] = Array.isArray(tab.versions) ? tab.versions : [];
   const usedChords = chordsUsed(content);
   const hasTabContent = tablature && tablature.trim().length > 0;
@@ -602,12 +623,21 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
                 />
                 <p className="text-xs text-brand-muted">Play along with the video while reading the tab.</p>
               </div>
+            ) : youtubeLoading ? (
+              <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-3">
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <Youtube size={20} className="text-red-500" /> Searching video...
+                </h3>
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="animate-spin text-brand-muted" size={24} />
+                </div>
+              </div>
             ) : (
               <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-2">
                 <h3 className="text-lg font-bold flex items-center gap-2">
                   <Youtube size={20} className="text-red-500" /> Video
                 </h3>
-                <p className="text-sm text-brand-muted">No video available for this tab yet.</p>
+                <p className="text-sm text-brand-muted">No video found for this tab.</p>
               </div>
             )}
 
