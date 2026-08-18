@@ -105,6 +105,46 @@ function transposeChord(chord: string, steps: number): string {
   return CHROMATIC[idx] + match[2];
 }
 
+function MiniChordDiagram({ chord }: { chord: string }) {
+  const shape = CHORD_SHAPES[chord];
+  if (!shape) {
+    return (
+      <div className="mini-chord">
+        <div className="mini-chord-name">{chord}</div>
+        <div style={{ textAlign: "center", fontSize: "10px", color: "#9E9E9E", padding: "8px 0" }}>N/A</div>
+      </div>
+    );
+  }
+  const posFrets = shape.filter((f: number) => f > 0);
+  const minPos = posFrets.length > 0 ? Math.min(...posFrets) : 0;
+  const baseFret = minPos > 3 ? minPos - 1 : 0;
+  const frets = [baseFret + 1, baseFret + 2, baseFret + 3, baseFret + 4];
+
+  return (
+    <div className="mini-chord">
+      <div className="mini-chord-name">{chord}</div>
+      <div className="mini-chord-markers">
+        {shape.map((f: number, i: number) => (
+          <div key={i} className="mini-marker">
+            {f === -1 ? "x" : f === 0 ? "o" : ""}
+          </div>
+        ))}
+      </div>
+      <div className="mini-chord-frets">
+        {frets.map((fret: number) => (
+          <div key={fret} className="mini-fret-row">
+            {shape.map((f: number, i: number) => (
+              <div key={i} className="mini-fret-cell">
+                {f === fret && <span className="mini-dot" />}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ChordDiagram({ chord, onClose }: { chord: string; onClose: () => void }) {
   const shape = CHORD_SHAPES[chord];
   const posFrets = (shape || []).filter((f: number) => f > 0);
@@ -113,33 +153,19 @@ function ChordDiagram({ chord, onClose }: { chord: string; onClose: () => void }
   const fretRange = [baseFret + 1, baseFret + 2, baseFret + 3, baseFret + 4];
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-brand-card rounded-2xl p-6 border border-white/10 w-fit"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div className="bg-brand-card rounded-2xl p-6 border border-white/10 w-fit" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-3">
           <span className="text-2xl font-bold text-brand-gold">{chord}</span>
-          <button
-            onClick={onClose}
-            className="p-1.5 bg-white/5 rounded-full hover:bg-white/10"
-            aria-label="Close"
-          >
+          <button onClick={onClose} className="p-1.5 bg-white/5 rounded-full hover:bg-white/10" aria-label="Close">
             <X size={18} />
           </button>
         </div>
-
         {shape ? (
           <div className="flex flex-col">
             <div className="grid grid-cols-6 gap-0">
               {shape.map((f: number, si: number) => (
-                <div
-                  key={"m" + si}
-                  className="h-5 text-center text-xs text-brand-muted flex items-center justify-center"
-                >
+                <div key={"m" + si} className="h-5 text-center text-xs text-brand-muted flex items-center justify-center">
                   {f === 0 ? "o" : f === -1 ? "x" : si === 0 && baseFret > 0 ? baseFret : ""}
                 </div>
               ))}
@@ -147,10 +173,7 @@ function ChordDiagram({ chord, onClose }: { chord: string; onClose: () => void }
             {fretRange.map((fret: number) => (
               <div key={fret} className="grid grid-cols-6 gap-0">
                 {shape.map((f: number, si: number) => (
-                  <div
-                    key={si}
-                    className="relative h-8 flex items-center justify-center border-t border-white/15"
-                  >
+                  <div key={si} className="relative h-8 flex items-center justify-center border-t border-white/15">
                     {f === fret && <span className="w-3.5 h-3.5 rounded-full bg-brand-gold" />}
                   </div>
                 ))}
@@ -160,7 +183,6 @@ function ChordDiagram({ chord, onClose }: { chord: string; onClose: () => void }
         ) : (
           <p className="text-sm text-brand-muted">Diagram not available for {chord}.</p>
         )}
-
         <p className="text-xs text-brand-muted mt-3 text-center">Click anywhere to close</p>
       </div>
     </div>
@@ -196,9 +218,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       }
       setLoading(false);
     })();
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [params.artist, params.song]);
 
   useEffect(() => {
@@ -231,11 +251,14 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       parts.push(
         <span
           key={count++}
-          className="chord"
-          title={"Click to see diagram for " + chord}
+          className="chord-wrapper"
+          title={"Click to enlarge " + chord}
           onClick={() => setActiveChord(chord)}
         >
           {chord}
+          <span className="chord-tooltip">
+            <MiniChordDiagram chord={chord} />
+          </span>
         </span>
       );
       lastIndex = m.index + m[1].length;
@@ -259,14 +282,6 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
     return seen;
   }
 
-  function hasTablature(content: string): boolean {
-    const lines = content.split("\n");
-    for (const line of lines) {
-      if (TAB_LINE_RE.test(line)) return true;
-    }
-    return false;
-  }
-
   function handleShare() {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(window.location.href);
@@ -288,10 +303,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       <div className="text-center py-32 space-y-4">
         <h1 className="text-3xl font-bold">Tab not found</h1>
         <p className="text-brand-muted">This tab isn't in our database yet.</p>
-        <a
-          href="/request"
-          className="inline-block bg-brand-gold text-black px-6 py-3 rounded-full font-bold hover:scale-105 transition"
-        >
+        <a href="/request" className="inline-block bg-brand-gold text-black px-6 py-3 rounded-full font-bold hover:scale-105 transition">
           Request this tab
         </a>
       </div>
@@ -303,28 +315,27 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const content: string = tab.content || "";
   const youtubeId: string = tab.youtube_id || tab.video_id || tab.youtube || tab.video_url || tab.yt_id || "";
   const versions: string[] = Array.isArray(tab.versions) ? tab.versions : [];
-  const contentHasTablature = hasTablature(content);
 
   const visibleLines = showTablature
     ? content.split("\n")
     : content.split("\n").filter((l: string) => !TAB_LINE_RE.test(l));
 
+  const usedChords = chordsUsed(content);
+
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Breadcrumbs */}
       <nav className="text-sm text-brand-muted">
         <ol className="flex gap-2">
           <li><a href="/" className="hover:text-white">Home</a></li>
           <li>/</li>
           <li><a href="/browse" className="hover:text-white">Browse</a></li>
           <li>/</li>
-          <li>
-            <a href={"/artist/" + params.artist} className="hover:text-white capitalize">
-              {artistName}
-            </a>
-          </li>
+          <li><a href={"/artist/" + params.artist} className="hover:text-white capitalize">{artistName}</a></li>
         </ol>
       </nav>
 
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start gap-6">
         <div className="space-y-2">
           <div className="flex items-center gap-3 flex-wrap">
@@ -338,41 +349,27 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
           <p className="text-xl text-brand-muted">{artistName}</p>
           <div className="flex gap-4 pt-2 flex-wrap">
             {tab.key_sig && (
-              <span className="bg-white/5 px-3 py-1 rounded text-sm">
-                Key: <strong>{tab.key_sig}</strong>
-              </span>
+              <span className="bg-white/5 px-3 py-1 rounded text-sm">Key: <strong>{tab.key_sig}</strong></span>
             )}
             {tab.difficulty && (
-              <span className="bg-white/5 px-3 py-1 rounded text-sm">
-                Difficulty: <strong className="text-green-400">{tab.difficulty}</strong>
-              </span>
+              <span className="bg-white/5 px-3 py-1 rounded text-sm">Difficulty: <strong className="text-green-400">{tab.difficulty}</strong></span>
             )}
-            <span className="bg-white/5 px-3 py-1 rounded text-sm">
-              Version: <strong>1.0</strong>
-            </span>
           </div>
         </div>
-
         <div className="flex gap-3">
-          <button
-            onClick={handleShare}
-            className="p-3 bg-white/5 rounded-full hover:bg-white/10"
-            title={copied ? "Link copied!" : "Share"}
-          >
+          <button onClick={handleShare} className="p-3 bg-white/5 rounded-full hover:bg-white/10" title={copied ? "Link copied!" : "Share"}>
             <Share2 size={20} className={copied ? "text-brand-gold" : ""} />
           </button>
           <button className="p-3 bg-white/5 rounded-full hover:bg-white/10" title="Bookmark">
             <Bookmark size={20} />
           </button>
-          <a
-            href="#tab-content"
-            className="flex items-center gap-2 px-6 py-3 bg-brand-gold text-black rounded-full font-bold hover:scale-105 transition"
-          >
+          <a href="#tab-content" className="flex items-center gap-2 px-6 py-3 bg-brand-gold text-black rounded-full font-bold hover:scale-105 transition">
             <Play size={18} /> Play
           </a>
         </div>
       </div>
 
+      {/* Controls */}
       <div className="flex flex-wrap items-center gap-4 bg-brand-card rounded-2xl p-4 border border-white/5">
         <TransposeControls transpose={transpose} onTranspose={setTranspose} />
         <div className="flex items-center gap-2">
@@ -383,82 +380,111 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
             <MousePointer2 size={16} /> Auto-scroll {autoScroll ? "ON" : "OFF"}
           </button>
           {autoScroll && (
-            <input
-              type="range"
-              min={1}
-              max={10}
-              value={scrollSpeed}
-              onChange={(e) => setScrollSpeed(Number(e.target.value))}
-              className="w-32"
-              aria-label="Scroll speed"
-            />
+            <input type="range" min={1} max={10} value={scrollSpeed} onChange={(e) => setScrollSpeed(Number(e.target.value))} className="w-32" aria-label="Scroll speed" />
           )}
         </div>
-        {contentHasTablature && (
-          <button
-            onClick={() => setShowTablature(!showTablature)}
-            className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (showTablature ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}
-          >
-            <ChevronDown size={16} /> Tablatura {showTablature ? "ON" : "OFF"}
-          </button>
-        )}
+        <button
+          onClick={() => setShowTablature(!showTablature)}
+          className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (showTablature ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}
+        >
+          <ChevronDown size={16} /> Tablatura {showTablature ? "ON" : "OFF"}
+        </button>
       </div>
 
-      <div id="tab-content" className="bg-brand-card rounded-2xl p-8 border border-white/5">
-        <div className="cifra-content">
-          {visibleLines.map((line: string, i: number) => renderLine(line, i))}
+      {/* Main grid: tab content + YouTube sidebar */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Tab content - 2 columns */}
+        <div className="lg:col-span-2 space-y-6">
+          <div id="tab-content" className="bg-brand-card rounded-2xl p-8 border border-white/5">
+            <div className="cifra-content">
+              {visibleLines.map((line: string, i: number) => renderLine(line, i))}
+            </div>
+          </div>
+
+          {/* Chords used - with mini diagrams */}
+          {usedChords.length > 0 && (
+            <section className="bg-brand-card rounded-2xl p-6 border border-white/5 space-y-4">
+              <h2 className="text-2xl font-bold">Chords used in this tab</h2>
+              <p className="text-sm text-brand-muted">Hover over a chord in the tab to see its shape. Click to enlarge:</p>
+              <div className="chord-grid">
+                {usedChords.map((c) => (
+                  <div key={c} className="chord-grid-item" onClick={() => setActiveChord(c)}>
+                    <MiniChordDiagram chord={c} />
+                    <span className="chord-grid-label">{c}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Other versions */}
+          {versions.length > 0 && (
+            <section className="space-y-3">
+              <h2 className="text-xl font-bold">Other versions</h2>
+              <select className="bg-brand-card border border-white/10 rounded-lg px-4 py-2 text-sm">
+                {versions.map((v: string) => (
+                  <option key={v} value={v}>Version {v}</option>
+                ))}
+              </select>
+            </section>
+          )}
+
+          {/* Report */}
+          <div className="flex items-center gap-2 text-sm text-brand-muted">
+            <AlertTriangle size={16} className="text-brand-gold" />
+            <span>Found an error? </span>
+            <button className="text-brand-gold hover:underline">Report this tab</button>
+          </div>
+        </div>
+
+        {/* Sidebar - YouTube + info - 1 column */}
+        <div className="lg:col-span-1">
+          <div className="sticky top-8 space-y-4">
+            {youtubeId ? (
+              <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-3">
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <Youtube size={20} className="text-red-500" /> Watch & Play
+                </h3>
+                <iframe
+                  className="w-full aspect-video rounded-xl border border-white/10"
+                  src={"https://www.youtube.com/embed/" + youtubeId}
+                  title={songName + " - " + artistName}
+                  allowFullScreen
+                />
+                <p className="text-xs text-brand-muted">Play along with the video while reading the tab.</p>
+              </div>
+            ) : (
+              <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-2">
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <Youtube size={20} className="text-red-500" /> Video
+                </h3>
+                <p className="text-sm text-brand-muted">No video available for this tab yet.</p>
+              </div>
+            )}
+
+            {/* Quick chord reference in sidebar */}
+            {usedChords.length > 0 && (
+              <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-3">
+                <h3 className="text-sm font-bold text-brand-muted uppercase tracking-wider">Quick Reference</h3>
+                <div className="flex flex-wrap gap-2">
+                  {usedChords.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setActiveChord(c)}
+                      className="px-3 py-1.5 bg-white/5 rounded-lg text-sm hover:bg-brand-gold/10 transition-colors"
+                      style={{ color: "#34d399", fontWeight: 700 }}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {chordsUsed(content).length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-2xl font-bold">Chords used in this tab</h2>
-          <p className="text-sm text-brand-muted">Click a chord to see its diagram:</p>
-          <div className="flex flex-wrap gap-2">
-            {chordsUsed(content).map((c) => (
-              <button
-                key={c}
-                onClick={() => setActiveChord(c)}
-                className="chord px-4 py-2 bg-white/5 rounded-lg hover:bg-brand-gold/10 transition-colors"
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {versions.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-xl font-bold">Other versions</h2>
-          <select className="bg-brand-card border border-white/10 rounded-lg px-4 py-2 text-sm">
-            {versions.map((v: string) => (
-              <option key={v} value={v}>Version {v}</option>
-            ))}
-          </select>
-        </section>
-      )}
-
-      {youtubeId && (
-        <section className="space-y-3">
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <Youtube size={20} className="text-red-500" /> Watch on YouTube
-          </h2>
-          <iframe
-            className="w-full aspect-video rounded-xl border border-white/10"
-            src={"https://www.youtube.com/embed/" + youtubeId}
-            title={songName + " - " + artistName}
-            allowFullScreen
-          />
-        </section>
-      )}
-
-      <div className="flex items-center gap-2 text-sm text-brand-muted">
-        <AlertTriangle size={16} className="text-brand-gold" />
-        <span>Found an error? </span>
-        <button className="text-brand-gold hover:underline">Report this tab</button>
-      </div>
-
+      {/* Chord diagram modal */}
       {activeChord && <ChordDiagram chord={activeChord} onClose={() => setActiveChord(null)} />}
     </div>
   );
