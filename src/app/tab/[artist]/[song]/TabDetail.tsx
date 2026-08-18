@@ -14,8 +14,8 @@ FLAT_TO_SHARP["Db"]="C"+SHARP; FLAT_TO_SHARP["Eb"]="D"+SHARP;
 FLAT_TO_SHARP["Gb"]="F"+SHARP; FLAT_TO_SHARP["Ab"]="G"+SHARP;
 FLAT_TO_SHARP["Bb"]="A"+SHARP;
 
-const CHORD_TOKEN_RE = new RegExp("([A-G]["+SHARP+"b]?(?:m|maj|min|dim|aug|sus|add|6|7|9|11|13|5|4|2)*\d*)","g");
-const CHORD_STRICT_RE = new RegExp("^[A-G]["+SHARP+"b]?(?:m|maj|min|dim|aug|sus|add|6|7|9|11|13|5|4|2)*\d*$");
+const CHORD_TOKEN_RE = new RegExp("([A-G]["+SHARP+"b]?(?:m|maj|min|dim|aug|sus|add|6|7|9|11|13|5|4|2|M)*\d*(?:/[A-G]["+SHARP+"b]?)?)","g");
+const CHORD_STRICT_RE = new RegExp("^[A-G]["+SHARP+"b]?(?:m|maj|min|dim|aug|sus|add|6|7|9|11|13|5|4|2|M)*\d*(?:/[A-G]["+SHARP+"b]?)?$");
 const TAB_LINE_RE = /[\d\-|]{4,}/;
 
 const CHORD_SHAPES: Record<string,number[]> = {};
@@ -57,31 +57,33 @@ CHORD_SHAPES["Cadd9"]=[-1,3,2,0,3,0]; CHORD_SHAPES["Dadd9"]=[-1,-1,0,2,3,0];
 CHORD_SHAPES["Gadd9"]=[3,0,0,0,1,3]; CHORD_SHAPES["Aadd9"]=[-1,0,2,4,2,0];
 CHORD_SHAPES["D9"]=[-1,-1,0,2,1,2]; CHORD_SHAPES["E9"]=[0,2,0,1,2,0];
 CHORD_SHAPES["A9"]=[-1,0,2,4,2,0];
-
-const EMBEDDED_CSS =
-  ".cp-chord{position:relative;display:inline-block;cursor:pointer;color:#34d399;font-weight:700}" +
-  ".cp-chord:hover{text-decoration:underline;text-decoration-color:#34d399}" +
-  ".cp-tip{display:none;position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:10px;z-index:9999;pointer-events:none}" +
-  ".cp-chord:hover .cp-tip{display:block}";
+CHORD_SHAPES["Am7M"]=[-1,0,2,1,1,0];
+CHORD_SHAPES["F7M"]=[-1,-1,3,2,1,0];
+CHORD_SHAPES["D4"]=[-1,-1,0,2,3,3];
+CHORD_SHAPES["D2"]=[-1,-1,0,2,3,0];
+CHORD_SHAPES["D/F"+SHARP]=[-1,-1,0,2,3,2];
+CHORD_SHAPES["G/B"]=[-1,2,0,0,0,3];
 
 function transposeChord(chord: string, steps: number): string {
   if (!steps) return chord;
-  const re = new RegExp("^([A-G]["+SHARP+"b]?)(.*)$");
-  const match = chord.match(re);
+  const baseChord = chord.split("/")[0];
+  const bassPart = chord.includes("/") ? "/" + chord.split("/")[1] : "";
+  const re = new RegExp("^([A-G]["+SHARP+"b]?)");
+  const match = baseChord.match(re);
   if (!match) return chord;
   const root = FLAT_TO_SHARP[match[1]] || match[1];
   let idx = CHROMATIC.indexOf(root);
   if (idx === -1) return chord;
   idx = (idx + steps + 12) % 12;
-  return CHROMATIC[idx] + match[2];
+  return CHROMATIC[idx] + baseChord.substring(match[1].length) + bassPart;
 }
 
 function MiniFretboard({ chord }: { chord: string }) {
   const shape = CHORD_SHAPES[chord];
   if (!shape) {
     return (
-      <div style={{background:"#1a1a2e",border:"2px solid #333",borderRadius:"8px",padding:"8px",width:"96px",textAlign:"center"}}>
-        <div style={{color:"#f0b429",fontWeight:"bold",fontSize:"13px",marginBottom:"4px"}}>{chord}</div>
+      <div style={{background:"#2a1810",border:"2px solid #6a4a2a",borderRadius:"8px",padding:"6px",width:"88px",textAlign:"center",boxShadow:"0 4px 12px rgba(0,0,0,0.6)"}}>
+        <div style={{color:"#f0b429",fontWeight:"bold",fontSize:"12px",marginBottom:"2px"}}>{chord}</div>
         <div style={{color:"#666",fontSize:"10px"}}>N/A</div>
       </div>
     );
@@ -96,16 +98,16 @@ function MiniFretboard({ chord }: { chord: string }) {
       background:"linear-gradient(180deg,#4a3020 0%,#3a2418 40%,#2a1810 100%)",
       border:"2px solid #6a4a2a",
       borderRadius:"8px",
-      padding:"8px",
-      width:"96px",
-      boxShadow:"0 6px 16px rgba(0,0,0,0.6)",
+      padding:"6px",
+      width:"88px",
+      boxShadow:"0 4px 12px rgba(0,0,0,0.6)",
     }}>
-      <div style={{color:"#f0b429",fontWeight:"bold",textAlign:"center",fontSize:"13px",marginBottom:"6px"}}>
+      <div style={{color:"#f0b429",fontWeight:"bold",textAlign:"center",fontSize:"12px",marginBottom:"4px"}}>
         {chord}
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",marginBottom:"2px"}}>
         {shape.map((f:number,i:number) => (
-          <div key={i} style={{textAlign:"center",fontSize:"10px",color:f===-1?"#ff6b6b":f===0?"#69db7d":"#888"}}>
+          <div key={i} style={{textAlign:"center",fontSize:"9px",color:f===-1?"#ff6b6b":f===0?"#69db7c":"#888"}}>
             {f===-1?"\u00d7":f===0?"\u25cb":""}
           </div>
         ))}
@@ -115,7 +117,7 @@ function MiniFretboard({ chord }: { chord: string }) {
           display:"grid",
           gridTemplateColumns:"repeat(6,1fr)",
           borderTop: fi===0 && baseFret===0 ? "3px solid #9a7a4a" : "1px solid #5a3a1a",
-          height:"14px",
+          height:"12px",
         }}>
           {shape.map((f:number,i:number) => (
             <div key={i} style={{
@@ -124,9 +126,8 @@ function MiniFretboard({ chord }: { chord: string }) {
             }}>
               {f===fret && (
                 <div style={{
-                  width:"9px",height:"9px",borderRadius:"50%",
+                  width:"8px",height:"8px",borderRadius:"50%",
                   background:"radial-gradient(circle,#f0b429 30%,#c89615 100%)",
-                  boxShadow:"0 1px 2px rgba(0,0,0,0.4)",
                 }} />
               )}
             </div>
@@ -134,7 +135,7 @@ function MiniFretboard({ chord }: { chord: string }) {
         </div>
       ))}
       {baseFret > 0 && (
-        <div style={{textAlign:"right",fontSize:"9px",color:"#888",marginTop:"2px"}}>
+        <div style={{textAlign:"right",fontSize:"8px",color:"#888",marginTop:"1px"}}>
           {baseFret+1}fr
         </div>
       )}
@@ -168,7 +169,7 @@ function ChordDiagram({ chord, onClose }: { chord: string; onClose: () => void }
           <div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",marginBottom:"4px"}}>
               {shape.map((f:number,i:number) => (
-                <div key={i} style={{textAlign:"center",fontSize:"16px",color:f===-1?"#ff6b6b":f===0?"#69db7d":"#888"}}>
+                <div key={i} style={{textAlign:"center",fontSize:"16px",color:f===-1?"#ff6b6b":f===0?"#69db7c":"#888"}}>
                   {f===-1?"\u00d7":f===0?"\u25cb":""}
                 </div>
               ))}
@@ -211,6 +212,33 @@ function ChordDiagram({ chord, onClose }: { chord: string; onClose: () => void }
   );
 }
 
+function ChordSpan({ chord, onHover, onClick }: { chord: string; onHover: (chord: string | null) => void; onClick: (chord: string) => void }) {
+  const [showTip, setShowTip] = useState(false);
+  return (
+    <span
+      style={{position:"relative",display:"inline-block",color:"#34d399",fontWeight:700,cursor:"pointer"}}
+      onMouseEnter={() => { setShowTip(true); onHover(chord); }}
+      onMouseLeave={() => { setShowTip(false); onHover(null); }}
+      onClick={() => onClick(chord)}
+    >
+      {chord}
+      {showTip && (
+        <span style={{
+          position:"absolute",
+          bottom:"100%",
+          left:"50%",
+          transform:"translateX(-50%)",
+          marginBottom:"8px",
+          zIndex:"9999",
+          display:"block",
+        }}>
+          <MiniFretboard chord={chord} />
+        </span>
+      )}
+    </span>
+  );
+}
+
 export default function TabDetail({ params }: { params: { artist: string; song: string } }) {
   const [tab, setTab] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -220,6 +248,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const [scrollSpeed, setScrollSpeed] = useState(5);
   const [showTablature, setShowTablature] = useState(true);
   const [activeChord, setActiveChord] = useState<string | null>(null);
+  const [hoveredChord, setHoveredChord] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -258,10 +287,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
       chordParts.push(chordLine.slice(lastIndex, m.index));
       const chord = transposeChord(m[1], transpose);
       chordParts.push(
-        <span key={count++} className="cp-chord" onClick={() => setActiveChord(chord)}>
-          {chord}
-          <span className="cp-tip"><MiniFretboard chord={chord} /></span>
-        </span>
+        <ChordSpan key={count++} chord={chord} onHover={setHoveredChord} onClick={setActiveChord} />
       );
       lastIndex = m.index + m[1].length;
     }
@@ -284,6 +310,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
             whiteSpace:"pre-wrap",
             lineHeight:"1.3em",
             fontFamily:"monospace",
+            color:"#e0e0e0",
           }}>
             {lyricLine}
           </div>
@@ -297,9 +324,8 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
     const result: ReactNode[] = [];
     let i = 0;
     let kc = 0;
-    const total = lines.length;
 
-    while (total - i > 0) {
+    while (i < lines.length) {
       const line = lines[i] || "";
       const trimmed = line.trim();
 
@@ -354,7 +380,7 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
 
       result.push(
         <div key={kc++} style={{
-          whiteSpace:"pre-wrap",lineHeight:"1.6em",fontFamily:"monospace",
+          whiteSpace:"pre-wrap",lineHeight:"1.6em",fontFamily:"monospace",color:"#e0e0e0",
         }}>{line}</div>
       );
       i++;
@@ -408,165 +434,162 @@ export default function TabDetail({ params }: { params: { artist: string; song: 
   const songName = tab.song || params.song.replace(/-/g, " ");
   const artistName = tab.artist || params.artist.replace(/-/g, " ");
   const content: string = tab.content || "";
-  const youtubeId: string = tab.youtube_id || tab.video_id || tab.youtube || tab.video_url || tab.yt_id || "";
+  const youtubeId: string = tab.youtube_id || tab.video_id || tab.youtube || tab.video_url || tab.yt_id || tab.youtube_url || tab.embed_url || "";
   const versions: string[] = Array.isArray(tab.versions) ? tab.versions : [];
   const usedChords = chordsUsed(content);
 
   return (
-    <div>
-      <style dangerouslySetInnerHTML={{ __html: EMBEDDED_CSS }} />
-      <div className="max-w-7xl mx-auto space-y-6">
-        <nav className="text-sm text-brand-muted">
-          <ol className="flex gap-2">
-            <li><a href="/" className="hover:text-white">Home</a></li>
-            <li>/</li>
-            <li><a href="/browse" className="hover:text-white">Browse</a></li>
-            <li>/</li>
-            <li><a href={"/artist/"+params.artist} className="hover:text-white capitalize">{artistName}</a></li>
-          </ol>
-        </nav>
+    <div className="max-w-7xl mx-auto space-y-6">
+      <nav className="text-sm text-brand-muted">
+        <ol className="flex gap-2">
+          <li><a href="/" className="hover:text-white">Home</a></li>
+          <li>/</li>
+          <li><a href="/browse" className="hover:text-white">Browse</a></li>
+          <li>/</li>
+          <li><a href={"/artist/"+params.artist} className="hover:text-white capitalize">{artistName}</a></li>
+        </ol>
+      </nav>
 
-        <div className="flex flex-col md:flex-row justify-between items-start gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-4xl font-bold">{songName}</h1>
-              {tab.is_verified && (
-                <div className="flex items-center gap-1 bg-brand-gold/10 text-brand-gold px-3 py-1 rounded-full text-xs font-bold gold-seal-anim">
-                  <BadgeCheck size={14} /> VERIFIED
-                </div>
-              )}
-            </div>
-            <p className="text-xl text-brand-muted">{artistName}</p>
-            <div className="flex gap-4 pt-2 flex-wrap">
-              {tab.key_sig && (
-                <span className="bg-white/5 px-3 py-1 rounded text-sm">Key: <strong>{tab.key_sig}</strong></span>
-              )}
-              {tab.difficulty && (
-                <span className="bg-white/5 px-3 py-1 rounded text-sm">Difficulty: <strong className="text-green-400">{tab.difficulty}</strong></span>
-              )}
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <button onClick={handleShare} className="p-3 bg-white/5 rounded-full hover:bg-white/10" title={copied ? "Link copied!" : "Share"}>
-              <Share2 size={20} className={copied ? "text-brand-gold" : ""} />
-            </button>
-            <button className="p-3 bg-white/5 rounded-full hover:bg-white/10" title="Bookmark">
-              <Bookmark size={20} />
-            </button>
-            <a href="#tab-content" className="flex items-center gap-2 px-6 py-3 bg-brand-gold text-black rounded-full font-bold hover:scale-105 transition">
-              <Play size={18} /> Play
-            </a>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-4 bg-brand-card rounded-2xl p-4 border border-white/5">
-          <TransposeControls transpose={transpose} onTranspose={setTranspose} />
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setAutoScroll(!autoScroll)}
-              className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (autoScroll ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}
-            >
-              <MousePointer2 size={16} /> Auto-scroll {autoScroll ? "ON" : "OFF"}
-            </button>
-            {autoScroll && (
-              <input type="range" min={1} max={10} value={scrollSpeed} onChange={(e) => setScrollSpeed(Number(e.target.value))} className="w-32" aria-label="Scroll speed" />
+      <div className="flex flex-col md:flex-row justify-between items-start gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-4xl font-bold">{songName}</h1>
+            {tab.is_verified && (
+              <div className="flex items-center gap-1 bg-brand-gold/10 text-brand-gold px-3 py-1 rounded-full text-xs font-bold gold-seal-anim">
+                <BadgeCheck size={14} /> VERIFIED
+              </div>
             )}
           </div>
-          <button
-            onClick={() => setShowTablature(!showTablature)}
-            className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (showTablature ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}
-          >
-            <ChevronDown size={16} /> Tablatura {showTablature ? "ON" : "OFF"}
+          <p className="text-xl text-brand-muted">{artistName}</p>
+          <div className="flex gap-4 pt-2 flex-wrap">
+            {tab.key_sig && (
+              <span className="bg-white/5 px-3 py-1 rounded text-sm">Key: <strong>{tab.key_sig}</strong></span>
+            )}
+            {tab.difficulty && (
+              <span className="bg-white/5 px-3 py-1 rounded text-sm">Difficulty: <strong className="text-green-400">{tab.difficulty}</strong></span>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button onClick={handleShare} className="p-3 bg-white/5 rounded-full hover:bg-white/10" title={copied ? "Link copied!" : "Share"}>
+            <Share2 size={20} className={copied ? "text-brand-gold" : ""} />
           </button>
+          <button className="p-3 bg-white/5 rounded-full hover:bg-white/10" title="Bookmark">
+            <Bookmark size={20} />
+          </button>
+          <a href="#tab-content" className="flex items-center gap-2 px-6 py-3 bg-brand-gold text-black rounded-full font-bold hover:scale-105 transition">
+            <Play size={18} /> Play
+          </a>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-4 bg-brand-card rounded-2xl p-4 border border-white/5">
+        <TransposeControls transpose={transpose} onTranspose={setTranspose} />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setAutoScroll(!autoScroll)}
+            className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (autoScroll ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}
+          >
+            <MousePointer2 size={16} /> Auto-scroll {autoScroll ? "ON" : "OFF"}
+          </button>
+          {autoScroll && (
+            <input type="range" min={1} max={10} value={scrollSpeed} onChange={(e) => setScrollSpeed(Number(e.target.value))} className="w-32" aria-label="Scroll speed" />
+          )}
+        </div>
+        <button
+          onClick={() => setShowTablature(!showTablature)}
+          className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (showTablature ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}
+        >
+          <ChevronDown size={16} /> Tablatura {showTablature ? "ON" : "OFF"}
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <div id="tab-content" className="bg-brand-card rounded-2xl p-8 border border-white/5">
+            <div style={{fontFamily:"monospace",fontSize:"1rem",lineHeight:"1.6"}}>
+              {renderContent(content)}
+            </div>
+          </div>
+
+          {usedChords.length > 0 && (
+            <section className="bg-brand-card rounded-2xl p-6 border border-white/5 space-y-4">
+              <h2 className="text-2xl font-bold">Chords used in this tab</h2>
+              <p className="text-sm text-brand-muted">Hover over a chord in the tab to see its shape. Click to enlarge:</p>
+              <div style={{display:"flex",flexWrap:"wrap",gap:"16px"}}>
+                {usedChords.map((c) => (
+                  <div key={c} onClick={() => setActiveChord(c)} style={{cursor:"pointer"}}>
+                    <MiniFretboard chord={c} />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {versions.length > 0 && (
+            <section className="space-y-3">
+              <h2 className="text-xl font-bold">Other versions</h2>
+              <select className="bg-brand-card border border-white/10 rounded-lg px-4 py-2 text-sm">
+                {versions.map((v:string) => (
+                  <option key={v} value={v}>Version {v}</option>
+                ))}
+              </select>
+            </section>
+          )}
+
+          <div className="flex items-center gap-2 text-sm text-brand-muted">
+            <AlertTriangle size={16} className="text-brand-gold" />
+            <span>Found an error? </span>
+            <button className="text-brand-gold hover:underline">Report this tab</button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <div id="tab-content" className="bg-brand-card rounded-2xl p-8 border border-white/5">
-              <div style={{fontFamily:"monospace",fontSize:"1rem",lineHeight:"1.6"}}>
-                {renderContent(content)}
+        <div className="lg:col-span-1">
+          <div className="sticky top-8 space-y-4">
+            {youtubeId ? (
+              <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-3">
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <Youtube size={20} className="text-red-500" /> Watch &amp; Play
+                </h3>
+                <iframe
+                  className="w-full aspect-video rounded-xl border border-white/10"
+                  src={"https://www.youtube.com/embed/" + youtubeId}
+                  title={songName + " - " + artistName}
+                  allowFullScreen
+                />
+                <p className="text-xs text-brand-muted">Play along with the video while reading the tab.</p>
               </div>
-            </div>
+            ) : (
+              <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-2">
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <Youtube size={20} className="text-red-500" /> Video
+                </h3>
+                <p className="text-sm text-brand-muted">No video available for this tab yet.</p>
+              </div>
+            )}
 
             {usedChords.length > 0 && (
-              <section className="bg-brand-card rounded-2xl p-6 border border-white/5 space-y-4">
-                <h2 className="text-2xl font-bold">Chords used in this tab</h2>
-                <p className="text-sm text-brand-muted">Hover over a chord in the tab to see its shape. Click to enlarge:</p>
-                <div style={{display:"flex",flexWrap:"wrap",gap:"16px"}}>
+              <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-3">
+                <h3 className="text-sm font-bold text-brand-muted uppercase tracking-wider">Quick Reference</h3>
+                <div className="flex flex-wrap gap-2">
                   {usedChords.map((c) => (
-                    <div key={c} onClick={() => setActiveChord(c)} style={{cursor:"pointer"}}>
-                      <MiniFretboard chord={c} />
-                    </div>
+                    <button
+                      key={c}
+                      onClick={() => setActiveChord(c)}
+                      className="px-3 py-1.5 bg-white/5 rounded-lg text-sm hover:bg-brand-gold/10 transition-colors"
+                      style={{color:"#34d399",fontWeight:700}}
+                    >
+                      {c}
+                    </button>
                   ))}
                 </div>
-              </section>
+              </div>
             )}
-
-            {versions.length > 0 && (
-              <section className="space-y-3">
-                <h2 className="text-xl font-bold">Other versions</h2>
-                <select className="bg-brand-card border border-white/10 rounded-lg px-4 py-2 text-sm">
-                  {versions.map((v:string) => (
-                    <option key={v} value={v}>Version {v}</option>
-                  ))}
-                </select>
-              </section>
-            )}
-
-            <div className="flex items-center gap-2 text-sm text-brand-muted">
-              <AlertTriangle size={16} className="text-brand-gold" />
-              <span>Found an error? </span>
-              <button className="text-brand-gold hover:underline">Report this tab</button>
-            </div>
-          </div>
-
-          <div className="lg:col-span-1">
-            <div className="sticky top-8 space-y-4">
-              {youtubeId ? (
-                <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-3">
-                  <h3 className="text-lg font-bold flex items-center gap-2">
-                    <Youtube size={20} className="text-red-500" /> Watch &amp; Play
-                  </h3>
-                  <iframe
-                    className="w-full aspect-video rounded-xl border border-white/10"
-                    src={"https://www.youtube.com/embed/" + youtubeId}
-                    title={songName + " - " + artistName}
-                    allowFullScreen
-                  />
-                  <p className="text-xs text-brand-muted">Play along with the video while reading the tab.</p>
-                </div>
-              ) : (
-                <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-2">
-                  <h3 className="text-lg font-bold flex items-center gap-2">
-                    <Youtube size={20} className="text-red-500" /> Video
-                  </h3>
-                  <p className="text-sm text-brand-muted">No video available for this tab yet.</p>
-                </div>
-              )}
-
-              {usedChords.length > 0 && (
-                <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-3">
-                  <h3 className="text-sm font-bold text-brand-muted uppercase tracking-wider">Quick Reference</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {usedChords.map((c) => (
-                      <button
-                        key={c}
-                        onClick={() => setActiveChord(c)}
-                        className="px-3 py-1.5 bg-white/5 rounded-lg text-sm hover:bg-brand-gold/10 transition-colors"
-                        style={{color:"#34d399",fontWeight:700}}
-                      >
-                        {c}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         </div>
-
-        {activeChord && <ChordDiagram chord={activeChord} onClose={() => setActiveChord(null)} />}
       </div>
+
+      {activeChord && <ChordDiagram chord={activeChord} onClose={() => setActiveChord(null)} />}
     </div>
   );
 }
