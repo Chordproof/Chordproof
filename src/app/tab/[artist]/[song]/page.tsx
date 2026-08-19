@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { buildTabMetadata, SITE_URL } from "@/lib/seo";
 import JsonLd from "@/components/JsonLd";
-import TabDetail from "./TabDetail";
+import TabDetail from "@/lib/TabDetailComponent";
 
 export async function generateMetadata({ params }: { params: { artist: string; song: string } }) {
   const { data } = await supabase
