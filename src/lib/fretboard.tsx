@@ -21,16 +21,16 @@ export const THEMES: Record<ThemeKey, {
     fret1: "#c8c8c8", fret2: "#8a8a8a", fret3: "#5a5a5a",
     strThick1: "#c4a46a", strThick2: "#f0e0a0", strThin1: "#c8c8c8", strThin2: "#f8f8f8",
     dot: "#f0b429", dotHi: "#ffe080", dotGlow: "rgba(240,180,41,0.5)",
-    text: "#f0b429", muted: "#a09070", x: "#ff6b6b", o: "#69db7c",
+    text: "#f0b429", muted: "#a09070", x: "#e74c3c", o: "#27ae60",
   },
   classic: {
-    label: "Classic", swatch: "#333333",
+    label: "Classic", swatch: "#ffffff",
     wood1: "#5a3a28", wood2: "#3a2418", wood3: "#2a1810", wood4: "#1a0e08", wood5: "#3a2418",
     border: "#6a4a2a", nut1: "#f0e4d0", nut2: "#c4b496", nut3: "#908068",
     fret1: "#b8b8b8", fret2: "#787878", fret3: "#484848",
     strThick1: "#a08858", strThick2: "#d4c496", strThin1: "#b0b0b0", strThin2: "#e0e0e0",
-    dot: "#333", dotHi: "#666", dotGlow: "rgba(0,0,0,0.3)",
-    text: "#e0e0e0", muted: "#888", x: "#ff6b6b", o: "#69db7c",
+    dot: "#ffffff", dotHi: "#f0f0f0", dotGlow: "rgba(255,255,255,0.3)",
+    text: "#666", muted: "#888", x: "#e74c3c", o: "#27ae60",
   },
   emerald: {
     label: "Emerald", swatch: "#10b981",
@@ -39,7 +39,7 @@ export const THEMES: Record<ThemeKey, {
     fret1: "#b0b8b0", fret2: "#7a8a7a", fret3: "#4a5a4a",
     strThick1: "#9ab08a", strThick2: "#c4d4b0", strThin1: "#a8b8a0", strThin2: "#d0e0c8",
     dot: "#10b981", dotHi: "#5eead4", dotGlow: "rgba(16,185,129,0.5)",
-    text: "#34d399", muted: "#5a8a6a", x: "#ff6b6b", o: "#69db7c",
+    text: "#34d399", muted: "#5a8a6a", x: "#e74c3c", o: "#27ae60",
   },
   crimson: {
     label: "Crimson", swatch: "#dc2626",
@@ -48,7 +48,7 @@ export const THEMES: Record<ThemeKey, {
     fret1: "#b8a8a8", fret2: "#8a6868", fret3: "#5a3838",
     strThick1: "#b08888", strThick2: "#d4a8a8", strThin1: "#b0a0a0", strThin2: "#e0d0d0",
     dot: "#dc2626", dotHi: "#ff6b6b", dotGlow: "rgba(220,38,38,0.5)",
-    text: "#ff6b6b", muted: "#a07070", x: "#ff6b6b", o: "#69db7c",
+    text: "#ff6b6b", muted: "#a07070", x: "#e74c3c", o: "#27ae60",
   },
   ocean: {
     label: "Ocean", swatch: "#2563eb",
@@ -57,7 +57,7 @@ export const THEMES: Record<ThemeKey, {
     fret1: "#a8b8c8", fret2: "#6a7a8a", fret3: "#3a4a5a",
     strThick1: "#8898b8", strThick2: "#b8c8e0", strThin1: "#a0b0c8", strThin2: "#d0e0f0",
     dot: "#2563eb", dotHi: "#60a5fa", dotGlow: "rgba(37,99,235,0.5)",
-    text: "#60a5fa", muted: "#5a7090", x: "#ff6b6b", o: "#69db7c",
+    text: "#60a5fa", muted: "#5a7090", x: "#e74c3c", o: "#27ae60",
   },
 };
 
@@ -391,7 +391,7 @@ export function ChordDiagram({ chord, onClose, theme }: { chord: string; onClose
 export function ChordSpan({ chord, onClick, theme }: { chord: string; onClick: (chord: string) => void; theme: typeof THEMES[ThemeKey] }) {
   const [showTip, setShowTip] = useState(false);
   return (
-    <span style={{ position: "relative", display: "inline-block", color: "#34d399", fontWeight: 700, cursor: "pointer" }}
+    <span style={{ position: "relative", display: "inline-block", color: "#f0b429", fontWeight: 700, cursor: "pointer" }}
       onMouseEnter={() => setShowTip(true)}
       onMouseLeave={() => setShowTip(false)}
       onClick={() => onClick(chord)}>
