@@ -97,7 +97,7 @@ const CHORD_FINGERS: Record<string, number[]> = {
 function autoGenerateFingers(shape: number[]): number[] {
   const frets = shape.filter(f => f > 0);
   if (frets.length === 0) return shape.map(f => f);
-  const uniqueFrets = [...new Set(frets)].sort((a, b) => a - b);
+  const uniqueFrets = frets.filter((f: number, i: number) => frets.indexOf(f) === i).sort((a, b) => a - b);
   const fretToFinger: Record<number, number> = {};
   uniqueFrets.forEach((f, i) => { fretToFinger[f] = i + 1; });
   return shape.map(f => f > 0 ? (fretToFinger[f] || 1) : f);
