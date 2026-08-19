@@ -4,8 +4,8 @@
 
 :root {
   --foreground-rgb: 224, 224, 224;
-  --background-start-rgb: 15, 15, 15;
-  --background-end-rgb: 10, 10, 10;
+  --background-start-rgb: 8, 8, 8;
+  --background-end-rgb: 5, 5, 5;
 }
 
 body {
@@ -17,121 +17,15 @@ body {
 .cifra-content {
   font-family: 'JetBrains Mono', monospace;
   white-space: pre-wrap;
-  line-height: 2.2;
+  line-height: 1.8;
   font-size: 1.1rem;
   letter-spacing: 0.02em;
 }
 
-.cifra-content div {
-  display: block;
-  white-space: pre-wrap;
-  width: 100%;
-  min-height: 1.4em;
-}
-
-.chord-wrapper {
-  display: inline-block;
-  position: relative;
-  color: #34d399;
+.chord {
+  color: #f0b429;
   font-weight: 700;
   cursor: pointer;
-}
-
-.chord-wrapper:hover {
-  text-decoration: underline;
-  text-decoration-color: #34d399;
-}
-
-.chord-tooltip {
-  display: none;
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-bottom: 8px;
-  z-index: 100;
-  pointer-events: none;
-}
-
-.chord-wrapper:hover .chord-tooltip {
-  display: block;
-}
-
-.mini-chord {
-  background: #1a1a2e;
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 8px;
-  padding: 6px;
-  width: 78px;
-}
-
-.mini-chord-name {
-  color: #f0b429;
-  font-weight: bold;
-  text-align: center;
-  font-size: 12px;
-  margin-bottom: 4px;
-}
-
-.mini-chord-markers {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 0;
-}
-
-.mini-marker {
-  text-align: center;
-  font-size: 9px;
-  color: #9E9E9E;
-  height: 12px;
-  line-height: 12px;
-}
-
-.mini-chord-frets {
-  display: flex;
-  flex-direction: column;
-}
-
-.mini-fret-row {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 0;
-  border-top: 1px solid rgba(255,255,255,0.12);
-}
-
-.mini-fret-cell {
-  height: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.mini-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #34d399;
-  display: inline-block;
-}
-
-.chord-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.chord-grid-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-}
-
-.chord-grid-item:hover .mini-chord {
-  border-color: #34d399;
-  transform: scale(1.05);
-  transition: all 0.2s;
 }
 
 .gold-seal-anim {
@@ -148,7 +42,7 @@ body {
   width: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #0f0f0f;
+  background: #080808;
 }
 ::-webkit-scrollbar-thumb {
   background: #333;
