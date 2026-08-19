@@ -1,8 +1,8 @@
 "use client";
-import { ReactNode } from "react";
+import { type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
-import { ChordSpan } from "./fretboard";
 import { CHORD_TOKEN_RE, CHORD_STRICT_RE, TAB_LINE_RE, transposeChord } from "./chordData";
+import { ChordSpan } from "./fretboard";
 
 export function renderPair(chordLine: string, lyricLine: string, key: number, transpose: number, onChord: (c: string) => void, theme: any): ReactNode {
   const parts: ReactNode[] = [];
@@ -17,7 +17,6 @@ export function renderPair(chordLine: string, lyricLine: string, key: number, tr
     li = m.index + m[1].length;
   }
   if (li < chordLine.length) parts.push(<span key="rest" style={{ color: "transparent" }}>{chordLine.slice(li)}</span>);
-
   return (
     <div key={key} style={{ marginBottom: "2px" }}>
       <div style={{ whiteSpace: "pre-wrap", fontFamily: "monospace", lineHeight: "1.4em", height: lyricLine ? "1.4em" : "auto" }}>{parts}</div>
@@ -30,14 +29,12 @@ function renderInlineChords(chords: string[], lyricLine: string, key: number, on
   if (chords.length === 0 || !lyricLine.trim()) {
     return <div key={key} style={{ whiteSpace: "pre-wrap", lineHeight: "1.6em", fontFamily: "monospace", color: "#e0e0e0" }}>{lyricLine}</div>;
   }
-
   const words: { text: string; start: number }[] = [];
   const wordRe = /\S+/g;
   let wm: RegExpExecArray | null;
   while ((wm = wordRe.exec(lyricLine)) !== null) {
     words.push({ text: wm[0], start: wm.index });
   }
-
   const chordPositions: number[] = [];
   if (words.length > 0) {
     for (let i = 0; i < chords.length; i++) {
@@ -47,7 +44,6 @@ function renderInlineChords(chords: string[], lyricLine: string, key: number, on
   } else {
     for (let i = 0; i < chords.length; i++) chordPositions.push(0);
   }
-
   const parts: ReactNode[] = [];
   let lastPos = 0;
   for (let i = 0; i < chords.length; i++) {
@@ -61,7 +57,6 @@ function renderInlineChords(chords: string[], lyricLine: string, key: number, on
   if (lastPos < lyricLine.length) {
     parts.push(<span key="rest" style={{ color: "#e0e0e0" }}>{lyricLine.slice(lastPos)}</span>);
   }
-
   return (
     <div key={key} style={{ marginBottom: "4px", fontFamily: "monospace", lineHeight: "1.8em" }}>
       {parts}
@@ -78,24 +73,16 @@ export function renderContent(content: string, showTablature: boolean, transpose
   const lines = content.split("\n");
   const result: ReactNode[] = [];
   let i = 0, kc = 0;
-
   while (i < lines.length) {
     const line = lines[i] || "";
     const tr = line.trim();
-
-    if (!tr) {
-      result.push(<div key={kc++} style={{ height: "0.8em" }}> </div>);
-      i++; continue;
-    }
-
+    if (!tr) { result.push(<div key={kc++} style={{ height: "0.8em" }}> </div>); i++; continue; }
     if (tr.startsWith("[") && tr.endsWith("]")) {
       result.push(<div key={kc++} style={{ color: "#f0b429", fontWeight: 700, marginTop: "16px", marginBottom: "4px", fontSize: "1.1em" }}>{tr}</div>);
       i++; continue;
     }
-
     const tokens = tr.split(/\s+/).filter(Boolean);
     const isChord = tokens.length > 0 && tokens.every((t: string) => CHORD_STRICT_RE.test(t));
-
     if (isChord) {
       const chordLines: string[] = [line];
       let j = i + 1;
@@ -109,13 +96,11 @@ export function renderContent(content: string, showTablature: boolean, transpose
         const nIsChord = ntk.length > 0 && ntk.every((t: string) => CHORD_STRICT_RE.test(t));
         if (nIsChord) { chordLines.push(nl); j++; } else { break; }
       }
-
       const lyricLine = lines[j] || "";
       const lyricTrim = lyricLine.trim();
       const lyricTokens = lyricTrim.split(/\s+/).filter(Boolean);
       const lyricIsChord = lyricTokens.length > 0 && lyricTokens.every((t: string) => CHORD_STRICT_RE.test(t));
       const hasLyric = lyricTrim && !lyricTrim.startsWith("[") && !TAB_LINE_RE.test(lyricTrim) && !lyricIsChord;
-
       if (hasLyric) {
         if (chordLines.length === 1) {
           result.push(renderPair(chordLines[0], lyricLine, kc++, transpose, onChord, theme));
@@ -141,18 +126,15 @@ export function renderContent(content: string, showTablature: boolean, transpose
         continue;
       }
     }
-
     if (TAB_LINE_RE.test(tr)) {
       if (showTablature) {
         result.push(<div key={kc++} style={{ whiteSpace: "pre-wrap", fontFamily: "monospace", color: "#69db7c", fontSize: "0.85em", lineHeight: "1.3em" }}>{line}</div>);
       }
       i++; continue;
     }
-
     result.push(<div key={kc++} style={{ whiteSpace: "pre-wrap", lineHeight: "1.6em", fontFamily: "monospace", color: "#e0e0e0" }}>{line}</div>);
     i++;
   }
-
   return result;
 }
 
