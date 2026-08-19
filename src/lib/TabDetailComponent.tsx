@@ -5,7 +5,7 @@ import { BadgeCheck, AlertTriangle, Share2, Bookmark, Play, MousePointer2, Loade
 import { supabase } from "@/lib/supabase";
 import { chordsUsed } from "@/lib/chordData";
 import { MiniFretboard, ChordDiagram, ThemePicker, THEMES, type ThemeKey } from "@/lib/fretboard";
-import { renderContent, renderTablature } from "@/lib/tabRenderer";
+import { renderContent, renderTablature, hasInlineTablature } from "@/lib/tabRenderer";
 
 export default function TabDetailComponent({ params }: { params: { artist: string; song: string } }) {
   const [tab, setTab] = useState<any>(null);
@@ -111,7 +111,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
         <div style={{flex:"3 1 0%",minWidth:"0"}}>
           <div id="tab-content" className="bg-brand-card rounded-2xl p-8 border border-white/5" style={{marginBottom:"24px"}}>
             <div style={{fontFamily:"monospace",fontSize:"1rem",lineHeight:"1.6"}}>{renderContent(content, showTablature, transpose, setActiveChord, theme)}</div>
-            {showTablature && hasTab && renderTablature(tablature)}
+            {showTablature && hasTab && !hasInlineTablature(content) && renderTablature(tablature)}
           </div>
           {usedChords.length > 0 && (
             <section className="bg-brand-card rounded-2xl p-6 border border-white/5 space-y-4" style={{marginBottom:"24px"}}>
