@@ -1,6 +1,6 @@
 import SearchBar from "@/components/SearchBar";
 import Link from "next/link";
-import { TrendingUp, ArrowRight, Music, Search, Flame } from "lucide-react";
+import { TrendingUp, ArrowRight, Music, Search, Flame, Users } from "lucide-react";
 
 const GENRES = [
   "Rock", "Pop", "Indie", "Country", "Folk", "Metal", "Blues", "Jazz", "R&B", "Classical"
