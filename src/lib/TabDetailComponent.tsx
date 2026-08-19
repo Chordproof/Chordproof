@@ -73,7 +73,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
   const hasTab = tablature && tablature.trim().length > 0;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6">
       <nav className="text-sm text-brand-muted"><ol className="flex gap-2">
         <li><a href="/" className="hover:text-white">Home</a></li><li>/</li>
         <li><a href="/browse" className="hover:text-white">Browse</a></li><li>/</li>
@@ -107,53 +107,45 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
         <button onClick={() => setShowTablature(!showTablature)} className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (showTablature ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}><ChevronDown size={16} /> Tablature {showTablature ? "ON" : "OFF"}</button>
         <div className="ml-auto"><ThemePicker current={themeKey} onChange={setThemeKey} /></div>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <div id="tab-content" className="bg-brand-card rounded-2xl p-8 border border-white/5">
-            <div style={{fontFamily:"monospace",fontSize:"1rem",lineHeight:"1.6"}}>{renderContent(content, showTablature, transpose, setActiveChord, theme)}</div>
-            {showTablature && hasTab && renderTablature(tablature)}
-          </div>
-          {usedChords.length > 0 && (
-            <section className="bg-brand-card rounded-2xl p-6 border border-white/5 space-y-4">
-              <h2 className="text-2xl font-bold">Chords used in this tab</h2>
-              <p className="text-sm text-brand-muted">Hover over a chord in the tab to see its shape. Click to enlarge:</p>
-              <div style={{display:"flex",flexWrap:"wrap",gap:"16px"}}>
-                {usedChords.map((c) => (<div key={c} onClick={() => setActiveChord(c)} style={{cursor:"pointer"}}><MiniFretboard chord={c} theme={theme} /></div>))}
-              </div>
-            </section>
-          )}
-          <div className="flex items-center gap-2 text-sm text-brand-muted"><AlertTriangle size={16} className="text-brand-gold" /><span>Found an error? </span><button className="text-brand-gold hover:underline">Report this tab</button></div>
-        </div>
-        <div className="lg:col-span-1">
-          <div className="sticky top-8 space-y-4">
-            {youtubeId ? (
-              <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-3">
-                <h3 className="text-lg font-bold flex items-center gap-2"><Youtube size={20} className="text-red-500" /> Watch &amp; Play</h3>
-                <iframe className="w-full aspect-video rounded-xl border border-white/10" src={"https://www.youtube.com/embed/" + youtubeId} title={songName + " - " + artistName} allowFullScreen />
-                <p className="text-xs text-brand-muted">Play along with the video while reading the tab.</p>
-              </div>
-            ) : youtubeLoading ? (
-              <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-3">
-                <h3 className="text-lg font-bold flex items-center gap-2"><Youtube size={20} className="text-red-500" /> Searching video...</h3>
-                <div className="flex items-center justify-center py-8"><Loader2 className="animate-spin text-brand-muted" size={24} /></div>
-              </div>
-            ) : (
-              <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-2">
-                <h3 className="text-lg font-bold flex items-center gap-2"><Youtube size={20} className="text-red-500" /> Video</h3>
-                <p className="text-sm text-brand-muted">No video found for this tab.</p>
-              </div>
-            )}
-            {usedChords.length > 0 && (
-              <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-3">
-                <h3 className="text-sm font-bold text-brand-muted uppercase tracking-wider">Quick Reference</h3>
-                <div className="flex flex-wrap gap-2">
-                  {usedChords.map((c) => (<button key={c} onClick={() => setActiveChord(c)} className="px-3 py-1.5 bg-white/5 rounded-lg text-sm hover:bg-brand-gold/10 transition-colors" style={{color:"#34d399",fontWeight:700}}>{c}</button>))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+      <div id="tab-content" className="bg-brand-card rounded-2xl p-8 border border-white/5">
+        <div style={{fontFamily:"monospace",fontSize:"1rem",lineHeight:"1.6"}}>{renderContent(content, showTablature, transpose, setActiveChord, theme)}</div>
+        {showTablature && hasTab && renderTablature(tablature)}
       </div>
+      {usedChords.length > 0 && (
+        <section className="bg-brand-card rounded-2xl p-6 border border-white/5 space-y-4">
+          <h2 className="text-2xl font-bold">Chords used in this tab</h2>
+          <p className="text-sm text-brand-muted">Hover over a chord in the tab to see its shape. Click to enlarge:</p>
+          <div style={{display:"flex",flexWrap:"wrap",gap:"16px"}}>
+            {usedChords.map((c) => (<div key={c} onClick={() => setActiveChord(c)} style={{cursor:"pointer"}}><MiniFretboard chord={c} theme={theme} /></div>))}
+          </div>
+        </section>
+      )}
+      {youtubeId ? (
+        <section className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-3">
+          <h3 className="text-lg font-bold flex items-center gap-2"><Youtube size={20} className="text-red-500" /> Watch &amp; Play</h3>
+          <iframe className="w-full aspect-video rounded-xl border border-white/10" src={"https://www.youtube.com/embed/" + youtubeId} title={songName + " - " + artistName} allowFullScreen />
+          <p className="text-xs text-brand-muted">Play along with the video while reading the tab.</p>
+        </section>
+      ) : youtubeLoading ? (
+        <section className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-3">
+          <h3 className="text-lg font-bold flex items-center gap-2"><Youtube size={20} className="text-red-500" /> Searching video...</h3>
+          <div className="flex items-center justify-center py-8"><Loader2 className="animate-spin text-brand-muted" size={24} /></div>
+        </section>
+      ) : (
+        <section className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-2">
+          <h3 className="text-lg font-bold flex items-center gap-2"><Youtube size={20} className="text-red-500" /> Video</h3>
+          <p className="text-sm text-brand-muted">No video found for this tab.</p>
+        </section>
+      )}
+      {usedChords.length > 0 && (
+        <section className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-3">
+          <h3 className="text-sm font-bold text-brand-muted uppercase tracking-wider">Quick Reference</h3>
+          <div className="flex flex-wrap gap-2">
+            {usedChords.map((c) => (<button key={c} onClick={() => setActiveChord(c)} className="px-3 py-1.5 bg-white/5 rounded-lg text-sm hover:bg-brand-gold/10 transition-colors" style={{color:"#34d399",fontWeight:700}}>{c}</button>))}
+          </div>
+        </section>
+      )}
+      <div className="flex items-center gap-2 text-sm text-brand-muted"><AlertTriangle size={16} className="text-brand-gold" /><span>Found an error? </span><button className="text-brand-gold hover:underline">Report this tab</button></div>
       {activeChord && <ChordDiagram chord={activeChord} onClose={() => setActiveChord(null)} theme={theme} />}
     </div>
   );
