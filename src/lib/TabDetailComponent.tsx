@@ -107,8 +107,8 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
         <button onClick={() => setShowTablature(!showTablature)} className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (showTablature ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}><ChevronDown size={16} /> Tablature {showTablature ? "ON" : "OFF"}</button>
         <div className="ml-auto"><ThemePicker current={themeKey} onChange={setThemeKey} /></div>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-3 space-y-6">
           <div id="tab-content" className="bg-brand-card rounded-2xl p-8 border border-white/5">
             <div style={{fontFamily:"monospace",fontSize:"1rem",lineHeight:"1.6"}}>{renderContent(content, showTablature, transpose, setActiveChord, theme)}</div>
             {showTablature && hasTab && renderTablature(tablature)}
