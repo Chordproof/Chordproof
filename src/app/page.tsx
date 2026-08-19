@@ -1,210 +1,181 @@
 import SearchBar from "@/components/SearchBar";
-import TabCard from "@/components/TabCard";
-import {
-  CheckCircle, Users, Music, ArrowRight,
-  Timer, BookOpen, TrendingUp, ChevronRight,
-} from "lucide-react";
 import Link from "next/link";
+import { TrendingUp, ArrowRight, Music, Search, Flame } from "lucide-react";
 
-const trendingTabs = [
-  { position: 1, song: "Wonderwall", artist: "Oasis", slugArtist: "oasis", slugSong: "wonderwall" },
-  { position: 2, song: "Hotel California", artist: "Eagles", slugArtist: "eagles", slugSong: "hotel-california" },
-  { position: 3, song: "Perfect", artist: "Ed Sheeran", slugArtist: "ed-sheeran", slugSong: "perfect" },
-  { position: 4, song: "Hallelujah", artist: "Jeff Buckley", slugArtist: "jeff-buckley", slugSong: "hallelujah" },
-  { position: 5, song: "Creep", artist: "Radiohead", slugArtist: "radiohead", slugSong: "creep" },
-  { position: 6, song: "Stairway to Heaven", artist: "Led Zeppelin", slugArtist: "led-zeppelin", slugSong: "stairway-to-heaven" },
-  { position: 7, song: "Nothing Else Matters", artist: "Metallica", slugArtist: "metallica", slugSong: "nothing-else-matters" },
-  { position: 8, song: "Enter Sandman", artist: "Metallica", slugArtist: "metallica", slugSong: "enter-sandman" },
-  { position: 9, song: "Bohemian Rhapsody", artist: "Queen", slugArtist: "queen", slugSong: "bohemian-rhapsody" },
-  { position: 10, song: "Sweet Child O' Mine", artist: "Guns N' Roses", slugArtist: "guns-n-roses", slugSong: "sweet-child-o-mine" },
+const GENRES = [
+  "Rock", "Pop", "Indie", "Country", "Folk", "Metal", "Blues", "Jazz", "R&B", "Classical"
 ];
 
-const popularArtists = [
-  { name: "Led Zeppelin", slug: "led-zeppelin" },
-  { name: "Queen", slug: "queen" },
-  { name: "Metallica", slug: "metallica" },
-  { name: "Oasis", slug: "oasis" },
-  { name: "Radiohead", slug: "radiohead" },
-  { name: "Eagles", slug: "eagles" },
-  { name: "Ed Sheeran", slug: "ed-sheeran" },
-  { name: "Guns N' Roses", slug: "guns-n-roses" },
+const TRENDING = [
+  { rank: 1, song: "Stairway to Heaven", artist: "led-zeppelin", key: "Am", difficulty: "Advanced", views: "2.4M" },
+  { rank: 2, song: "Wonderwall", artist: "oasis", key: "F#m", difficulty: "Beginner", views: "1.8M" },
+  { rank: 3, song: "Hotel California", artist: "eagles", key: "Bm", difficulty: "Advanced", views: "1.6M" },
+  { rank: 4, song: "Blackbird", artist: "the-beatles", key: "G", difficulty: "Intermediate", views: "1.2M" },
+  { rank: 5, song: "Dust in the Wind", artist: "kansas", key: "C", difficulty: "Intermediate", views: "980K" },
+  { rank: 6, song: "Tears in Heaven", artist: "eric-clapton", key: "A", difficulty: "Intermediate", views: "870K" },
+  { rank: 7, song: "Nothing Else Matters", artist: "metallica", key: "Em", difficulty: "Beginner", views: "820K" },
+  { rank: 8, song: "Wish You Were Here", artist: "pink-floyd", key: "G", difficulty: "Beginner", views: "760K" },
+  { rank: 9, song: "Hey There Delilah", artist: "plain-white-ts", key: "D", difficulty: "Beginner", views: "690K" },
+  { rank: 10, song: "Fast Car", artist: "tracy-chapman", key: "C", difficulty: "Beginner", views: "640K" },
 ];
 
-const tools = [
-  { icon: Music, name: "Tuner", desc: "Tune your guitar quickly and accurately" },
-  { icon: Timer, name: "Metronome", desc: "Keep perfect time while you practice" },
-  { icon: BookOpen, name: "Chord Dictionary", desc: "Look up any chord shape in seconds" },
+const POPULAR_ARTISTS = [
+  { name: "The Beatles", slug: "the-beatles", tabs: 318 },
+  { name: "Ed Sheeran", slug: "ed-sheeran", tabs: 142 },
+  { name: "Taylor Swift", slug: "taylor-swift", tabs: 128 },
+  { name: "John Mayer", slug: "john-mayer", tabs: 96 },
+  { name: "Led Zeppelin", slug: "led-zeppelin", tabs: 87 },
+  { name: "Metallica", slug: "metallica", tabs: 84 },
+  { name: "Pink Floyd", slug: "pink-floyd", tabs: 72 },
+  { name: "Acoustic Folk Collection", slug: "acoustic-folk", tabs: 64 },
 ];
 
-const readAlso = [
-  { title: "How to read chord charts: a complete guide", href: "#" },
-  { title: "5 songs with only 2 chords for beginners", href: "#" },
-  { title: "Chord melody: playing harmony and melody together", href: "#" },
-  { title: "The 20 most iconic rock basslines of all time", href: "#" },
-];
+const DIFFICULTY_COLORS: Record<string, string> = {
+  Beginner: "text-green-400",
+  Intermediate: "text-yellow-400",
+  Advanced: "text-red-400",
+};
 
 export default function Home() {
   return (
-    <div className="space-y-16">
-      {/* Hero Section */}
-      <section className="text-center py-12 space-y-8">
+    <div className="space-y-12">
+      {/* Hero — streamlined */}
+      <section className="text-center py-16 space-y-6">
         <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
           Play it <span className="text-brand-gold">Right.</span>
         </h1>
         <p className="text-brand-muted text-xl max-w-2xl mx-auto">
-          Access thousands of verified guitar tabs. No paywalls, no popups, just music.
+          Thousands of verified guitar tabs. No paywalls, no popups, just music.
         </p>
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-2xl mx-auto">
           <SearchBar large />
+        </div>
+        <p className="text-sm text-brand-muted/60">
+          No sign-up required. No ads. No paywalls on community content.
+        </p>
+      </section>
+
+      {/* Genre filters */}
+      <section className="border-y border-white/10 py-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Search size={18} className="text-brand-gold" />
+          <h2 className="text-sm font-bold uppercase tracking-widest text-brand-muted">Browse by Genre</h2>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {GENRES.map((genre) => (
+            <Link
+              key={genre}
+              href={`/browse?genre=${genre.toLowerCase()}`}
+              className="px-5 py-2 bg-white/5 hover:bg-brand-gold/10 hover:text-brand-gold rounded-full text-sm font-semibold transition border border-white/5 hover:border-brand-gold/30"
+            >
+              {genre}
+            </Link>
+          ))}
         </div>
       </section>
 
-      {/* Stats Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-8 border-y border-white/10">
-        <div className="flex items-center justify-center gap-4">
-          <CheckCircle className="text-brand-gold w-8 h-8" />
-          <div>
-            <p className="text-2xl font-bold">12,400+</p>
-            <p className="text-brand-muted text-sm uppercase tracking-widest">Verified Tabs</p>
-          </div>
-        </div>
-        <div className="flex items-center justify-center gap-4">
-          <Users className="text-brand-gold w-8 h-8" />
-          <div>
-            <p className="text-2xl font-bold">85,000</p>
-            <p className="text-brand-muted text-sm uppercase tracking-widest">Active Musicians</p>
-          </div>
-        </div>
-        <div className="flex items-center justify-center gap-4">
-          <Music className="text-brand-gold w-8 h-8" />
-          <div>
-            <p className="text-2xl font-bold">450,000</p>
-            <p className="text-brand-muted text-sm uppercase tracking-widest">Total Songs</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Top Tabs - ranking numerado estilo Cifra Club */}
+      {/* Trending This Week */}
       <section className="space-y-6">
         <div className="flex justify-between items-end">
-          <div>
-            <h2 className="text-3xl font-bold flex items-center gap-2">
-              <TrendingUp className="text-brand-gold" /> Top Tabs
-            </h2>
-            <p className="text-brand-muted">The most searched songs this week.</p>
+          <div className="flex items-center gap-3">
+            <Flame size={24} className="text-brand-gold" />
+            <div>
+              <h2 className="text-3xl font-bold">Trending This Week</h2>
+              <p className="text-brand-muted text-sm">Most played tabs in the last 7 days</p>
+            </div>
           </div>
-          <Link href="/browse" className="text-brand-gold flex items-center gap-1 hover:underline">
+          <Link href="/browse?sort=trending" className="text-brand-gold flex items-center gap-2 hover:underline text-sm">
             View all <ArrowRight size={16} />
           </Link>
         </div>
         <div className="bg-brand-card rounded-2xl border border-white/5 overflow-hidden">
-          {trendingTabs.map((t) => (
+          {TRENDING.map((tab, idx) => (
             <Link
-              key={t.position}
-              href={`/tab/${t.slugArtist}/${t.slugSong}`}
-              className="flex items-center gap-6 px-6 py-4 hover:bg-white/5 transition-colors border-b border-white/5 last:border-b-0"
+              key={tab.rank}
+              href={`/tab/${tab.artist}/${tab.song.toLowerCase().replace(/\s+/g, "-")}`}
+              className={`flex items-center gap-4 px-6 py-4 hover:bg-white/5 transition group ${idx !== TRENDING.length - 1 ? "border-b border-white/5" : ""}`}
             >
-              <span className="w-8 text-2xl font-bold text-brand-muted/50">
-                {String(t.position).padStart(2, "0")}
+              <span className={`text-2xl font-bold w-10 text-center ${tab.rank <= 3 ? "text-brand-gold" : "text-brand-muted"}`}>
+                {tab.rank}
               </span>
-              <div className="flex-1">
-                <p className="font-semibold">{t.song}</p>
-                <p className="text-sm text-brand-muted">{t.artist}</p>
+              <div className="flex-grow min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-lg group-hover:text-brand-gold transition truncate">{tab.song}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded ${DIFFICULTY_COLORS[tab.difficulty]}`}>{tab.difficulty}</span>
+                </div>
+                <p className="text-brand-muted text-sm capitalize">{tab.artist.replace(/-/g, " ")}</p>
               </div>
-              <ChevronRight className="text-brand-muted/50" size={18} />
+              <div className="hidden sm:flex items-center gap-4 flex-shrink-0">
+                <span className="text-xs text-brand-muted">Key: <strong className="text-white">{tab.key}</strong></span>
+                <span className="text-xs text-brand-muted flex items-center gap-1">
+                  <TrendingUp size={12} /> {tab.views}
+                </span>
+              </div>
+              <ArrowRight size={18} className="text-brand-muted group-hover:text-brand-gold transition flex-shrink-0" />
             </Link>
           ))}
         </div>
+      </section>
+
+      {/* CTA banner — between sections */}
+      <section className="bg-gradient-to-r from-brand-gold/10 to-transparent border border-brand-gold/20 rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="text-center md:text-left">
+          <h2 className="text-2xl font-bold">Can't find what you're looking for?</h2>
+          <p className="text-brand-muted mt-1">Request a tab and our community will transcribe it for you.</p>
+        </div>
+        <Link
+          href="/request"
+          className="flex items-center gap-2 bg-brand-gold text-black px-8 py-4 rounded-full font-bold hover:scale-105 transition-transform whitespace-nowrap"
+        >
+          Request a Tab <ArrowRight size={18} />
+        </Link>
       </section>
 
       {/* Popular Artists */}
       <section className="space-y-6">
-        <div className="flex justify-between items-end">
+        <div className="flex items-center gap-3">
+          <Users size={24} className="text-brand-gold" />
           <div>
             <h2 className="text-3xl font-bold">Popular Artists</h2>
-            <p className="text-brand-muted">Most requested artists in our catalog.</p>
+            <p className="text-brand-muted text-sm">Most searched artists this month</p>
           </div>
-          <Link href="/browse" className="text-brand-gold flex items-center gap-1 hover:underline">
-            View all <ArrowRight size={16} />
-          </Link>
         </div>
-        <div className="flex flex-wrap gap-3">
-          {popularArtists.map((a) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {POPULAR_ARTISTS.map((artist) => (
             <Link
-              key={a.slug}
-              href={`/artist/${a.slug}`}
-              className="px-5 py-2.5 rounded-full bg-white/5 border border-white/10 hover:border-brand-gold/50 hover:text-brand-gold transition-all capitalize"
+              key={artist.slug}
+              href={`/artist/${artist.slug}`}
+              className="flex items-center justify-between px-5 py-4 bg-brand-card rounded-xl border border-white/5 hover:border-brand-gold/30 hover:bg-white/5 transition group"
             >
-              {a.name}
+              <div className="flex items-center gap-3">
+                <Music size={18} className="text-brand-muted group-hover:text-brand-gold transition" />
+                <span className="font-semibold group-hover:text-brand-gold transition">{artist.name}</span>
+              </div>
+              <span className="text-xs text-brand-muted">{artist.tabs} tabs</span>
             </Link>
           ))}
         </div>
       </section>
 
-      {/* Latest Verified Tabs */}
-      <section className="space-y-8">
-        <div className="flex justify-between items-end">
-          <div>
-            <h2 className="text-3xl font-bold">Latest Verified Tabs</h2>
-            <p className="text-brand-muted">Hand-checked by our pro musicians for 100% accuracy.</p>
+      {/* Value proposition — replaces stats bar */}
+      <section className="border-t border-white/10 pt-12">
+        <div className="text-center space-y-4">
+          <h2 className="text-2xl font-bold">Why ChordProof?</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto mt-8">
+            <div className="space-y-2">
+              <div className="text-brand-gold text-lg font-bold">No Paywalls</div>
+              <p className="text-brand-muted text-sm">Community content is and always will be free. No Pro plan needed to read tabs.</p>
+            </div>
+            <div className="space-y-2">
+              <div className="text-brand-gold text-lg font-bold">No Popups</div>
+              <p className="text-brand-muted text-sm">Clean reading experience. No intrusive ads, no newsletter popups, no upsells.</p>
+            </div>
+            <div className="space-y-2">
+              <div className="text-brand-gold text-lg font-bold">Verified Accuracy</div>
+              <p className="text-brand-muted text-sm">Every tab is checked by real musicians. If it's wrong, we fix it — not you.</p>
+            </div>
           </div>
-          <Link href="/browse" className="text-brand-gold flex items-center gap-2 hover:underline">
-            View all <ArrowRight size={16} />
-          </Link>
         </div>
-       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-  <TabCard song="Wonderwall" artist="Oasis" difficulty="Beginner" is_verified={true} key_sig="F#m" slug_artist="oasis" slug_song="wonderwall" />
-  <TabCard song="Hotel California" artist="Eagles" difficulty="Advanced" is_verified={true} key_sig="Bm" slug_artist="eagles" slug_song="hotel-california" />
-  <TabCard song="Perfect" artist="Ed Sheeran" difficulty="Beginner" is_verified={true} key_sig="Ab" slug_artist="ed-sheeran" slug_song="perfect" />
-  <TabCard song="Hallelujah" artist="Jeff Buckley" difficulty="Intermediate" is_verified={true} key_sig="C" slug_artist="jeff-buckley" slug_song="hallelujah" />
-  <TabCard song="Creep" artist="Radiohead" difficulty="Beginner" is_verified={true} key_sig="G" slug_artist="radiohead" slug_song="creep" />
-  <TabCard song="Stairway to Heaven" artist="Led Zeppelin" difficulty="Advanced" is_verified={true} key_sig="Am" slug_artist="led-zeppelin" slug_song="stairway-to-heaven" />
-</div>
-      </section>
-
-      {/* Tools */}
-      <section className="space-y-6">
-        <h2 className="text-3xl font-bold">Tools</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {tools.map((tool) => (
-            <Link
-              key={tool.name}
-              href="#"
-              className="bg-brand-card rounded-2xl p-6 border border-white/5 hover:border-brand-gold/40 transition-all group"
-            >
-              <tool.icon className="text-brand-gold w-8 h-8 mb-4" />
-              <h3 className="text-xl font-bold group-hover:text-brand-gold transition-colors">{tool.name}</h3>
-              <p className="text-brand-muted text-sm mt-1">{tool.desc}</p>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* Read Also */}
-      <section className="space-y-6">
-        <h2 className="text-3xl font-bold">Read Also</h2>
-        <ul className="bg-brand-card rounded-2xl border border-white/5 divide-y divide-white/5">
-          {readAlso.map((item) => (
-            <li key={item.title}>
-              <Link
-                href={item.href}
-                className="flex items-center gap-3 px-6 py-4 hover:bg-white/5 transition-colors text-brand-muted hover:text-brand-gold"
-              >
-                <ChevronRight size={16} className="text-brand-gold/60" />
-                {item.title}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {/* CTA Section */}
-      <section className="bg-brand-card rounded-3xl p-12 text-center space-y-6 border border-white/5">
-        <h2 className="text-3xl font-bold">Can't find what you're looking for?</h2>
-        <p className="text-brand-muted">Our community and pro verifiers are ready to help.</p>
-        <Link href="/request" className="inline-block bg-brand-gold text-black px-8 py-4 rounded-full font-bold hover:scale-105 transition-transform">
-          Request a Tab
-        </Link>
       </section>
     </div>
   );
