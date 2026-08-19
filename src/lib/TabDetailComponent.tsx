@@ -73,13 +73,13 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
   const hasTab = tablature && tablature.trim().length > 0;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      <nav className="text-sm text-brand-muted"><ol className="flex gap-2">
+    <div style={{maxWidth:"1400px",margin:"0 auto"}}>
+      <nav className="text-sm text-brand-muted" style={{marginBottom:"24px"}}><ol className="flex gap-2">
         <li><a href="/" className="hover:text-white">Home</a></li><li>/</li>
         <li><a href="/browse" className="hover:text-white">Browse</a></li><li>/</li>
         <li><a href={"/artist/"+params.artist} className="hover:text-white capitalize">{artistName}</a></li>
       </ol></nav>
-      <div className="flex flex-col md:flex-row justify-between items-start gap-6">
+      <div className="flex flex-col md:flex-row justify-between items-start gap-6" style={{marginBottom:"24px"}}>
         <div className="space-y-2">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-4xl font-bold">{songName}</h1>
@@ -98,7 +98,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
           <a href="#tab-content" className="flex items-center gap-2 px-6 py-3 bg-brand-gold text-black rounded-full font-bold hover:scale-105 transition"><Play size={18} /> Play</a>
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-4 bg-brand-card rounded-2xl p-4 border border-white/5">
+      <div className="flex flex-wrap items-center gap-4 bg-brand-card rounded-2xl p-4 border border-white/5" style={{marginBottom:"24px"}}>
         <TransposeControls transpose={transpose} onTranspose={setTranspose} />
         <div className="flex items-center gap-2">
           <button onClick={() => setAutoScroll(!autoScroll)} className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (autoScroll ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}><MousePointer2 size={16} /> Auto-scroll {autoScroll ? "ON" : "OFF"}</button>
@@ -107,14 +107,14 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
         <button onClick={() => setShowTablature(!showTablature)} className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (showTablature ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}><ChevronDown size={16} /> Tablature {showTablature ? "ON" : "OFF"}</button>
         <div className="ml-auto"><ThemePicker current={themeKey} onChange={setThemeKey} /></div>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3 space-y-6">
-          <div id="tab-content" className="bg-brand-card rounded-2xl p-8 border border-white/5">
+      <div style={{display:"flex",gap:"24px",alignItems:"flex-start"}}>
+        <div style={{flex:"3 1 0%",minWidth:"0"}}>
+          <div id="tab-content" className="bg-brand-card rounded-2xl p-8 border border-white/5" style={{marginBottom:"24px"}}>
             <div style={{fontFamily:"monospace",fontSize:"1rem",lineHeight:"1.6"}}>{renderContent(content, showTablature, transpose, setActiveChord, theme)}</div>
             {showTablature && hasTab && renderTablature(tablature)}
           </div>
           {usedChords.length > 0 && (
-            <section className="bg-brand-card rounded-2xl p-6 border border-white/5 space-y-4">
+            <section className="bg-brand-card rounded-2xl p-6 border border-white/5 space-y-4" style={{marginBottom:"24px"}}>
               <h2 className="text-2xl font-bold">Chords used in this tab</h2>
               <p className="text-sm text-brand-muted">Hover over a chord in the tab to see its shape. Click to enlarge:</p>
               <div style={{display:"flex",flexWrap:"wrap",gap:"12px"}}>
@@ -124,21 +124,21 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
           )}
           <div className="flex items-center gap-2 text-sm text-brand-muted"><AlertTriangle size={16} className="text-brand-gold" /><span>Found an error? </span><button className="text-brand-gold hover:underline">Report this tab</button></div>
         </div>
-        <div className="lg:col-span-1">
-          <div className="sticky top-8 space-y-4">
+        <div style={{flex:"1 0 320px",maxWidth:"360px"}}>
+          <div style={{position:"sticky",top:"24px"}}>
             {youtubeId ? (
-              <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-3">
+              <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-3" style={{marginBottom:"16px"}}>
                 <h3 className="text-lg font-bold flex items-center gap-2"><Youtube size={20} className="text-red-500" /> Watch &amp; Play</h3>
                 <iframe className="w-full aspect-video rounded-xl border border-white/10" src={"https://www.youtube.com/embed/" + youtubeId} title={songName + " - " + artistName} allowFullScreen />
                 <p className="text-xs text-brand-muted">Play along with the video while reading the tab.</p>
               </div>
             ) : youtubeLoading ? (
-              <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-3">
+              <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-3" style={{marginBottom:"16px"}}>
                 <h3 className="text-lg font-bold flex items-center gap-2"><Youtube size={20} className="text-red-500" /> Searching video...</h3>
                 <div className="flex items-center justify-center py-8"><Loader2 className="animate-spin text-brand-muted" size={24} /></div>
               </div>
             ) : (
-              <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-2">
+              <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-2" style={{marginBottom:"16px"}}>
                 <h3 className="text-lg font-bold flex items-center gap-2"><Youtube size={20} className="text-red-500" /> Video</h3>
                 <p className="text-sm text-brand-muted">No video found for this tab.</p>
               </div>
