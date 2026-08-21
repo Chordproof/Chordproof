@@ -29,12 +29,14 @@ function renderInlineChords(chords: string[], lyricLine: string, key: number, on
   if (chords.length === 0 || !lyricLine.trim()) {
     return <div key={key} style={{ whiteSpace: "pre-wrap", lineHeight: "1.6em", fontFamily: "monospace", color: "#e0e0e0" }}>{lyricLine}</div>;
   }
+
   const words: { text: string; start: number }[] = [];
   const wordRe = /\S+/g;
   let wm: RegExpExecArray | null;
   while ((wm = wordRe.exec(lyricLine)) !== null) {
     words.push({ text: wm[0], start: wm.index });
   }
+
   const chordPositions: number[] = [];
   if (words.length > 0) {
     for (let i = 0; i < chords.length; i++) {
@@ -44,22 +46,25 @@ function renderInlineChords(chords: string[], lyricLine: string, key: number, on
   } else {
     for (let i = 0; i < chords.length; i++) chordPositions.push(0);
   }
-  const parts: ReactNode[] = [];
+
+  const chordParts: ReactNode[] = [];
   let lastPos = 0;
   for (let i = 0; i < chords.length; i++) {
     const pos = chordPositions[i];
     if (pos > lastPos) {
-      parts.push(<span key={"t" + i} style={{ color: "#e0e0e0" }}>{lyricLine.slice(lastPos, pos)}</span>);
+      chordParts.push(<span key={"sp" + i} style={{ color: "transparent" }}>{lyricLine.slice(lastPos, pos)}</span>);
     }
-    parts.push(<ChordSpan key={"c" + i} chord={chords[i]} onClick={onChord} theme={theme} />);
-    lastPos = pos;
+    chordParts.push(<ChordSpan key={"c" + i} chord={chords[i]} onClick={onChord} theme={theme} />);
+    lastPos = pos + chords[i].length;
   }
   if (lastPos < lyricLine.length) {
-    parts.push(<span key="rest" style={{ color: "#e0e0e0" }}>{lyricLine.slice(lastPos)}</span>);
+    chordParts.push(<span key="rest" style={{ color: "transparent" }}>{lyricLine.slice(lastPos)}</span>);
   }
+
   return (
-    <div key={key} style={{ marginBottom: "4px", fontFamily: "monospace", lineHeight: "1.8em" }}>
-      {parts}
+    <div key={key} style={{ marginBottom: "4px" }}>
+      <div style={{ whiteSpace: "pre-wrap", fontFamily: "monospace", lineHeight: "1.4em", height: "1.4em" }}>{chordParts}</div>
+      <div style={{ whiteSpace: "pre-wrap", lineHeight: "1.6em", fontFamily: "monospace", color: "#e0e0e0" }}>{lyricLine}</div>
     </div>
   );
 }
@@ -102,20 +107,16 @@ export function renderContent(content: string, showTablature: boolean, transpose
       const lyricIsChord = lyricTokens.length > 0 && lyricTokens.every((t: string) => CHORD_STRICT_RE.test(t));
       const hasLyric = lyricTrim && !lyricTrim.startsWith("[") && !TAB_LINE_RE.test(lyricTrim) && !lyricIsChord;
       if (hasLyric) {
-        if (chordLines.length === 1) {
-          result.push(renderPair(chordLines[0], lyricLine, kc++, transpose, onChord, theme));
-        } else {
-          const allChords: string[] = [];
-          for (const cl of chordLines) {
-            const re = new RegExp(CHORD_TOKEN_RE.source, "g");
-            let m: RegExpExecArray | null;
-            while ((m = re.exec(cl)) !== null) {
-              if (m[0] === "") { re.lastIndex++; continue; }
-              allChords.push(transposeChord(m[1], transpose));
-            }
+        const allChords: string[] = [];
+        for (const cl of chordLines) {
+          const re = new RegExp(CHORD_TOKEN_RE.source, "g");
+          let m: RegExpExecArray | null;
+          while ((m = re.exec(cl)) !== null) {
+            if (m[0] === "") { re.lastIndex++; continue; }
+            allChords.push(transposeChord(m[1], transpose));
           }
-          result.push(renderInlineChords(allChords, lyricLine, kc++, onChord, theme));
         }
+        result.push(renderInlineChords(allChords, lyricLine, kc++, onChord, theme));
         i = j + 1;
         continue;
       } else {
