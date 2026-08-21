@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+import { supabase } from "@/lib/supabase";
+import { buildTabMetadata, SITE_URL } from "@/lib/seo";
 import { supabase } from "@/lib/supabase";
 import { buildTabMetadata, SITE_URL } from "@/lib/seo";
 import JsonLd from "@/components/JsonLd";
