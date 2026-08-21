@@ -5,6 +5,8 @@ import { CHORD_TOKEN_RE, CHORD_STRICT_RE, TAB_LINE_RE, transposeChord } from "./
 import { ChordSpan } from "./fretboard";
 
 export function renderPair(chordLine: string, lyricLine: string, key: number, transpose: number, onChord: (c: string) => void, theme: any): ReactNode {
+  if (!chordLine) chordLine = "";
+  if (!lyricLine) lyricLine = "";
   const parts: ReactNode[] = [];
   let li = 0, c = 0;
   const re = new RegExp(CHORD_TOKEN_RE.source, "g");
