@@ -21,8 +21,6 @@ CHORD_SHAPES["G"+SHARP] = [4,6,6,5,4,4];
 CHORD_SHAPES["A"] = [-1,0,2,2,2,0];
 CHORD_SHAPES["A"+SHARP] = [-1,1,3,3,3,1];
 CHORD_SHAPES["B"] = [-1,2,4,4,4,2];
-
-// Flat equivalents
 CHORD_SHAPES["Bb"] = [-1,1,3,3,3,1];
 CHORD_SHAPES["Db"] = [-1,4,6,6,6,4];
 CHORD_SHAPES["Eb"] = [-1,6,8,8,8,6];
@@ -44,8 +42,6 @@ CHORD_SHAPES["G"+SHARP+"m"] = [4,6,6,4,4,4];
 CHORD_SHAPES["Am"] = [-1,0,2,2,1,0];
 CHORD_SHAPES["A"+SHARP+"m"] = [-1,1,3,3,2,1];
 CHORD_SHAPES["Bm"] = [-1,2,4,4,3,2];
-
-// Flat equivalents
 CHORD_SHAPES["Bbm"] = [-1,1,3,3,2,1];
 CHORD_SHAPES["Dbm"] = [-1,4,6,6,5,4];
 CHORD_SHAPES["Ebm"] = [-1,6,8,8,7,6];
@@ -99,8 +95,6 @@ CHORD_SHAPES["G"+SHARP+"maj7"] = [4,6,5,4,4,4];
 CHORD_SHAPES["Amaj7"] = [-1,0,2,1,2,0];
 CHORD_SHAPES["A"+SHARP+"maj7"] = [-1,1,3,2,3,1];
 CHORD_SHAPES["Bmaj7"] = [-1,2,4,3,4,2];
-
-// M suffix (same as maj7)
 CHORD_SHAPES["CM"] = [-1,3,2,0,0,0];
 CHORD_SHAPES["DM"] = [-1,-1,0,2,2,2];
 CHORD_SHAPES["EM"] = [0,2,1,1,0,0];
@@ -156,8 +150,6 @@ CHORD_SHAPES["G"+SHARP+"sus4"] = [4,6,6,6,4,4];
 CHORD_SHAPES["Asus4"] = [-1,0,2,2,3,0];
 CHORD_SHAPES["A"+SHARP+"sus4"] = [-1,1,3,3,4,1];
 CHORD_SHAPES["Bsus4"] = [-1,2,4,4,5,2];
-
-// Short forms (C4, D4, etc.)
 CHORD_SHAPES["C4"] = [-1,3,3,0,1,1];
 CHORD_SHAPES["D4"] = [-1,-1,0,2,3,3];
 CHORD_SHAPES["E4"] = [0,2,2,2,0,0];
@@ -167,7 +159,7 @@ CHORD_SHAPES["A4"] = [-1,0,2,2,3,0];
 CHORD_SHAPES["B4"] = [-1,2,4,4,5,2];
 
 // ============================================
-// ADD9 CHORDS (all 12 keys)
+// ADD9 CHORDS
 // ============================================
 CHORD_SHAPES["Cadd9"] = [-1,3,2,0,3,0];
 CHORD_SHAPES["Dadd9"] = [-1,-1,0,2,3,2];
@@ -176,8 +168,6 @@ CHORD_SHAPES["Fadd9"] = [-1,-1,3,2,1,3];
 CHORD_SHAPES["Gadd9"] = [3,2,0,0,0,3];
 CHORD_SHAPES["Aadd9"] = [-1,0,2,2,2,4];
 CHORD_SHAPES["Badd9"] = [-1,2,4,4,4,6];
-
-// Short forms (C2, D2, etc. — same as add9/sus2)
 CHORD_SHAPES["C2"] = [-1,3,5,5,3,3];
 CHORD_SHAPES["D2"] = [-1,-1,0,2,3,0];
 CHORD_SHAPES["E2"] = [0,2,4,4,0,0];
@@ -187,7 +177,7 @@ CHORD_SHAPES["A2"] = [-1,0,2,2,0,0];
 CHORD_SHAPES["B2"] = [-1,2,4,4,2,2];
 
 // ============================================
-// 6TH CHORDS (all 12 keys)
+// 6TH CHORDS
 // ============================================
 CHORD_SHAPES["C6"] = [-1,3,2,0,1,3];
 CHORD_SHAPES["D6"] = [-1,-1,0,2,0,2];
@@ -256,10 +246,6 @@ CHORD_SHAPES["Fdim"] = [1,2,3,1,3,1];
 CHORD_SHAPES["Gdim"] = [3,4,5,3,5,3];
 CHORD_SHAPES["Adim"] = [-1,0,1,2,1,2];
 CHORD_SHAPES["Bdim"] = [-1,2,3,4,3,-1];
-
-// ============================================
-// DIMINISHED 7TH CHORDS
-// ============================================
 CHORD_SHAPES["Cdim7"] = [-1,3,5,3,4,2];
 CHORD_SHAPES["Ddim7"] = [-1,-1,0,1,3,1];
 CHORD_SHAPES["Edim7"] = [0,1,2,0,2,0];
@@ -314,6 +300,11 @@ CHORD_SHAPES["E7sus4"] = [0,2,0,2,0,0];
 CHORD_SHAPES["G7sus4"] = [3,5,3,0,3,1];
 
 // ============================================
+// A7(4) — usado no Wonderwall
+// ============================================
+CHORD_SHAPES["A7(4)"] = [-1,0,2,0,3,0];
+
+// ============================================
 // COMPLEX / EXTENDED
 // ============================================
 CHORD_SHAPES["C9(11+)"] = [-1,3,2,3,3,4];
@@ -322,13 +313,14 @@ CHORD_SHAPES["C2sus4"] = [-1,3,3,0,3,3];
 
 // ============================================
 // REGEX PATTERNS
+// NOTE: alternation order matters — longer matches FIRST
 // ============================================
 
 // Matches a chord token within a line of text
-export const CHORD_TOKEN_RE = /[A-G][#b]?(m|maj|min|dim|aug|sus|add|6|7|9|11|13|5|4|2|M)*(b5)?(\([^)]*\))?(\/[A-G][#b]?)?/g;
+export const CHORD_TOKEN_RE = /[A-G][#b]?(maj7|maj9|maj|min7|min9|min|dim7|dim|m7b5|dim|aug|sus2|sus4|sus|add9|add|6|7|9|11|13|5|4|2|M)*(b5)?(\([^)]*\))?(\/[A-G][#b]?)?/g;
 
 // Strict chord regex — entire string must be a valid chord
-export const CHORD_STRICT_RE = /^[A-G][#b]?(m|maj|min|dim|aug|sus|add|6|7|9|11|13|5|4|2|M)*(b5)?(\([^)]*\))?(\/[A-G][#b]?)?$/;
+export const CHORD_STRICT_RE = /^[A-G][#b]?(maj7|maj9|maj|min7|min9|min|dim7|dim|m7b5|aug|sus2|sus4|sus|add9|add|6|7|9|11|13|5|4|2|M)*(b5)?(\([^)]*\))?(\/[A-G][#b]?)?$/;
 
 // Tablature line regex — matches lines like "e|---5---|" or "B|---3---|"
 export const TAB_LINE_RE = /^[eBGDAE]\|.*\|/;
@@ -347,38 +339,38 @@ const INDEX_NOTE = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 const INDEX_NOTE_FLAT = ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"];
 
 export function transposeChord(chord: string, semitones: number): string {
-   if (!chord || !Number.isInteger(semitones) || semitones === 0) return chord;
+  if (!chord) return chord;
+  if (!Number.isInteger(semitones) || semitones === 0) return chord;
 
-  // Match the root note (including slash chord bass note)
-  const re = /([A-G])([#b]?)/g;
-  let result = chord;
-  let match: RegExpExecArray | null;
-  const replacements: { index: number; replacement: string }[] = [];
+  try {
+    const re = /([A-G])([#b]?)/g;
+    let result = chord;
+    let match: RegExpExecArray | null;
+    const replacements: { index: number; replacement: string }[] = [];
 
-  while ((match = re.exec(chord)) !== null) {
-    const noteName = match[1] + (match[2] || "");
-    const idx = NOTE_INDEX[noteName];
-    if (idx === undefined) continue;
+    while ((match = re.exec(chord)) !== null) {
+      const noteName = match[1] + (match[2] || "");
+      const idx = NOTE_INDEX[noteName];
+      if (idx === undefined) continue;
 
-    const newIdx = ((idx + semitones) % 12 + 12) % 12;
-    // Use sharp if original was sharp or natural, flat if original was flat
-    const useFlat = match[2] === "b";
-    const newNote = useFlat ? INDEX_NOTE_FLAT[newIdx] : INDEX_NOTE[newIdx];
+      const newIdx = ((idx + semitones) % 12 + 12) % 12;
+      const useFlat = match[2] === "b";
+      const newNote = useFlat ? INDEX_NOTE_FLAT[newIdx] : INDEX_NOTE[newIdx];
 
-    replacements.push({ index: match.index, replacement: newNote });
+      replacements.push({ index: match.index, replacement: newNote });
+    }
+
+    for (let i = replacements.length - 1; i >= 0; i--) {
+      const r = replacements[i];
+      const matchedText = chord.substring(r.index).match(/^[A-G][#b]?/);
+      const len = matchedText ? matchedText[0].length : 1;
+      result = result.substring(0, r.index) + r.replacement + result.substring(r.index + len);
+    }
+
+    return result;
+  } catch (e) {
+    return chord;
   }
-
-  // Apply replacements in reverse order to preserve indices
-  for (let i = replacements.length - 1; i >= 0; i--) {
-    const r = replacements[i];
-    const originalLength = chord.match(/[A-G][#b]?/g);
-    // Find the actual matched text length
-    const matchedText = chord.substring(r.index).match(/^[A-G][#b]?/);
-    const len = matchedText ? matchedText[0].length : 1;
-    result = result.substring(0, r.index) + r.replacement + result.substring(r.index + len);
-  }
-
-  return result;
 }
 
 // ============================================
@@ -399,7 +391,8 @@ export function chordsUsed(content: string, transpose: number = 0): string[] {
     const tokens = trimmed.split(/\s+/).filter(Boolean);
     for (const token of tokens) {
       if (CHORD_STRICT_RE.test(token)) {
-        chords.add(token);
+        const transposed = transpose !== 0 ? transposeChord(token, transpose) : token;
+        chords.add(transposed);
       }
     }
   }
