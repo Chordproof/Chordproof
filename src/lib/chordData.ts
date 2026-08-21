@@ -317,10 +317,10 @@ CHORD_SHAPES["C2sus4"] = [-1,3,3,0,3,3];
 // ============================================
 
 // Matches a chord token within a line of text
-export const CHORD_TOKEN_RE = /[A-G][#b]?(maj7|maj9|maj|min7|min9|min|dim7|dim|m7b5|dim|aug|sus2|sus4|sus|add9|add|6|7|9|11|13|5|4|2|M)*(b5)?(\([^)]*\))?(\/[A-G][#b]?)?/g;
+export const CHORD_TOKEN_RE = /[A-G][#b]?(maj7|maj9|maj|min7|min9|min|dim7|dim|m7b5|dim|aug|sus2|sus4|sus|add9|add|m|6|7|9|11|13|5|4|2|M)*(b5)?(\([^)]*\))?(\/[A-G][#b]?)?/g;
 
 // Strict chord regex — entire string must be a valid chord
-export const CHORD_STRICT_RE = /^[A-G][#b]?(maj7|maj9|maj|min7|min9|min|dim7|dim|m7b5|aug|sus2|sus4|sus|add9|add|6|7|9|11|13|5|4|2|M)*(b5)?(\([^)]*\))?(\/[A-G][#b]?)?$/;
+export const CHORD_STRICT_RE = /^[A-G][#b]?(maj7|maj9|maj|min7|min9|min|dim7|dim|m7b5|aug|sus2|sus4|sus|add9|add|m|6|7|9|11|13|5|4|2|M)*(b5)?(\([^)]*\))?(\/[A-G][#b]?)?$/;
 
 // Tablature line regex — matches lines like "e|---5---|" or "B|---3---|"
 export const TAB_LINE_RE = /^[eBGDAE]\|.*\|/;
