@@ -63,11 +63,9 @@ export function renderContent(content: string, showTablature: boolean, transpose
       const lyricIsChord = lyricTokens.length > 0 && lyricTokens.every((t: string) => CHORD_STRICT_RE.test(t));
       const hasLyric = lyricTrim && !lyricTrim.startsWith("[") && !TAB_LINE_RE.test(lyricTrim) && !lyricIsChord;
       if (hasLyric) {
-        // Render extra chord lines (above the last one) as chord-only
         for (let k = 0; k < chordLines.length - 1; k++) {
           result.push(renderPair(chordLines[k], "", kc++, transpose, onChord, theme));
         }
-        // Last chord line paired with lyric — renderPair respects original spacing
         result.push(renderPair(chordLines[chordLines.length - 1], lyricLine, kc++, transpose, onChord, theme));
         i = j + 1;
         continue;
