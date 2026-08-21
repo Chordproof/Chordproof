@@ -347,7 +347,7 @@ const INDEX_NOTE = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 const INDEX_NOTE_FLAT = ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"];
 
 export function transposeChord(chord: string, semitones: number): string {
-  if (!chord || semitones === 0) return chord;
+   if (!chord || !Number.isInteger(semitones) || semitones === 0) return chord;
 
   // Match the root note (including slash chord bass note)
   const re = /([A-G])([#b]?)/g;
