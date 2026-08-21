@@ -128,41 +128,41 @@ function autoGenerateFingers(shape: number[]): number[] {
 }
 
 function generateBarre(chord: string): { shape: number[] | null; fingers: number[] } {
-  const isMinor = /m(?!aj)/.test(chord);
-  const rootMatch = chord.match(/^([A-G][#b]?)/);
-  if (!rootMatch) return { shape: null, fingers: [-1,-1,-1,-1,-1,-1] };
-  const root = rootMatch[1];
-  const E_STRING: Record<string, number> = {
-    "E":0,"F":1,"F#":2,"Gb":2,"G":3,"G#":4,"Ab":4,"A":5,"A#":6,"Bb":6,
-    "B":7,"C":8,"C#":9,"Db":9,"D":10,"D#":11,"Eb":11
-  };
-  const A_STRING: Record<string, number> = {
-    "A":0,"A#":1,"Bb":1,"B":2,"C":3,"C#":4,"Db":4,"D":5,"D#":6,"Eb":6,
-    "E":7,"F":8,"F#":9,"Gb":9,"G":10,"G#":11,"Ab":11
-  };
-  const eFret = E_STRING[root];
-  if (eFret !== undefined && eFret > 0) {
-    if (isMinor) {
-      return { shape: [eFret,eFret+2,eFret+2,eFret,eFret,eFret], fingers: [1,3,4,1,1,1] };
+  try {
+    const isMinor = /m(?!aj)/.test(chord);
+    const rootMatch = chord.match(/^([A-G][#b]?)/);
+    if (!rootMatch) return { shape: null, fingers: [-1,-1,-1,-1,-1,-1] };
+    const root = rootMatch[1];
+    const E_STRING: Record<string, number> = { "E":0,"F":1,"F#":2,"Gb":2,"G":3,"G#":4,"Ab":4,"A":5,"A#":6,"Bb":6, "B":7,"C":8,"C#":9,"Db":9,"D":10,"D#":11,"Eb":11 };
+    const A_STRING: Record<string, number> = { "A":0,"A#":1,"Bb":1,"B":2,"C":3,"C#":4,"Db":4,"D":5,"D#":6,"Eb":6, "E":7,"F":8,"F#":9,"Gb":9,"G":10,"G#":11,"Ab":11 };
+    const eFret = E_STRING[root];
+    if (eFret !== undefined && eFret > 0) {
+      if (isMinor) {
+        return { shape: [eFret,eFret+2,eFret+2,eFret,eFret,eFret], fingers: [1,3,4,1,1,1] };
+      }
+      return { shape: [eFret,eFret+2,eFret+2,eFret+1,eFret,eFret], fingers: [1,3,4,2,1,1] };
     }
-    return { shape: [eFret,eFret+2,eFret+2,eFret+1,eFret,eFret], fingers: [1,3,4,2,1,1] };
-  }
-  const aFret = A_STRING[root];
-  if (aFret !== undefined && aFret > 0) {
-    if (isMinor) {
-      return { shape: [-1,aFret,aFret+2,aFret+2,aFret+1,aFret], fingers: [-1,1,2,3,4,1] };
+    const aFret = A_STRING[root];
+    if (aFret !== undefined && aFret > 0) {
+      if (isMinor) {
+        return { shape: [-1,aFret,aFret+2,aFret+2,aFret+1,aFret], fingers: [-1,1,2,3,4,1] };
+      }
+      return { shape: [-1,aFret,aFret+2,aFret+2,aFret+2,aFret], fingers: [-1,1,2,3,4,1] };
     }
-    return { shape: [-1,aFret,aFret+2,aFret+2,aFret+2,aFret], fingers: [-1,1,2,3,4,1] };
+    return { shape: null, fingers: [-1,-1,-1,-1,-1,-1] };
+  } catch (e) {
+    return { shape: null, fingers: [-1,-1,-1,-1,-1,-1] };
   }
-  return { shape: null, fingers: [-1,-1,-1,-1,-1,-1] };
 }
 
 function getVariations(chord: string): { shapes: number[][]; fingers: number[][] } {
   const base = CHORD_SHAPES[chord];
-  if (!base) return { shapes: [[-1,-1,-1,-1,-1,-1]], fingers: [[-1,-1,-1,-1,-1,-1]] };
+  if (!base || !Array.isArray(base) || base.length !== 6) {
+    return { shapes: [[-1,-1,-1,-1,-1,-1]], fingers: [[-1,-1,-1,-1,-1,-1]] };
+  }
   const baseFingers = CHORD_FINGERS[chord] || autoGenerateFingers(base);
   const barre = generateBarre(chord);
-  if (barre.shape) {
+  if (barre.shape && Array.isArray(barre.shape) && barre.shape.length === 6) {
     const shapesEqual = JSON.stringify(base) === JSON.stringify(barre.shape);
     if (shapesEqual) return { shapes: [base], fingers: [baseFingers] };
     return { shapes: [base, barre.shape], fingers: [baseFingers, barre.fingers] };
@@ -182,66 +182,45 @@ function FretboardSVG({ shape, fingers, theme }: { shape: number[]; fingers: num
   const woodGrad = "linear-gradient(180deg," + C.wood1 + " 0%," + C.wood2 + " 18%," + C.wood3 + " 40%," + C.wood4 + " 65%," + C.wood5 + " 100%)";
 
   return (
-    <div style={{
-      width: "130px", background: woodGrad, borderRadius: "4px", padding: "8px",
-      boxShadow: "0 4px 12px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,200,100,0.1), inset 0 -1px 0 rgba(0,0,0,0.3)",
-    }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", marginBottom: "2px" }}>
-        {shape.map((f: number, i: number) => (
-          <div key={i} style={{ textAlign: "center", fontSize: "12px", color: f === -1 ? C.x : f === 0 ? C.o : "transparent", fontWeight: 700, height: "16px", lineHeight: "16px" }}>
-            {f === -1 ? "×" : f === 0 ? "○" : ""}
-          </div>
-        ))}
-      </div>
-      <div style={{
-        height: "5px",
-        background: "linear-gradient(180deg," + C.nut1 + "," + C.nut2 + "," + C.nut3 + ")",
-        borderRadius: "2px",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3)",
-      }} />
-      {frets.map((fret: number, fi: number) => (
-        <div key={fret} style={{ position: "relative", height: fretH + "px",
-          background: fi % 2 === 0 ? "rgba(0,0,0,0.04)" : "transparent",
-        }}>
-          <div style={{
-            position: "absolute", top: "0", left: "-2px", right: "-2px", height: "2px",
-            background: "linear-gradient(180deg," + C.fret1 + "," + C.fret2 + "," + C.fret3 + ")",
-            boxShadow: "0 1px 1px rgba(0,0,0,0.3), 0 -1px 0 rgba(255,255,255,0.05)",
-          }} />
-          {shape.map((f: number, i: number) => (
-            <div key={i} style={{
-              position: "absolute", left: ((i + 0.5) / 6 * 100) + "%", top: "-1px", bottom: "-1px",
-              width: stringW[i] + "px", marginLeft: -(stringW[i] / 2) + "px",
-              background: i < 3
-                ? "linear-gradient(90deg," + C.strThick1 + ",#ffffff 40%," + C.strThick2 + " 60%," + C.strThick1 + ")"
-                : "linear-gradient(90deg," + C.strThin1 + ",#ffffff 40%," + C.strThin2 + " 60%," + C.strThin1 + ")",
-              borderRadius: "1px",
-              boxShadow: "0 0 2px rgba(0,0,0,0.5), 0 1px 1px rgba(0,0,0,0.2)",
-            }} />
-          ))}
-          {shape.map((f: number, i: number) => (
-            f === fret ? (
-              <div key={"d" + i} style={{
-                position: "absolute", left: ((i + 0.5) / 6 * 100) + "%", top: "50%",
-                width: dotSize + "px", height: dotSize + "px",
-                marginLeft: -(dotSize / 2) + "px", marginTop: -(dotSize / 2) + "px",
-                borderRadius: "50%",
-                background: "radial-gradient(circle at 28% 22%," + C.dotHi + " 0%," + C.dot + " 40%," + C.dot + " 65%,rgba(0,0,0,0.7) 100%)",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.6), 0 0 6px " + C.dotGlow + ", inset 0 -2px 3px rgba(0,0,0,0.35), inset 0 2px 2px rgba(255,255,255,0.5)",
-                zIndex: "2", display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                <span style={{ color: "#fff", fontSize: "10px", fontWeight: 700, lineHeight: 1, textShadow: "0 1px 1px rgba(0,0,0,0.5)" }}>
-                  {fingers[i] || ""}
-                </span>
-              </div>
-            ) : null
-          ))}
-        </div>
+    <svg width="110" height="150" viewBox="0 0 110 150" style={{ display: "block" }}>
+      {/* Wood background */}
+      <rect x="0" y="0" width="110" height="150" rx="6" fill={woodGrad} />
+      {/* Nut */}
+      <rect x="0" y="0" width="110" height="6" fill={C.nut1} />
+      {/* Frets */}
+      {frets.map((fret, fi) => (
+        <line key={fi} x1="0" y1={6 + (fi + 1) * fretH} x2="110" y2={6 + (fi + 1) * fretH} stroke={C.fret1} strokeWidth="2" />
       ))}
+      {/* Strings */}
+      {shape.map((f, i) => (
+        <line key={i} x1={12 + i * 17} y1="6" x2={12 + i * 17} y2="150" stroke={i < 3 ? C.strThick1 : C.strThin1} strokeWidth={i < 3 ? 2.5 : 1.5} />
+      ))}
+      {/* X / O markers */}
+      {shape.map((f, i) => (
+        <text key={"m" + i} x={12 + i * 17} y="14" textAnchor="middle" fontSize="9" fill={f === -1 ? C.x : f === 0 ? C.o : "transparent"} fontWeight="bold">
+          {f === -1 ? "×" : f === 0 ? "○" : ""}
+        </text>
+      ))}
+      {/* Dots */}
+      {shape.map((f, i) => {
+        if (f <= 0) return null;
+        const fretIdx = f - baseFret;
+        const y = 6 + fretIdx * fretH - fretH / 2;
+        return (
+          <g key={"d" + i}>
+            <circle cx={12 + i * 17} cy={y} r={dotSize / 2} fill={C.dot} opacity="0.35" />
+            <circle cx={12 + i * 17} cy={y} r={dotSize / 2 - 2} fill={C.dotHi} />
+            <text x={12 + i * 17} y={y + 3} textAnchor="middle" fontSize="8" fill="#000" fontWeight="bold">
+              {fingers[i] || ""}
+            </text>
+          </g>
+        );
+      })}
+      {/* Base fret label */}
       {baseFret > 0 && (
-        <div style={{ textAlign: "right", fontSize: "10px", color: C.muted, marginTop: "2px" }}>{baseFret + 1}fr</div>
+        <text x="104" y="20" textAnchor="end" fontSize="8" fill={C.text} fontWeight="bold">{baseFret + 1}fr</text>
       )}
-    </div>
+    </svg>
   );
 }
 
@@ -251,33 +230,19 @@ export function MiniFretboard({ chord, theme }: { chord: string; theme: typeof T
   const [varIdx, setVarIdx] = useState(0);
   const shape = shapes[varIdx] || shapes[0];
   const finger = fingers[varIdx] || fingers[0];
-  const woodGrad = "linear-gradient(180deg," + C.wood1 + " 0%," + C.wood2 + " 18%," + C.wood3 + " 40%," + C.wood4 + " 65%," + C.wood5 + " 100%)";
 
   return (
-    <div style={{
-      background: woodGrad, borderRadius: "8px", width: "146px",
-      boxShadow: "0 6px 20px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,200,100,0.1), inset 0 -1px 0 rgba(0,0,0,0.4)",
-      overflow: "hidden", border: "2px solid " + C.border,
-    }}>
-      <div style={{ background: "rgba(0,0,0,0.2)", padding: "6px 8px", borderBottom: "1px solid rgba(0,0,0,0.3)", textAlign: "center" }}>
-        <span style={{ color: C.text, fontWeight: "bold", fontSize: "15px", textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>{chord}</span>
-      </div>
-      <div style={{ padding: "8px", display: "flex", justifyContent: "center" }}>
-        <FretboardSVG shape={shape} fingers={finger} theme={theme} />
-      </div>
-      <div style={{
-        background: "rgba(0,0,0,0.25)", borderTop: "1px solid rgba(0,0,0,0.3)", padding: "4px 8px",
-        display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-      }}>
+    <div style={{ background: "#1a1a2e", border: "1px solid #333", borderRadius: "12px", padding: "8px", boxShadow: "0 8px 24px rgba(0,0,0,0.6)", minWidth: "120px" }}>
+      <div style={{ textAlign: "center", color: C.text, fontWeight: 700, fontSize: "14px", marginBottom: "4px" }}>{chord}</div>
+      <FretboardSVG shape={shape} fingers={finger} theme={theme} />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginTop: "4px" }}>
         <button
           onClick={(e) => { e.stopPropagation(); setVarIdx((varIdx - 1 + shapes.length) % shapes.length); }}
           style={{ background: "none", border: "none", cursor: "pointer", padding: "2px", color: C.muted, display: "flex" }}
         >
           <ChevronLeft size={14} />
         </button>
-        <span style={{ fontSize: "10px", color: C.muted, fontWeight: 600 }}>
-          Variation {varIdx + 1} of {shapes.length}
-        </span>
+        <span style={{ color: C.muted, fontSize: "10px" }}>Variation {varIdx + 1} of {shapes.length}</span>
         <button
           onClick={(e) => { e.stopPropagation(); setVarIdx((varIdx + 1) % shapes.length); }}
           style={{ background: "none", border: "none", cursor: "pointer", padding: "2px", color: C.muted, display: "flex" }}
@@ -304,85 +269,29 @@ export function ChordDiagram({ chord, onClose, theme }: { chord: string; onClose
   const woodGrad = "linear-gradient(180deg," + C.wood1 + " 0%," + C.wood2 + " 18%," + C.wood3 + " 40%," + C.wood4 + " 65%," + C.wood5 + " 100%)";
 
   return (
-    <div style={{ position: "fixed", inset: "0", zIndex: "9999", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.85)", padding: "16px" }} onClick={onClose}>
-      <div style={{
-        background: woodGrad, borderRadius: "12px", overflow: "hidden",
-        boxShadow: "0 8px 40px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,200,100,0.1), inset 0 -1px 0 rgba(0,0,0,0.4)",
-        border: "3px solid " + C.border,
-      }} onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", background: "rgba(0,0,0,0.2)", borderBottom: "1px solid rgba(0,0,0,0.3)" }}>
-          <span style={{ color: C.text, fontWeight: "bold", fontSize: "24px", textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>{chord}</span>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%", width: "36px", height: "36px", color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <X size={18} />
-          </button>
-        </div>
-        <div style={{ padding: "24px", display: "flex", justifyContent: "center" }}>
-          <div style={{ width: "240px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", marginBottom: "4px" }}>
-              {shape.map((f: number, i: number) => (
-                <div key={i} style={{ textAlign: "center", fontSize: "20px", color: f === -1 ? C.x : f === 0 ? C.o : "transparent", fontWeight: 700 }}>
-                  {f === -1 ? "×" : f === 0 ? "○" : ""}
-                </div>
-              ))}
-            </div>
-            <div style={{
-              height: "8px",
-              background: "linear-gradient(180deg," + C.nut1 + "," + C.nut2 + "," + C.nut3 + ")",
-              borderRadius: "2px",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.4)",
-            }} />
-            {frets.map((fret: number, fi: number) => (
-              <div key={fret} style={{ position: "relative", height: "48px",
-                background: fi % 2 === 0 ? "rgba(0,0,0,0.05)" : "transparent",
-              }}>
-                <div style={{
-                  position: "absolute", top: "0", left: "-3px", right: "-3px", height: "3px",
-                  background: "linear-gradient(180deg," + C.fret1 + "," + C.fret2 + "," + C.fret3 + ")",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.4), 0 -1px 0 rgba(255,255,255,0.06)",
-                }} />
-                {shape.map((f: number, i: number) => (
-                  <div key={i} style={{
-                    position: "absolute", left: ((i + 0.5) / 6 * 100) + "%", top: "-1px", bottom: "-1px",
-                    width: stringW[i] + "px", marginLeft: -(stringW[i] / 2) + "px",
-                    background: i < 3
-                      ? "linear-gradient(90deg," + C.strThick1 + ",#ffffff 40%," + C.strThick2 + " 60%," + C.strThick1 + ")"
-                      : "linear-gradient(90deg," + C.strThin1 + ",#ffffff 40%," + C.strThin2 + " 60%," + C.strThin1 + ")",
-                    borderRadius: "1px",
-                    boxShadow: "0 0 3px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.2)",
-                  }} />
-                ))}
-                {shape.map((f: number, i: number) => (
-                  f === fret ? (
-                    <div key={"d" + i} style={{
-                      position: "absolute", left: ((i + 0.5) / 6 * 100) + "%", top: "50%",
-                      width: dotSize + "px", height: dotSize + "px",
-                      marginLeft: -(dotSize / 2) + "px", marginTop: -(dotSize / 2) + "px",
-                      borderRadius: "50%",
-                      background: "radial-gradient(circle at 28% 22%," + C.dotHi + " 0%," + C.dot + " 40%," + C.dot + " 65%,rgba(0,0,0,0.7) 100%)",
-                      boxShadow: "0 3px 6px rgba(0,0,0,0.6), 0 0 10px " + C.dotGlow + ", inset 0 -3px 4px rgba(0,0,0,0.35), inset 0 3px 3px rgba(255,255,255,0.5)",
-                      zIndex: "2", display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      <span style={{ color: "#fff", fontSize: "16px", fontWeight: 700, lineHeight: 1, textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>
-                        {finger[i] || ""}
-                      </span>
-                    </div>
-                  ) : null
-                ))}
-              </div>
-            ))}
-            {baseFret > 0 && <div style={{ textAlign: "right", fontSize: "14px", color: C.muted, marginTop: "6px" }}>Starting at fret {baseFret + 1}</div>}
-          </div>
-        </div>
-        <div style={{ background: "rgba(0,0,0,0.25)", borderTop: "1px solid rgba(0,0,0,0.3)", padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: "16px" }}>
-          <button onClick={() => setVarIdx((varIdx - 1 + shapes.length) % shapes.length)} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%", width: "32px", height: "32px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
-            <ChevronLeft size={18} />
-          </button>
-          <span style={{ fontSize: "13px", color: C.muted, fontWeight: 600 }}>Variation {varIdx + 1} of {shapes.length}</span>
-          <button onClick={() => setVarIdx((varIdx + 1) % shapes.length)} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%", width: "32px", height: "32px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
-            <ChevronRight size={18} />
-          </button>
-        </div>
-        <p style={{ color: C.muted, fontSize: "11px", textAlign: "center", padding: "8px" }}>Click anywhere to close</p>
+    <div onClick={(e) => e.stopPropagation()} style={{ background: "#1a1a2e", border: "1px solid #333", borderRadius: "16px", padding: "16px", boxShadow: "0 12px 40px rgba(0,0,0,0.7)", minWidth: "220px" }}>
+      <div style={{ textAlign: "center", color: C.text, fontWeight: 700, fontSize: "20px", marginBottom: "8px" }}>{chord}</div>
+      <FretboardSVG shape={shape} fingers={finger} theme={theme} />
+      {baseFret > 0 && (
+        <div style={{ textAlign: "center", color: C.muted, fontSize: "11px", marginTop: "4px" }}>Starting at fret {baseFret + 1}</div>
+      )}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", marginTop: "8px" }}>
+        <button
+          onClick={() => setVarIdx((varIdx - 1 + shapes.length) % shapes.length)}
+          style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%", width: "32px", height: "32px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <span style={{ color: C.muted, fontSize: "12px" }}>Variation {varIdx + 1} of {shapes.length}</span>
+        <button
+          onClick={() => setVarIdx((varIdx + 1) % shapes.length)}
+          style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%", width: "32px", height: "32px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+      <div style={{ textAlign: "center", marginTop: "8px" }}>
+        <button onClick={onClose} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: "12px" }}>Click anywhere to close</button>
       </div>
     </div>
   );
@@ -391,10 +300,12 @@ export function ChordDiagram({ chord, onClose, theme }: { chord: string; onClose
 export function ChordSpan({ chord, onClick, theme }: { chord: string; onClick: (chord: string) => void; theme: typeof THEMES[ThemeKey] }) {
   const [showTip, setShowTip] = useState(false);
   return (
-    <span style={{ position: "relative", display: "inline-block", color: "#f0b429", fontWeight: 700, cursor: "pointer" }}
+    <span
+      style={{ position: "relative", display: "inline-block", color: "#f0b429", fontWeight: 700, cursor: "pointer" }}
       onMouseEnter={() => setShowTip(true)}
       onMouseLeave={() => setShowTip(false)}
-      onClick={() => onClick(chord)}>
+      onClick={() => onClick(chord)}
+    >
       {chord}
       {showTip && (
         <span style={{ position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)", marginBottom: "8px", zIndex: "9999", display: "block" }}>
