@@ -145,7 +145,7 @@ export function transposeChord(chord: string, semitones: number): string {
 }
 
 // === CHORDS USED IN CONTENT ===
-export function chordsUsed(content: string): string[] {
+export function chordsUsed(content: string, transpose: number = 0): string[] {
   if (!content) return [];
   const chords = new Set<string>();
   const lines = content.split("\n");
@@ -157,7 +157,8 @@ export function chordsUsed(content: string): string[] {
     const isChordLine = tokens.length > 0 && tokens.every(t => CHORD_STRICT_RE.test(t));
     if (isChordLine) {
       for (const t of tokens) {
-        chords.add(t);
+        const transposed = transposeChord(t, transpose);
+        chords.add(transposed);
       }
     }
   }
