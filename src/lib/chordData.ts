@@ -3,7 +3,7 @@
 export const SHARP = "#";
 
 // Regex patterns
-export const CHORD_TOKEN_RE = /[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|6|7|9|11|13|5|4|2|M)*\d*(?:\/[A-G][#b]?)?/g;
+export const CHORD_TOKEN_RE = /([A-G][#b]?(?:m|maj|min|dim|aug|sus|add|6|7|9|11|13|5|4|2|M)*\d*(?:\/[A-G][#b]?)?)/g;
 export const CHORD_STRICT_RE = /^[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|6|7|9|11|13|5|4|2|M)*\d*(?:\/[A-G][#b]?)?$/;
 export const TAB_LINE_RE = /^[eBGDAE]\|.*\|/;
 
