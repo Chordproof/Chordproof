@@ -385,7 +385,7 @@ export function transposeChord(chord: string, semitones: number): string {
 // CHORDS USED — extract unique chords from content
 // ============================================
 
-export function chordsUsed(content: string): string[] {
+export function chordsUsed(content: string, transpose: number = 0): string[] {
   if (!content) return [];
   const lines = content.split("\n");
   const chords = new Set<string>();
