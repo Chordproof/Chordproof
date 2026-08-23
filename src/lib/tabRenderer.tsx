@@ -14,10 +14,18 @@ export function renderPair(chordLine: string, lyricLine: string, key: number, tr
   while ((m = re.exec(chordLine)) !== null) {
     if (m[0] === "") { re.lastIndex++; continue; }
     if (m.index > li) parts.push(<span key={"sp" + c} style={{ color: "transparent" }}>{chordLine.slice(li, m.index)}</span>);
-    const ch = transposeChord(m[1], transpose);
+    const ch = transposeChord(m[0], transpose);
     parts.push(<ChordSpan key={c++} chord={ch} onClick={onChord} theme={theme} />);
-    li = m.index + m[1].length;
+    li = m.index + m[0].length;
   }
+  if (li < chordLine.length) parts.push(<span key="rest" style={{ color: "transparent" }}>{chordLine.slice(li)}</span>);
+  return (
+    <div key={key} style={{ marginBottom: "2px" }}>
+      <div style={{ whiteSpace: "pre-wrap", fontFamily: "monospace", lineHeight: "1.4em", height: lyricLine ? "1.4em" : "auto" }}>{parts}</div>
+      {lyricLine && <div style={{ whiteSpace: "pre-wrap", lineHeight: "1.6em", fontFamily: "monospace", color: "#e0e0e0" }}>{lyricLine}</div>}
+    </div>
+  );
+}
   if (li < chordLine.length) parts.push(<span key="rest" style={{ color: "transparent" }}>{chordLine.slice(li)}</span>);
   return (
     <div key={key} style={{ marginBottom: "2px" }}>
