@@ -26,14 +26,6 @@ export function renderPair(chordLine: string, lyricLine: string, key: number, tr
     </div>
   );
 }
-  if (li < chordLine.length) parts.push(<span key="rest" style={{ color: "transparent" }}>{chordLine.slice(li)}</span>);
-  return (
-    <div key={key} style={{ marginBottom: "2px" }}>
-      <div style={{ whiteSpace: "pre-wrap", fontFamily: "monospace", lineHeight: "1.4em", height: lyricLine ? "1.4em" : "auto" }}>{parts}</div>
-      {lyricLine && <div style={{ whiteSpace: "pre-wrap", lineHeight: "1.6em", fontFamily: "monospace", color: "#e0e0e0" }}>{lyricLine}</div>}
-    </div>
-  );
-}
 
 export function hasInlineTablature(content: string): boolean {
   if (!content) return false;
