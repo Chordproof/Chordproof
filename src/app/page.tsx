@@ -19,23 +19,27 @@ export default async function HomePage() {
   // Trending: top 10 tabs por views
   const { data: trendingTabs } = await supabase
     .from("tabs")
-    .select("song, artist, slug_artist, slug_song, difficulty, key_sig, views, artist_image_url")
+    .select("song, artist, slug_artist, slug_song, difficulty, key_sig, views")
     .order("views", { ascending: false })
     .limit(10);
 
-  // Popular artists: agrupa por artista e conta tabs
+  // Artistas populares: agrupa por artista, soma views e conta tabs
   const { data: allTabs } = await supabase
     .from("tabs")
-    .select("artist, slug_artist, artist_image_url");
+    .select("artist, slug_artist, artist_image_url, views");
 
-  const artistMap = new Map<string, { name: string; slug: string; tabs: number; image: string | null }>();
+  const artistMap = new Map<string, { name: string; slug: string; tabs: number; views: number; image: string | null }>();
   (allTabs || []).forEach((t) => {
     if (!artistMap.has(t.slug_artist)) {
-      artistMap.set(t.slug_artist, { name: t.artist, slug: t.slug_artist, tabs: 0, image: t.artist_image_url });
+      artistMap.set(t.slug_artist, { name: t.artist, slug: t.slug_artist, tabs: 0, views: 0, image: t.artist_image_url });
     }
-    artistMap.get(t.slug_artist)!.tabs += 1;
+    const entry = artistMap.get(t.slug_artist)!;
+    entry.tabs += 1;
+    entry.views += t.views || 0;
   });
-  const popularArtists = Array.from(artistMap.values()).sort((a, b) => b.tabs - a.tabs).slice(0, 8);
+  const popularArtists = Array.from(artistMap.values())
+    .sort((a, b) => b.views - a.views)
+    .slice(0, 12);
 
   const formatViews = (v: number | null) => {
     if (!v) return "0";
@@ -124,35 +128,34 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Popular Artists */}
-      <section className="space-y-6 mt-12">
+      {/* Popular Artists — círculos grandes com foto e nome embaixo */}
+      <section className="space-y-8 mt-12">
         <div className="flex items-center gap-3">
           <Users size={24} className="text-brand-gold" />
           <div>
-            <h2 className="text-3xl font-bold">Popular Artists</h2>
-            <p className="text-brand-muted text-sm">Most searched artists this month</p>
+            <h2 className="text-3xl font-bold">Artistas Populares</h2>
+            <p className="text-brand-muted text-sm">Os artistas mais vistos do site</p>
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
           {popularArtists.map((artist) => (
             <Link
               key={artist.slug}
               href={`/artist/${artist.slug}`}
-              className="flex items-center justify-between px-5 py-4 bg-brand-card rounded-xl border border-white/5 hover:border-brand-gold/30 hover:bg-white/5 transition group"
+              className="flex flex-col items-center gap-3 text-center group"
             >
-              <div className="flex items-center gap-3">
-                {artist.image ? (
-                  <img
-                    src={artist.image}
-                    alt={artist.name}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                ) : (
-                  <Music size={18} className="text-brand-muted group-hover:text-brand-gold transition" />
-                )}
-                <span className="font-semibold group-hover:text-brand-gold transition">{artist.name}</span>
-              </div>
-              <span className="text-xs text-brand-muted">{artist.tabs} tabs</span>
+              {artist.image ? (
+                <img
+                  src={artist.image}
+                  alt={artist.name}
+                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover ring-2 ring-white/10 group-hover:ring-brand-gold/50 group-hover:scale-105 transition"
+                />
+              ) : (
+                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-brand-card border border-white/10 flex items-center justify-center group-hover:border-brand-gold/30 transition">
+                  <Music size={32} className="text-brand-muted group-hover:text-brand-gold transition" />
+                </div>
+              )}
+              <span className="font-semibold group-hover:text-brand-gold transition text-sm leading-tight">{artist.name}</span>
             </Link>
           ))}
         </div>
