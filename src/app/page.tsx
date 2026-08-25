@@ -1,6 +1,6 @@
 import SearchBar from "@/components/SearchBar";
 import Link from "next/link";
-import { TrendingUp, ArrowRight, Music, Search, Flame, Users } from "lucide-react";
+import { TrendingUp, ArrowRight, Music, Search, Flame, Users, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 const GENRES = [
