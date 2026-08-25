@@ -19,7 +19,7 @@ export default async function HomePage() {
   // Trending: top 10 tabs por views
   const { data: trendingTabs } = await supabase
     .from("tabs")
-    .select("song, artist, slug_artist, slug_song, difficulty, key_sig, views")
+    .select("song, artist, slug_artist, slug_song, difficulty, key_sig, views, is_verified")
     .order("views", { ascending: false })
     .limit(12);
 
