@@ -21,7 +21,7 @@ export default async function HomePage() {
     .from("tabs")
     .select("song, artist, slug_artist, slug_song, difficulty, key_sig, views")
     .order("views", { ascending: false })
-    .limit(10);
+    .limit(12);
 
   // Artistas populares: agrupa por artista, soma views e conta tabs
   const { data: allTabs } = await supabase
