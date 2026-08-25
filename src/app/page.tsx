@@ -85,7 +85,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Trending This Week */}
+     {/* Trending This Week — 3 colunas estilo Cifra Club */}
       <section className="space-y-6 mt-12">
         <div className="flex justify-between items-end">
           <div className="flex items-center gap-3">
@@ -99,30 +99,23 @@ export default async function HomePage() {
             View all <ArrowRight size={16} />
           </Link>
         </div>
-        <div className="bg-brand-card rounded-2xl border border-white/5 overflow-hidden">
+        <div className="columns-1 md:columns-2 xl:columns-3 gap-4">
           {(trendingTabs || []).map((tab, idx) => (
             <Link
               key={`${tab.slug_artist}-${tab.slug_song}`}
               href={`/tab/${tab.slug_artist}/${tab.slug_song}`}
-              className={`flex items-center gap-4 px-6 py-4 hover:bg-white/5 transition group ${idx !== (trendingTabs?.length ?? 0) - 1 ? "border-b border-white/5" : ""}`}
+              className="break-inside-avoid flex items-center gap-3 px-4 py-3 mb-3 bg-brand-card rounded-xl border border-white/5 hover:border-brand-gold/30 hover:bg-white/5 transition group"
             >
-              <span className={`text-2xl font-bold w-10 text-center ${idx < 3 ? "text-brand-gold" : "text-brand-muted"}`}>
+              <span className={`text-xl font-bold w-8 text-center flex-shrink-0 ${idx < 3 ? "text-brand-gold" : "text-brand-muted"}`}>
                 {idx + 1}
               </span>
               <div className="flex-grow min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-lg group-hover:text-brand-gold transition truncate">{tab.song}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded ${DIFFICULTY_COLORS[tab.difficulty]}`}>{tab.difficulty}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold truncate group-hover:text-brand-gold transition">{tab.song}</span>
+                  {tab.is_verified && <CheckCircle2 size={14} className="text-blue-400 flex-shrink-0" />}
                 </div>
-                <p className="text-brand-muted text-sm capitalize">{tab.artist}</p>
+                <p className="text-xs text-brand-muted truncate">{tab.artist}</p>
               </div>
-              <div className="hidden sm:flex items-center gap-4 flex-shrink-0">
-                <span className="text-xs text-brand-muted">Key: <strong className="text-white">{tab.key_sig}</strong></span>
-                <span className="text-xs text-brand-muted flex items-center gap-1">
-                  <TrendingUp size={12} /> {formatViews(tab.views)}
-                </span>
-              </div>
-              <ArrowRight size={18} className="text-brand-muted group-hover:text-brand-gold transition flex-shrink-0" />
             </Link>
           ))}
         </div>
