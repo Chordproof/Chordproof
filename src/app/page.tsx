@@ -35,7 +35,7 @@ export default async function HomePage() {
     }
     artistMap.get(t.slug_artist)!.tabs += 1;
   });
-  const popularArtists = [...artistMap.values()].sort((a, b) => b.tabs - a.tabs).slice(0, 8);
+  const popularArtists = Array.from(artistMap.values()).sort((a, b) => b.tabs - a.tabs).slice(0, 8);
 
   const formatViews = (v: number | null) => {
     if (!v) return "0";
