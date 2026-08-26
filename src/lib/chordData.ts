@@ -312,6 +312,16 @@ CHORD_SHAPES["D9(11+)"] = [-1,-1,0,2,1,4];
 CHORD_SHAPES["C2sus4"] = [-1,3,3,0,3,3];
 
 // ============================================
+// SLASH / INVERTED & SPECIAL CHORDS
+// ============================================
+CHORD_SHAPES["C9/B"] = [-1,2,2,3,3,3];
+CHORD_SHAPES["F7M/C"] = [-1,3,2,2,1,0];
+CHORD_SHAPES["E/G#"] = [0,1,2,1,0,0];
+CHORD_SHAPES["C7M"] = [-1,3,2,0,0,0];
+CHORD_SHAPES["D6(9)/F#"] = [-1,2,0,2,0,0];
+CHORD_SHAPES["D9(11)/F#"] = [-1,2,0,2,1,0];
+
+// ============================================
 // REGEX PATTERNS
 // NOTE: alternation order matters — longer matches FIRST
 // ============================================
