@@ -320,7 +320,15 @@ CHORD_SHAPES["E/G#"] = [0,1,2,1,0,0];
 CHORD_SHAPES["C7M"] = [-1,3,2,0,0,0];
 CHORD_SHAPES["D6(9)/F#"] = [-1,2,0,2,0,0];
 CHORD_SHAPES["D9(11)/F#"] = [-1,2,0,2,1,0];
-
+CHORD_SHAPES["C/B"] = [-1,2,0,0,1,0];
+CHORD_SHAPES["D/F#"] = [2,-1,0,2,3,2];
+CHORD_SHAPES["D/F"] = [0,-1,0,2,3,2];
+CHORD_SHAPES["B7"] = [-1,2,1,2,0,2];
+CHORD_SHAPES["A7"] = [-1,0,2,0,2,0];
+CHORD_SHAPES["Am7"] = [-1,0,2,0,1,0];
+CHORD_SHAPES["Em/B"] = [-1,2,2,0,0,0];
+CHORD_SHAPES["D7M"] = [-1,-1,0,2,2,2];
+CHORD_SHAPES["F7M"] = [-1,-1,3,2,1,0];
 // ============================================
 // REGEX PATTERNS
 // NOTE: alternation order matters — longer matches FIRST
