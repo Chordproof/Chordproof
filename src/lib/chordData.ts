@@ -1,10 +1,9 @@
 // chordData.ts — Complete chord library for ChordProof
-
 export const SHARP = "#";
 export const FLAT = "b";
 
 // Chord shapes: [E, A, D, G, B, e] — -1 = mute, 0 = open, n = fret
-export const CHORD_SHAPES: Record<string, number[]> = {};
+export const CHORD_SHAPES: Record = {};
 
 // ============================================
 // MAJOR CHORDS (all 12 keys)
@@ -329,6 +328,7 @@ CHORD_SHAPES["Am7"] = [-1,0,2,0,1,0];
 CHORD_SHAPES["Em/B"] = [-1,2,2,0,0,0];
 CHORD_SHAPES["D7M"] = [-1,-1,0,2,2,2];
 CHORD_SHAPES["F7M"] = [-1,-1,3,2,1,0];
+
 // ============================================
 // POWER CHORDS — notação com bemol (flat)
 // ============================================
@@ -341,9 +341,9 @@ CHORD_SHAPES["Gb5"] = [2,4,4,-1,-1,-1];
 // SLASH CHORDS — adicionais
 // ============================================
 CHORD_SHAPES["Am/E"] = [0,0,2,2,1,0];
+
 // ============================================
 // ADIÇÕES SEGURAS — acordes que faltavam
-// (formato de atribuição, igual ao restante do arquivo)
 // ============================================
 CHORD_SHAPES["A/C#"] = [-1,4,2,2,2,0];
 CHORD_SHAPES["A/E"] = [-1,0,2,2,2,0];
@@ -422,6 +422,7 @@ CHORD_SHAPES["Am9(11)"] = [-1,0,2,0,0,0];
 CHORD_SHAPES["Am7(6)"] = [-1,0,2,0,1,0];
 CHORD_SHAPES["C7/E"] = [0,3,2,3,1,0];
 CHORD_SHAPES["C/D"] = [-1,-1,0,2,1,0];
+
 // ============================================
 // VALIDADOS com fonte (seguros)
 // ============================================
@@ -433,42 +434,14 @@ CHORD_SHAPES["Gm6"] = [3,-1,2,3,3,3];        // Gm6
 CHORD_SHAPES["Gm7(11)"] = [3,-1,0,3,3,1];    // Gm11
 CHORD_SHAPES["Bb7(13)"] = [-1,1,3,1,3,1];    // Bb13
 CHORD_SHAPES["F#11"] = [-1,4,4,4,4,2];       // F#11
-CHORD_SHAPES["Bb9/D"] = [-1,-1,0,1,3,1];   // Bb9 com baixo em D
-CHORD_SHAPES["Bb2"] = [6,8,8,7,8,8];       // Bbadd9 (Bb D F C)
-CHORD_SHAPES["C6(9)"] = [-1,3,2,2,3,0];    // C6/9 (C E A D E)
-// ChordDiagram.tsx
-import { CHORD_SHAPES } from "./chordData";
+CHORD_SHAPES["Bb9/D"] = [-1,-1,0,1,3,1];     // Bb9 com baixo em D
+CHORD_SHAPES["Bb2"] = [6,8,8,7,8,8];         // Bbadd9 (Bb D F C)
+CHORD_SHAPES["C6(9)"] = [-1,3,2,2,3,0];      // C6/9 (C E A D E)
 
-interface ChordDiagramProps {
-  chord: string;
-  size?: number; // largura do diagrama em px
-}
-
-export function ChordDiagram({ chord, size = 100 }: ChordDiagramProps) {
-  const shape = CHORD_SHAPES[chord];
-
-  // FALLBACK: acorde sem shape registrado
-  // → mostra só o nome em destaque, sem diagrama quebrado
-  if (!shape) {
-    return (
-      <span
-        className="chord-name-fallback"
-        style={{ fontSize: size * 0.18, fontWeight: 700 }}
-        title={`Sem diagrama disponível para ${chord}`}
-      >
-        {chord}
-      </span>
-    );
-  }
-
-  // ... renderização normal do diagrama (fretboard) com `shape` ...
-  return <Fretboard shape={shape} size={size} />;
-}
 // ============================================
 // REGEX PATTERNS
 // NOTE: alternation order matters — longer matches FIRST
 // ============================================
-
 // Matches a chord token within a line of text
 export const CHORD_TOKEN_RE = /[A-G][#b]?(maj7|maj9|maj|min7|min9|min|dim7|dim|m7b5|dim|aug|sus2|sus4|sus|add9|add|m|6|7|9|11|13|5|4|2|M)*(b5)?(\([^)]*\))?(\/[A-G][#b]?)?/g;
 
@@ -481,45 +454,37 @@ export const TAB_LINE_RE = /^[eBGDAE]\|.*\|/;
 // ============================================
 // TRANSPOSE FUNCTION
 // ============================================
-
-const NOTE_INDEX: Record<string, number> = {
+const NOTE_INDEX: Record = {
   "C": 0, "C#": 1, "Db": 1, "D": 2, "D#": 3, "Eb": 3,
-  "E": 4, "F": 5, "F#": 6, "Gb": 6, "G": 7, "G#": 8, "Ab": 8,
-  "A": 9, "A#": 10, "Bb": 10, "B": 11
+  "E": 4, "F": 5, "F#": 6, "Gb": 6, "G": 7, "G#": 8,
+  "Ab": 8, "A": 9, "A#": 10, "Bb": 10, "B": 11
 };
-
 const INDEX_NOTE = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 const INDEX_NOTE_FLAT = ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"];
 
 export function transposeChord(chord: string, semitones: number): string {
   if (!chord) return chord;
   if (!Number.isInteger(semitones) || semitones === 0) return chord;
-
   try {
     const re = /([A-G])([#b]?)/g;
     let result = chord;
     let match: RegExpExecArray | null;
     const replacements: { index: number; replacement: string }[] = [];
-
     while ((match = re.exec(chord)) !== null) {
       const noteName = match[1] + (match[2] || "");
       const idx = NOTE_INDEX[noteName];
       if (idx === undefined) continue;
-
       const newIdx = ((idx + semitones) % 12 + 12) % 12;
       const useFlat = match[2] === "b";
       const newNote = useFlat ? INDEX_NOTE_FLAT[newIdx] : INDEX_NOTE[newIdx];
-
       replacements.push({ index: match.index, replacement: newNote });
     }
-
     for (let i = replacements.length - 1; i >= 0; i--) {
       const r = replacements[i];
       const matchedText = chord.substring(r.index).match(/^[A-G][#b]?/);
       const len = matchedText ? matchedText[0].length : 1;
       result = result.substring(0, r.index) + r.replacement + result.substring(r.index + len);
     }
-
     return result;
   } catch (e) {
     return chord;
@@ -529,18 +494,15 @@ export function transposeChord(chord: string, semitones: number): string {
 // ============================================
 // CHORDS USED — extract unique chords from content
 // ============================================
-
 export function chordsUsed(content: string, transpose: number = 0): string[] {
   if (!content) return [];
   const lines = content.split("\n");
-  const chords = new Set<string>();
-
+  const chords = new Set();
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
     if (trimmed.startsWith("[") && trimmed.endsWith("]")) continue;
     if (TAB_LINE_RE.test(trimmed)) continue;
-
     const tokens = trimmed.split(/\s+/).filter(Boolean);
     for (const token of tokens) {
       if (CHORD_STRICT_RE.test(token)) {
@@ -549,6 +511,5 @@ export function chordsUsed(content: string, transpose: number = 0): string[] {
       }
     }
   }
-
   return Array.from(chords).sort();
 }
