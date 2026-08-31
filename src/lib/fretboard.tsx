@@ -5,7 +5,7 @@ import { CHORD_SHAPES } from "./chordData";
 
 export type ThemeKey = "amber" | "classic" | "emerald" | "crimson" | "ocean";
 
-export const THEMES: Record = {
+export const THEMES: Record<ThemeKey, typeof THEMES[ThemeKey]> = {
   amber: {
     label: "Amber", swatch: "#f0b429",
     wood1: "#6a4a30", wood2: "#4a2a18", wood3: "#2a1810", wood4: "#1a0e08", wood5: "#3a2418",
@@ -55,7 +55,7 @@ export const THEMES: Record = {
 
 export const THEME_KEYS: ThemeKey[] = ["amber", "classic", "emerald", "crimson", "ocean"];
 
-const CHORD_FINGERS: Record = {
+const CHORD_FINGERS: Record<string, number[]> = {
   "Am": [-1, 0, 2, 3, 1, 0],
   "C": [-1, 3, 2, 0, 1, 0],
   "D": [-1, -1, 0, 1, 3, 2],
@@ -114,7 +114,7 @@ function autoGenerateFingers(shape: number[]): number[] {
   const frets = shape.filter(f => f > 0);
   if (frets.length === 0) return shape.map(f => f);
   const uniqueFrets = frets.filter((f: number, i: number) => frets.indexOf(f) === i).sort((a, b) => a - b);
-  const fretToFinger: Record = {};
+  const fretToFinger: Record<number, number> = {};
   uniqueFrets.forEach((f, i) => { fretToFinger[f] = i + 1; });
   return shape.map(f => f > 0 ? (fretToFinger[f] || 1) : f);
 }
@@ -125,11 +125,11 @@ function generateBarre(chord: string): { shape: number[] | null; fingers: number
     const rootMatch = chord.match(/^([A-G][#b]?)/);
     if (!rootMatch) return { shape: null, fingers: [-1,-1,-1,-1,-1,-1] };
     const root = rootMatch[1];
-    const E_STRING: Record = {
+    const E_STRING: Record<string, number> = {
       "E":0,"F":1,"F#":2,"Gb":2,"G":3,"G#":4,"Ab":4,"A":5,"A#":6,"Bb":6,
       "B":7,"C":8,"C#":9,"Db":9,"D":10,"D#":11,"Eb":11
     };
-    const A_STRING: Record = {
+    const A_STRING: Record<string, number> = {
       "A":0,"A#":1,"Bb":1,"B":2,"C":3,"C#":4,"Db":4,"D":5,"D#":6,"Eb":6,
       "E":7,"F":8,"F#":9,"Gb":9,"G":10,"G#":11,"Ab":11
     };
