@@ -342,6 +342,98 @@ CHORD_SHAPES["Gb5"] = [2,4,4,-1,-1,-1];
 // ============================================
 CHORD_SHAPES["Am/E"] = [0,0,2,2,1,0];
 // ============================================
+// ADIÇÕES SEGURAS — acordes que faltavam
+// (formato de atribuição, igual ao restante do arquivo)
+// ============================================
+CHORD_SHAPES["A/C#"] = [-1,4,2,2,2,0];
+CHORD_SHAPES["A/E"] = [-1,0,2,2,2,0];
+CHORD_SHAPES["A/G"] = [3,0,2,2,2,0];
+CHORD_SHAPES["Am/C"] = [-1,3,2,2,1,0];
+CHORD_SHAPES["Am/G"] = [3,0,2,2,1,0];
+CHORD_SHAPES["B/D#"] = [-1,4,4,4,2,2];
+CHORD_SHAPES["B/F#"] = [-1,4,4,4,2,2];
+CHORD_SHAPES["C/E"] = [0,3,2,0,1,0];
+CHORD_SHAPES["C/G"] = [3,3,2,0,1,0];
+CHORD_SHAPES["C/G#"] = [-1,4,2,0,1,0];
+CHORD_SHAPES["D/A"] = [-1,-1,0,2,3,2];
+CHORD_SHAPES["Dm/C"] = [-1,3,2,0,1,0];
+CHORD_SHAPES["E/B"] = [-1,4,2,2,4,0];
+CHORD_SHAPES["F/A"] = [-1,0,3,2,1,1];
+CHORD_SHAPES["F/C#"] = [-1,4,3,2,1,1];
+CHORD_SHAPES["F/G"] = [3,3,3,2,1,1];
+CHORD_SHAPES["A7M"] = [-1,0,2,2,2,0];
+CHORD_SHAPES["Am7(11)"] = [-1,0,2,0,1,0];
+CHORD_SHAPES["B4(9)"] = [-1,2,4,4,2,2];
+CHORD_SHAPES["B7(4)"] = [-1,2,4,2,3,2];
+CHORD_SHAPES["B7(4/9)"] = [-1,2,4,4,4,2];
+CHORD_SHAPES["B7M"] = [-1,2,4,2,3,2];
+CHORD_SHAPES["Bm11"] = [-1,2,4,2,3,2];
+CHORD_SHAPES["Bm7(11)"] = [-1,2,4,2,3,2];
+CHORD_SHAPES["C7M(9)"] = [-1,3,2,0,0,0];
+CHORD_SHAPES["D5(9)"] = [-1,-1,0,2,3,2];
+CHORD_SHAPES["D6(9)"] = [-1,-1,0,2,3,2];
+CHORD_SHAPES["D7(4)"] = [-1,-1,0,2,1,3];
+CHORD_SHAPES["D7(9)"] = [-1,-1,0,2,1,2];
+CHORD_SHAPES["D7M(9)"] = [-1,-1,0,2,1,2];
+CHORD_SHAPES["D9(11)"] = [-1,-1,0,2,1,2];
+CHORD_SHAPES["D9/F#"] = [2,-1,0,2,1,2];
+CHORD_SHAPES["D9/C#"] = [-1,4,0,2,1,2];
+CHORD_SHAPES["E7M"] = [-1,4,4,4,4,2];
+CHORD_SHAPES["Eb2"] = [-1,1,3,3,3,1];
+CHORD_SHAPES["Eb9"] = [-1,1,3,1,3,1];
+CHORD_SHAPES["Em7(9)"] = [0,2,0,0,0,2];
+CHORD_SHAPES["G6/B"] = [-1,2,0,0,0,3];
+CHORD_SHAPES["G7M"] = [3,2,0,0,0,2];
+CHORD_SHAPES["G7M(9)"] = [3,2,0,0,0,2];
+CHORD_SHAPES["Db7M"] = [-1,4,3,2,1,1];
+CHORD_SHAPES["Eb7M"] = [-1,-1,1,3,2,1];
+CHORD_SHAPES["Ebm7"] = [-1,-1,1,3,2,3];
+CHORD_SHAPES["Bb2(6)"] = [-1,1,3,3,3,1];
+CHORD_SHAPES["Bb7M"] = [-1,1,3,3,3,1];
+CHORD_SHAPES["Bb7M/A"] = [-1,1,3,3,3,1];
+CHORD_SHAPES["Bb/Ab"] = [-1,1,3,3,3,1];
+CHORD_SHAPES["Eb/A"] = [-1,1,3,3,3,1];
+CHORD_SHAPES["Eb/G"] = [-1,1,3,1,1,1];
+CHORD_SHAPES["D#/G"] = [-1,1,3,1,1,1];
+CHORD_SHAPES["G#/C"] = [-1,4,3,1,1,1];
+CHORD_SHAPES["Gm6/Bb"] = [3,-1,2,3,3,3];
+CHORD_SHAPES["Db7M/G#"] = [-1,4,3,2,1,1];
+CHORD_SHAPES["F#/A#"] = [-1,4,4,4,2,2];
+CHORD_SHAPES["A9(11+)"] = [-1,0,2,2,0,4];
+CHORD_SHAPES["C6(11+)"] = [-1,3,2,2,1,0];
+CHORD_SHAPES["D7M(9)/F#"] = [2,-1,0,2,1,2];
+CHORD_SHAPES["F(11)"] = [-1,3,3,3,3,1];
+CHORD_SHAPES["F(11)/C#"] = [-1,4,3,2,1,1];
+CHORD_SHAPES["F(5-)"] = [1,3,3,3,1,1];
+CHORD_SHAPES["F5(7M/9)"] = [-1,3,3,3,1,1];
+CHORD_SHAPES["F6(9/11+)"] = [-1,3,2,3,1,1];
+CHORD_SHAPES["F7M(2/4+)"] = [-1,3,2,2,1,1];
+CHORD_SHAPES["Em7M(6/9)"] = [0,2,0,1,0,0];
+CHORD_SHAPES["C(5-/9)"] = [-1,3,2,0,1,0];
+CHORD_SHAPES["C(5-/9-)"] = [-1,3,2,0,1,0];
+CHORD_SHAPES["B11"] = [-1,2,4,4,4,2];
+CHORD_SHAPES["B11/D#"] = [-1,4,4,4,4,2];
+CHORD_SHAPES["B4/F#"] = [-1,4,4,4,2,2];
+CHORD_SHAPES["A7/C#"] = [-1,4,2,0,2,0];
+CHORD_SHAPES["A7/E"] = [-1,0,2,0,2,0];
+CHORD_SHAPES["A9/C#"] = [-1,4,2,2,0,4];
+CHORD_SHAPES["Am7M"] = [-1,0,2,2,1,0];
+CHORD_SHAPES["Am9(11)"] = [-1,0,2,0,0,0];
+CHORD_SHAPES["Am7(6)"] = [-1,0,2,0,1,0];
+CHORD_SHAPES["C7/E"] = [0,3,2,3,1,0];
+CHORD_SHAPES["C/D"] = [-1,-1,0,2,1,0];
+// ============================================
+// VALIDADOS com fonte (seguros)
+// ============================================
+CHORD_SHAPES["Bm7(5-)"] = [-1,2,3,2,3,2];   // Bm7b5
+CHORD_SHAPES["Em7(5-)"] = [0,2,3,0,3,0];     // Em7b5
+CHORD_SHAPES["Fm7(9)"] = [-1,1,3,1,1,1];     // Fm9
+CHORD_SHAPES["C(5+)"] = [-1,3,2,1,1,0];      // Caug
+CHORD_SHAPES["Gm6"] = [3,-1,2,3,3,3];        // Gm6
+CHORD_SHAPES["Gm7(11)"] = [3,-1,0,3,3,1];    // Gm11
+CHORD_SHAPES["Bb7(13)"] = [-1,1,3,1,3,1];    // Bb13
+CHORD_SHAPES["F#11"] = [-1,4,4,4,4,2];       // F#11
+// ============================================
 // REGEX PATTERNS
 // NOTE: alternation order matters — longer matches FIRST
 // ============================================
