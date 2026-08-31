@@ -497,7 +497,7 @@ export function transposeChord(chord: string, semitones: number): string {
 export function chordsUsed(content: string, transpose: number = 0): string[] {
   if (!content) return [];
   const lines = content.split("\n");
-  const chords = new Set();
+  const chords = new Set<string>();
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
