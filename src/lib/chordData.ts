@@ -433,6 +433,9 @@ CHORD_SHAPES["Gm6"] = [3,-1,2,3,3,3];        // Gm6
 CHORD_SHAPES["Gm7(11)"] = [3,-1,0,3,3,1];    // Gm11
 CHORD_SHAPES["Bb7(13)"] = [-1,1,3,1,3,1];    // Bb13
 CHORD_SHAPES["F#11"] = [-1,4,4,4,4,2];       // F#11
+CHORD_SHAPES["Bb9/D"] = [-1,-1,0,1,3,1];   // Bb9 com baixo em D
+CHORD_SHAPES["Bb2"] = [6,8,8,7,8,8];       // Bbadd9 (Bb D F C)
+CHORD_SHAPES["C6(9)"] = [-1,3,2,2,3,0];    // C6/9 (C E A D E)
 // ============================================
 // REGEX PATTERNS
 // NOTE: alternation order matters — longer matches FIRST
