@@ -349,14 +349,14 @@ export function ChordDiagram({ chord, onClose, theme }: { chord: string; onClose
   );
 }
 
-export function ChordSpan({ chord, onClick, theme }: { chord: string; onClick: (chord: string) => void; theme: typeof THEMES[ThemeKey] }) {
+eexport function ChordSpan({ chord, onClick, theme }: { chord: string; onClick: (chord: string) => void; theme: typeof THEMES[ThemeKey] }) {
   const [showTip, setShowTip] = useState(false);
   return (
     <span
       onMouseEnter={() => setShowTip(true)}
       onMouseLeave={() => setShowTip(false)}
       onClick={() => onClick(chord)}
-      style={{ position: "relative", cursor: "pointer" }}
+      style={{ position: "relative", cursor: "pointer", color: "#34d399", fontWeight: 700 }}
     >
       {chord}
       {showTip && (
