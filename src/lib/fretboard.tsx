@@ -349,7 +349,7 @@ export function ChordDiagram({ chord, onClose, theme }: { chord: string; onClose
   );
 }
 
-eexport function ChordSpan({ chord, onClick, theme }: { chord: string; onClick: (chord: string) => void; theme: typeof THEMES[ThemeKey] }) {
+export function ChordSpan({ chord, onClick, theme }: { chord: string; onClick: (chord: string) => void; theme: typeof THEMES[ThemeKey] }) {
   const [showTip, setShowTip] = useState(false);
   return (
     <span
