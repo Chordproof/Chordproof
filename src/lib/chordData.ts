@@ -3,7 +3,7 @@ export const SHARP = "#";
 export const FLAT = "b";
 
 // Chord shapes: [E, A, D, G, B, e] — -1 = mute, 0 = open, n = fret
-export const CHORD_SHAPES: Record = {};
+export const CHORD_SHAPES: Record<string, number[]> = {};
 
 // ============================================
 // MAJOR CHORDS (all 12 keys)
@@ -454,7 +454,7 @@ export const TAB_LINE_RE = /^[eBGDAE]\|.*\|/;
 // ============================================
 // TRANSPOSE FUNCTION
 // ============================================
-const NOTE_INDEX: Record = {
+const NOTE_INDEX: Record<string, number> = {
   "C": 0, "C#": 1, "Db": 1, "D": 2, "D#": 3, "Eb": 3,
   "E": 4, "F": 5, "F#": 6, "Gb": 6, "G": 7, "G#": 8,
   "Ab": 8, "A": 9, "A#": 10, "Bb": 10, "B": 11
