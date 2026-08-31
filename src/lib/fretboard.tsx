@@ -4,8 +4,20 @@ import { BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, Palette, X } from "
 import { CHORD_SHAPES } from "./chordData";
 
 export type ThemeKey = "amber" | "classic" | "emerald" | "crimson" | "ocean";
+export type Theme = {
+  label: string;
+  swatch: string;
+  wood1: string; wood2: string; wood3: string; wood4: string; wood5: string;
+  border: string;
+  nut1: string; nut2: string; nut3: string;
+  fret1: string; fret2: string; fret3: string;
+  strThick1: string; strThick2: string; strThin1: string; strThin2: string;
+  dot: string; dotHi: string; dotGlow: string;
+  text: string; muted: string;
+  x: string; o: string;
+};
 
-export const THEMES: Record<ThemeKey, typeof THEMES[ThemeKey]> = {
+export const THEMES: Record<ThemeKey, Theme> = {
   amber: {
     label: "Amber", swatch: "#f0b429",
     wood1: "#6a4a30", wood2: "#4a2a18", wood3: "#2a1810", wood4: "#1a0e08", wood5: "#3a2418",
