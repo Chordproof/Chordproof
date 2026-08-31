@@ -436,6 +436,34 @@ CHORD_SHAPES["F#11"] = [-1,4,4,4,4,2];       // F#11
 CHORD_SHAPES["Bb9/D"] = [-1,-1,0,1,3,1];   // Bb9 com baixo em D
 CHORD_SHAPES["Bb2"] = [6,8,8,7,8,8];       // Bbadd9 (Bb D F C)
 CHORD_SHAPES["C6(9)"] = [-1,3,2,2,3,0];    // C6/9 (C E A D E)
+// ChordDiagram.tsx
+import { CHORD_SHAPES } from "./chordData";
+
+interface ChordDiagramProps {
+  chord: string;
+  size?: number; // largura do diagrama em px
+}
+
+export function ChordDiagram({ chord, size = 100 }: ChordDiagramProps) {
+  const shape = CHORD_SHAPES[chord];
+
+  // FALLBACK: acorde sem shape registrado
+  // → mostra só o nome em destaque, sem diagrama quebrado
+  if (!shape) {
+    return (
+      <span
+        className="chord-name-fallback"
+        style={{ fontSize: size * 0.18, fontWeight: 700 }}
+        title={`Sem diagrama disponível para ${chord}`}
+      >
+        {chord}
+      </span>
+    );
+  }
+
+  // ... renderização normal do diagrama (fretboard) com `shape` ...
+  return <Fretboard shape={shape} size={size} />;
+}
 // ============================================
 // REGEX PATTERNS
 // NOTE: alternation order matters — longer matches FIRST
