@@ -4,7 +4,7 @@ import { TrendingUp, ArrowRight, Music, Search, Flame, Users, CheckCircle2 } fro
 import { supabase } from "@/lib/supabase";
 
 const GENRES = [
-  "Rock", "Pop", "Indie", "Country", "Folk", "Metal", "Blues", "Jazz", "R&B", "Classical"
+  "Rock", "Pop", "Indie", "Country", "Folk", "Metal", "Jazz", "R&B"
 ];
 
 const DIFFICULTY_COLORS: Record<string, string> = {
