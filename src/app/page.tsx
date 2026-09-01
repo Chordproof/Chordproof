@@ -75,12 +75,12 @@ export default async function HomePage() {
         <div className="flex flex-wrap gap-3">
           {GENRES.map((genre) => (
             <Link
-              key={genre}
-              href={`/browse?genre=${genre.toLowerCase()}`}
-              className="px-4 py-2 bg-brand-card rounded-full border border-white/5 hover:border-brand-gold/30 hover:bg-white/5 transition text-sm"
-            >
-              {genre}
-            </Link>
+  key={genre}
+  href={`/genre/${encodeURIComponent(genre)}`}
+  className="px-4 py-2 bg-brand-card rounded-full border border-white/5 hover:border-brand-gold/30 hover:bg-white/5 transition text-sm"
+>
+  {genre}
+</Link>
           ))}
         </div>
       </section>
