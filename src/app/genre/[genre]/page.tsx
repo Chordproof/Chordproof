@@ -1,9 +1,8 @@
 // src/app/genre/[genre]/page.tsx
-import { createClient } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 
 export default async function GenrePage({ params }: { params: { genre: string } }) {
-  const supabase = createClient();
   const { data: tabs } = await supabase
     .from("tabs")
     .select("*")
