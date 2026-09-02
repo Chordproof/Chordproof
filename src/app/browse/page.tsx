@@ -70,22 +70,20 @@ export default async function BrowsePage({
           ) : (
             <div className="columns-1 md:columns-2 xl:columns-3 gap-4">
               {filtered.map((tab, idx) => (
-                <Link
-                  key={`${tab.slug_artist}-${tab.slug_song}`}
-                  href={`/tab/${tab.slug_artist}/${tab.slug_song}`}
-                  className="break-inside-avoid flex items-center gap-3 px-4 py-3 mb-3 bg-brand-card rounded-xl border border-white/5 hover:border-brand-gold/30 hover:bg-white/5 transition group"
-                >
-                  <span className={`text-xl font-bold w-8 text-center flex-shrink-0 ${idx < 3 ? "text-brand-gold" : "text-brand-muted"}`}>
-                    {idx + 1}
-                  </span>
-                  <div className="flex-grow min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold truncate group-hover:text-brand-gold transition">{tab.song}</span>
-                      {tab.is_verified && <CheckCircle2 size={14} className="text-blue-400 flex-shrink-0" />}
-                    </div>
-                    <p className="text-xs text-brand-muted truncate">{tab.artist}</p>
-                  </div>
-                </Link>
+                <div
+  key={`${tab.slug_artist}-${tab.slug_song}`}
+  className="break-inside-avoid flex items-center gap-3 px-4 py-3 mb-3 bg-brand-card rounded-xl border border-white/5 hover:border-brand-gold/30 hover:bg-white/5 transition group"
+>
+  <span className={`text-xl font-bold w-8 text-center flex-shrink-0 ${idx < 3 ? "text-brand-gold" : "text-brand-muted"}`}>{idx + 1}</span>
+  <div className="min-w-0 flex-1">
+    <div className="flex items-center gap-2">
+      <Link href={`/tab/${tab.slug_artist}/${tab.slug_song}`} className="font-semibold truncate group-hover:text-brand-gold transition block">{tab.song}</Link>
+      {tab.is_verified && <CheckCircle2 size={14} className="text-blue-400 flex-shrink-0" />}
+    </div>
+    <Link href={`/artist/${tab.slug_artist}`} className="text-xs text-brand-muted truncate block hover:text-brand-gold hover:underline transition-colors">{tab.artist}</Link>
+  </div>
+  <Music size={16} className="text-brand-muted flex-shrink-0" />
+</div>
               ))}
             </div>
           )}
