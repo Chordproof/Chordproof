@@ -80,7 +80,9 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
             <h1 className="text-4xl font-bold">{songName}</h1>
             {tab.is_verified && <div className="flex items-center gap-1 bg-brand-gold/10 text-brand-gold px-3 py-1 rounded-full text-xs font-bold gold-seal-anim"><BadgeCheck size={14} /> VERIFIED</div>}
           </div>
-          <p className="text-xl text-brand-muted">{artistName}</p>
+          <Link href={`/artist/${params.artist}`} className="text-xl text-brand-muted hover:text-brand-gold hover:underline transition-colors inline-block">
+  {artistName}
+</Link>
           <div className="flex gap-4 pt-2 flex-wrap">
             {tab.key_sig && <span className="bg-white/5 px-3 py-1 rounded text-sm">Key: <strong>{tab.key_sig}</strong></span>}
             {tab.difficulty && <span className="bg-white/5 px-3 py-1 rounded text-sm">Difficulty: <strong className="text-green-400">{tab.difficulty}</strong></span>}
