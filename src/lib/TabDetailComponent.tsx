@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import TransposeControls from "@/components/TransposeControls";
+import AutoScrollControl from "@/components/AutoScrollControl";
 import { BadgeCheck, AlertTriangle, Share2, Bookmark, Play, MousePointer2, Loader2, ChevronDown, Youtube } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { chordsUsed } from "@/lib/chordData";
@@ -12,8 +13,6 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [transpose, setTranspose] = useState(0);
-  const [autoScroll, setAutoScroll] = useState(false);
-  const [scrollSpeed, setScrollSpeed] = useState(5);
   const [showTablature, setShowTablature] = useState(true);
   const [activeChord, setActiveChord] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -25,7 +24,9 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
     const saved = localStorage.getItem("chordproof-theme") as ThemeKey | null;
     if (saved && THEMES[saved]) setThemeKey(saved);
   }, []);
+
   useEffect(() => { localStorage.setItem("chordproof-theme", themeKey); }, [themeKey]);
+
   const theme = THEMES[themeKey];
 
   useEffect(() => {
@@ -50,16 +51,10 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
     fetch("/api/youtube-search?q=" + encodeURIComponent(a + " " + s + " official")).then(r => r.json()).then(d => { if (d.videoId) setYoutubeId(d.videoId); }).catch(() => {}).finally(() => setYoutubeLoading(false));
   }, [tab]);
 
-  useEffect(() => {
-    if (!autoScroll) return;
-    const id = setInterval(() => { window.scrollBy({ top: scrollSpeed * 2, behavior: "smooth" }); }, 100);
-    return () => clearInterval(id);
-  }, [autoScroll, scrollSpeed]);
-
   if (loading) return <div className="flex items-center justify-center py-32 text-brand-muted"><Loader2 className="animate-spin mr-3" /> Loading tab...</div>;
   if (notFound || !tab) return (
     <div className="text-center py-32 space-y-4">
-      <h1 className="text-3xl font-bold">Tab not found</h1>
+      <h1 className="text-4xl font-bold">Tab not found</h1>
       <p className="text-brand-muted">This tab isn't in our database yet.</p>
       <a href="/request" className="inline-block bg-brand-gold text-black px-6 py-3 rounded-full font-bold hover:scale-105 transition">Request this tab</a>
     </div>
@@ -100,10 +95,6 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
       </div>
       <div className="flex flex-wrap items-center gap-4 bg-brand-card rounded-2xl p-4 border border-white/5" style={{marginBottom:"24px"}}>
         <TransposeControls transpose={transpose} onTranspose={setTranspose} />
-        <div className="flex items-center gap-2">
-          <button onClick={() => setAutoScroll(!autoScroll)} className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (autoScroll ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}><MousePointer2 size={16} /> Auto-scroll {autoScroll ? "ON" : "OFF"}</button>
-          {autoScroll && <input type="range" min={1} max={10} value={scrollSpeed} onChange={(e) => setScrollSpeed(Number(e.target.value))} className="w-32" aria-label="Scroll speed" />}
-        </div>
         <button onClick={() => setShowTablature(!showTablature)} className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (showTablature ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}><ChevronDown size={16} /> Tablature {showTablature ? "ON" : "OFF"}</button>
         <div className="ml-auto"><ThemePicker current={themeKey} onChange={setThemeKey} /></div>
       </div>
@@ -129,7 +120,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
             {youtubeId ? (
               <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-3" style={{marginBottom:"16px"}}>
                 <h3 className="text-lg font-bold flex items-center gap-2"><Youtube size={20} className="text-red-500" /> Watch &amp; Play</h3>
-                <iframe className="w-full aspect-video rounded-xl border border-white/10" src={"https://www.youtube.com/embed/" + youtubeId} title={songName + " - " + artistName} allowFullScreen />
+                <iframe className="w-full aspect-video rounded-xl border border-white/10" src={"https://www.youtube.com/embed/"+youtubeId} title={songName + " - " + artistName} allowFullScreen />
                 <p className="text-xs text-brand-muted">Play along with the video while reading the tab.</p>
               </div>
             ) : youtubeLoading ? (
@@ -155,6 +146,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
         </div>
       </div>
       {activeChord && <ChordDiagram chord={activeChord} onClose={() => setActiveChord(null)} theme={theme} />}
+      <AutoScrollControl />
     </div>
   );
 }
