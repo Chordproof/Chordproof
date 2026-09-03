@@ -58,6 +58,7 @@ export default async function ArtistPage({ params }: { params: { artist: string 
             key_sig={t.key_sig}
             slug_artist={t.slug_artist}
             slug_song={t.slug_song}
+            artistImageUrl={t.artist_image_url}
           />
         ))}
       </div>
