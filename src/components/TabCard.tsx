@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BadgeCheck } from "lucide-react";
+import ArtistAvatar from "@/components/ArtistAvatar";
 
 type TabCardProps = {
   song: string;
@@ -9,6 +10,7 @@ type TabCardProps = {
   difficulty: string;
   is_verified: boolean;
   key_sig: string;
+  artistImageUrl?: string | null;
 };
 
 const difficultyColor: Record<string, string> = {
@@ -17,11 +19,22 @@ const difficultyColor: Record<string, string> = {
   Advanced: "text-red-400 bg-red-400/10",
 };
 
-export default function TabCard({ song, artist, slug_artist, slug_song, difficulty, is_verified, key_sig }: TabCardProps) {
+export default function TabCard({
+  song,
+  artist,
+  slug_artist,
+  slug_song,
+  difficulty,
+  is_verified,
+  key_sig,
+  artistImageUrl,
+}: TabCardProps) {
   return (
-    <div className="group bg-brand-card rounded-xl p-6 border border-white/5 hover:border-brand-gold/40 hover:-translate-y-1 transition-all block">
-      <div className="flex justify-between items-start gap-3">
-        <div className="min-w-0">
+    <div className="group bg-brand-card rounded-xl p-6 border border-white/5 hover:border-brand-gold/40 hover:-translate-y-1 transition-all">
+      <div className="flex items-center gap-3">
+        {/* Foto do artista */}
+        <ArtistAvatar name={artist} slug={slug_artist} imageUrl={artistImageUrl} size="xs" />
+        <div className="min-w-0 flex-1">
           <Link href={`/tab/${slug_artist}/${slug_song}`} className="block">
             <h3 className="text-lg font-bold truncate group-hover:text-brand-gold transition-colors">{song}</h3>
           </Link>
@@ -35,7 +48,7 @@ export default function TabCard({ song, artist, slug_artist, slug_song, difficul
           </span>
         )}
       </div>
-      <div className="flex gap-2 mt-4">
+      <div className="flex gap-2 mt-4 pl-0">
         <span className="text-xs bg-white/5 px-2 py-1 rounded">Key: <strong>{key_sig}</strong></span>
         <span className={`text-xs px-2 py-1 rounded font-semibold ${difficultyColor[difficulty] || "bg-white/5 text-white/70"}`}>
           {difficulty}
