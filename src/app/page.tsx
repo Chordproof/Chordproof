@@ -1,179 +1,290 @@
 import SearchBar from "@/components/SearchBar";
 import Link from "next/link";
-import { TrendingUp, ArrowRight, Music, Search, Flame, Users, CheckCircle2 } from "lucide-react";
+import ArtistAvatar from "@/components/ArtistAvatar";
+import {
+  TrendingUp,
+  ArrowRight,
+  Music,
+  Search,
+  Flame,
+  Users,
+  CheckCircle2,
+  ShieldCheck,
+  Ban,
+  BadgeCheck,
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-const GENRES = [
-  "Rock", "Pop", "Indie", "Country", "Folk", "Metal", "Jazz", "R&B"
-];
+const GENRES = ["Rock", "Pop", "Indie", "Country", "Folk", "Metal", "Jazz", "R&B"];
 
-const DIFFICULTY_COLORS: Record<string, string> = {
-  Beginner: "text-green-400",
-  Intermediate: "text-yellow-400",
-  Advanced: "text-red-400",
+const difficultyColor: Record<string, string> = {
+  Beginner: "text-green-400 bg-green-400/10",
+  Intermediate: "text-yellow-400 bg-yellow-400/10",
+  Advanced: "text-red-400 bg-red-400/10",
+};
+
+const formatViews = (n: number) => {
+  if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
+  return `${n}`;
 };
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  // Trending: top 10 tabs por views
+  // Trending: top 6 cifras por views
   const { data: trendingTabs } = await supabase
     .from("tabs")
-    .select("song, artist, slug_artist, slug_song, difficulty, key_sig, views, is_verified")
+    .select("song, artist, slug_artist, slug_song, is_verified, views, artist_image_url, difficulty, key_sig")
     .order("views", { ascending: false })
-    .limit(12);
+    .limit(6);
 
-  // Artistas populares: agrupa por artista, soma views e conta tabs
+  // Todos os tabs para agregar artistas populares
   const { data: allTabs } = await supabase
     .from("tabs")
-    .select("artist, slug_artist, artist_image_url, views");
+    .select("artist, slug_artist, views, artist_image_url");
 
-  const artistMap = new Map<string, { name: string; slug: string; tabs: number; views: number; image: string | null }>();
+  // Artistas populares (top 8 por soma de views)
+  const artistMap = new Map<string, { name: string; slug: string; views: number; image: string | null }>();
   (allTabs || []).forEach((t) => {
     if (!artistMap.has(t.slug_artist)) {
-      artistMap.set(t.slug_artist, { name: t.artist, slug: t.slug_artist, tabs: 0, views: 0, image: t.artist_image_url });
+      artistMap.set(t.slug_artist, { name: t.artist, slug: t.slug_artist, views: 0, image: t.artist_image_url ?? null });
     }
     const entry = artistMap.get(t.slug_artist)!;
-    entry.tabs += 1;
     entry.views += t.views || 0;
   });
-  const popularArtists = Array.from(artistMap.values())
-    .sort((a, b) => b.views - a.views)
-    .slice(0, 12);
+  const topArtists = Array.from(artistMap.values()).sort((a, b) => b.views - a.views).slice(0, 8);
 
-  const formatViews = (v: number | null) => {
-    if (!v) return "0";
-    if (v >= 1_000_000) return (v / 1_000_000).toFixed(1).replace(".0", "") + "M";
-    if (v >= 1_000) return (v / 1_000).toFixed(0) + "K";
-    return String(v);
-  };
+  const featured = trendingTabs?.[0] ?? null;
+  const trending = (trendingTabs || []).slice(1);
 
   return (
-    <div className="min-h-screen">
-      {/* Hero */}
-      <section className="text-center py-20 px-4">
-        <h1 className="text-5xl md:text-7xl font-bold mb-6">
+    <div className="max-w-7xl mx-auto px-4">
+      {/* ===== NAVBAR ===== */}
+      <nav className="flex items-center justify-between py-5">
+        <Link href="/" className="flex items-center gap-2">
+          <Music size={24} className="text-brand-gold" />
+          <span className="text-xl font-bold">ChordProof</span>
+        </Link>
+        <div className="hidden md:flex items-center gap-6 text-sm text-brand-muted">
+          <Link href="/browse" className="hover:text-white transition">Browse</Link>
+          <Link href="/request" className="hover:text-white transition">Request</Link>
+          <Link href="/about" className="hover:text-white transition">About</Link>
+        </div>
+        <Link
+          href="/auth/signin"
+          className="px-5 py-2 rounded-full border border-brand-gold/40 text-brand-gold hover:bg-brand-gold hover:text-black transition text-sm font-semibold"
+        >
+          Sign In
+        </Link>
+      </nav>
+
+      {/* ===== HERO ===== */}
+      <section className="text-center py-16 md:py-20">
+        <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
           Play it <span className="text-brand-gold">Right.</span>
         </h1>
-        <p className="text-brand-muted text-lg mb-8 max-w-xl mx-auto">
-          Thousands of verified guitar tabs. No paywalls, no popups, just music.
+        <p className="text-brand-muted mt-4 text-lg max-w-xl mx-auto">
+          Verified guitar tabs, free forever. No paywalls, no popups — just accurate chords.
         </p>
-        <div className="max-w-2xl mx-auto">
-          <SearchBar large />
+        <div className="mt-8 max-w-2xl mx-auto">
+          <SearchBar />
         </div>
-        <p className="text-sm text-brand-muted/60 mt-4">
-          No sign-up required. No ads. No paywalls on community content.
-        </p>
+
+        {/* Estatísticas de confiança */}
+        <div className="mt-10 flex items-center justify-center gap-8 md:gap-12 flex-wrap">
+          <div className="flex items-center gap-2">
+            <BadgeCheck size={18} className="text-brand-gold" />
+            <div className="text-left">
+              <p className="text-xl font-bold">12,400+</p>
+              <p className="text-xs text-brand-muted">Verified Tabs</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Users size={18} className="text-brand-gold" />
+            <div className="text-left">
+              <p className="text-xl font-bold">85,000</p>
+              <p className="text-xs text-brand-muted">Active Musicians</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Music size={18} className="text-brand-gold" />
+            <div className="text-left">
+              <p className="text-xl font-bold">450,000</p>
+              <p className="text-xs text-brand-muted">Total Songs</p>
+            </div>
+          </div>
+        </div>
       </section>
 
-      {/* Genre filters */}
-      <section className="border-y border-white/10 py-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Search size={18} className="text-brand-gold" />
-          <h2 className="text-sm font-bold uppercase tracking-widest text-brand-muted">Browse by Genre</h2>
-        </div>
+      {/* ===== BROWSE BY GENRE ===== */}
+      <section className="py-8">
+        <h2 className="text-2xl font-bold mb-6">Browse by Genre</h2>
         <div className="flex flex-wrap gap-3">
           {GENRES.map((genre) => (
             <Link
-  key={genre}
-  href={`/genre/${encodeURIComponent(genre)}`}
-  className="px-4 py-2 bg-brand-card rounded-full border border-white/5 hover:border-brand-gold/30 hover:bg-white/5 transition text-sm"
->
-  {genre}
-</Link>
+              key={genre}
+              href={`/genre/${encodeURIComponent(genre)}`}
+              className="px-4 py-2 bg-brand-card rounded-full border border-white/5 hover:border-brand-gold/30 hover:bg-white/5 transition text-sm"
+            >
+              {genre}
+            </Link>
           ))}
         </div>
       </section>
 
-     {/* Trending This Week — 3 colunas estilo Cifra Club */}
-      <section className="space-y-6 mt-12">
-        <div className="flex justify-between items-end">
-          <div className="flex items-center gap-3">
-            <Flame size={24} className="text-brand-gold" />
-            <div>
-              <h2 className="text-3xl font-bold">Trending This Week</h2>
-              <p className="text-brand-muted text-sm">Most played tabs in the last 7 days</p>
+      {/* ===== TAB OF THE DAY (destaque editorial) ===== */}
+      {featured && (
+        <section className="py-10">
+          <div className="relative rounded-2xl overflow-hidden border border-white/5">
+            <div className="absolute inset-0 bg-gradient-to-r from-brand-gold/10 via-transparent to-transparent" />
+            <div className="relative flex flex-col md:flex-row items-center gap-6 p-8 bg-brand-card/80">
+              <ArtistAvatar
+                name={featured.artist}
+                slug={featured.slug_artist}
+                imageUrl={featured.artist_image_url}
+                size="lg"
+              />
+              <div className="flex-1">
+                <span className="inline-flex items-center gap-1 bg-brand-gold/10 text-brand-gold px-3 py-1 rounded-full text-xs font-bold">
+                  <Flame size={12} /> Tab of the Day
+                </span>
+                <h3 className="text-3xl font-bold mt-3">{featured.song}</h3>
+                <p className="text-brand-muted text-lg">{featured.artist}</p>
+              </div>
+              <Link
+                href={`/tab/${featured.slug_artist}/${featured.slug_song}`}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-brand-gold text-black rounded-full font-bold hover:scale-105 transition"
+              >
+                View Tab <ArrowRight size={16} />
+              </Link>
             </div>
           </div>
-          <Link href="/browse?sort=trending" className="text-brand-gold flex items-center gap-2 hover:underline text-sm">
-            View all <ArrowRight size={16} />
+        </section>
+      )}
+
+      {/* ===== TRENDING THIS WEEK ===== */}
+      <section className="py-10">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <TrendingUp size={20} className="text-brand-gold" /> Trending This Week
+            </h2>
+            <p className="text-sm text-brand-muted mt-1">Most played tabs</p>
+          </div>
+          <Link href="/browse" className="text-sm text-brand-gold hover:underline flex items-center gap-1">
+            View all <ArrowRight size={14} />
           </Link>
         </div>
-        <div className="columns-1 md:columns-2 xl:columns-3 gap-4">
-          {(trendingTabs || []).map((tab, idx) => (
-            <Link
-              key={`${tab.slug_artist}-${tab.slug_song}`}
-              href={`/tab/${tab.slug_artist}/${tab.slug_song}`}
-              className="break-inside-avoid flex items-center gap-3 px-4 py-3 mb-3 bg-brand-card rounded-xl border border-white/5 hover:border-brand-gold/30 hover:bg-white/5 transition group"
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {trending.map((t) => (
+            <div
+              key={`${t.slug_artist}-${t.slug_song}`}
+              className="group bg-brand-card rounded-xl p-6 border border-white/5 hover:border-brand-gold/40 hover:-translate-y-1 transition-all"
             >
-              <span className={`text-xl font-bold w-8 text-center flex-shrink-0 ${idx < 3 ? "text-brand-gold" : "text-brand-muted"}`}>
-                {idx + 1}
-              </span>
-              <div className="flex-grow min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-semibold truncate group-hover:text-brand-gold transition">{tab.song}</span>
-                  {tab.is_verified && <CheckCircle2 size={14} className="text-blue-400 flex-shrink-0" />}
+              <div className="flex items-center gap-3">
+                <ArtistAvatar name={t.artist} slug={t.slug_artist} imageUrl={t.artist_image_url} size="sm" />
+                <div className="min-w-0 flex-1">
+                  <Link href={`/tab/${t.slug_artist}/${t.slug_song}`} className="block">
+                    <h3 className="font-bold truncate group-hover:text-brand-gold transition-colors">{t.song}</h3>
+                  </Link>
+                  <Link href={`/artist/${t.slug_artist}`} className="block">
+                    <p className="text-sm text-brand-muted truncate hover:text-brand-gold hover:underline transition-colors">{t.artist}</p>
+                  </Link>
                 </div>
-                <p className="text-xs text-brand-muted truncate">{tab.artist}</p>
+                {t.is_verified && (
+                  <span className="flex items-center gap-1 bg-brand-gold/10 text-brand-gold px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0">
+                    <BadgeCheck size={11} /> VERIFIED
+                  </span>
+                )}
               </div>
+              <div className="flex gap-2 mt-4">
+                {t.key_sig && <span className="text-xs bg-white/5 px-2 py-1 rounded">Key: <strong>{t.key_sig}</strong></span>}
+                {t.difficulty && (
+                  <span className={`text-xs px-2 py-1 rounded font-semibold ${difficultyColor[t.difficulty] || "bg-white/5 text-white/70"}`}>
+                    {t.difficulty}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ===== ARTISTAS POPULARES ===== */}
+      <section className="py-10">
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+          <Users size={20} className="text-brand-gold" /> Artistas Populares
+        </h2>
+        <div className="flex flex-wrap justify-center gap-8">
+          {topArtists.map((artist) => (
+            <Link key={artist.slug} href={`/artist/${artist.slug}`} className="flex flex-col items-center gap-2 group">
+              <ArtistAvatar name={artist.name} slug={artist.slug} imageUrl={artist.image} size="lg" />
+              <span className="text-sm font-semibold group-hover:text-brand-gold transition-colors">{artist.name}</span>
+              <span className="text-xs text-brand-muted">{formatViews(artist.views)} views</span>
             </Link>
           ))}
         </div>
       </section>
 
-      {/* Popular Artists — círculos grandes com foto e nome embaixo */}
-      <section className="space-y-8 mt-12">
-        <div className="flex items-center gap-3">
-          <Users size={24} className="text-brand-gold" />
-          <div>
-            <h2 className="text-3xl font-bold">Artistas Populares</h2>
-            <p className="text-brand-muted text-sm">Os artistas mais vistos do site</p>
+      {/* ===== WHY CHORDPROOF ===== */}
+      <section className="py-10">
+        <h2 className="text-2xl font-bold text-center mb-8">Why ChordProof?</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-brand-card rounded-2xl p-6 border border-white/5 text-center">
+            <Ban size={24} className="text-brand-gold mx-auto mb-3" />
+            <h3 className="font-bold text-lg">No Paywalls</h3>
+            <p className="text-sm text-brand-muted mt-1">Community content is and always will be free. No Pro plan needed to read tabs.</p>
           </div>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-          {popularArtists.map((artist) => (
-            <Link
-              key={artist.slug}
-              href={`/artist/${artist.slug}`}
-              className="flex flex-col items-center gap-3 text-center group"
-            >
-              {artist.image ? (
-                <img
-                  src={artist.image}
-                  alt={artist.name}
-                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover ring-2 ring-white/10 group-hover:ring-brand-gold/50 group-hover:scale-105 transition"
-                />
-              ) : (
-                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-brand-card border border-white/10 flex items-center justify-center group-hover:border-brand-gold/30 transition">
-                  <Music size={32} className="text-brand-muted group-hover:text-brand-gold transition" />
-                </div>
-              )}
-              <span className="font-semibold group-hover:text-brand-gold transition text-sm leading-tight">{artist.name}</span>
-            </Link>
-          ))}
+          <div className="bg-brand-card rounded-2xl p-6 border border-white/5 text-center">
+            <ShieldCheck size={24} className="text-brand-gold mx-auto mb-3" />
+            <h3 className="font-bold text-lg">No Popups</h3>
+            <p className="text-sm text-brand-muted mt-1">Clean reading experience. No intrusive ads, no newsletter popups, no upsells.</p>
+          </div>
+          <div className="bg-brand-card rounded-2xl p-6 border border-white/5 text-center">
+            <BadgeCheck size={24} className="text-brand-gold mx-auto mb-3" />
+            <h3 className="font-bold text-lg">Verified Accuracy</h3>
+            <p className="text-sm text-brand-muted mt-1">Every tab is checked by real musicians. If it's wrong, we fix it — not you.</p>
+          </div>
         </div>
       </section>
 
-      {/* Value proposition */}
-      <section className="border-t border-white/10 pt-12 mt-12">
-        <div className="text-center space-y-4">
-          <h2 className="text-2xl font-bold">Why ChordProof?</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto mt-8">
+      {/* ===== RODAPÉ ===== */}
+      <footer className="border-t border-white/5 py-10 mt-10">
+        <div className="flex flex-col md:flex-row justify-between items-start gap-8">
+          <div className="flex items-center gap-2">
+            <Music size={24} className="text-brand-gold" />
+            <span className="text-lg font-bold">ChordProof</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-8 text-sm">
             <div className="space-y-2">
-              <div className="text-brand-gold text-lg font-bold">No Paywalls</div>
-              <p className="text-brand-muted text-sm">Community content is and always will be free. No Pro plan needed to read tabs.</p>
+              <p className="font-semibold text-white">Site</p>
+              <div className="space-y-1 text-brand-muted">
+                <Link href="/browse" className="block hover:text-white transition">Browse</Link>
+                <Link href="/request" className="block hover:text-white transition">Request</Link>
+              </div>
             </div>
             <div className="space-y-2">
-              <div className="text-brand-gold text-lg font-bold">No Popups</div>
-              <p className="text-brand-muted text-sm">Clean reading experience. No intrusive ads, no newsletter popups, no upsells.</p>
+              <p className="font-semibold text-white">Company</p>
+              <div className="space-y-1 text-brand-muted">
+                <Link href="/about" className="block hover:text-white transition">About</Link>
+                <Link href="/legal" className="block hover:text-white transition">Legal</Link>
+              </div>
             </div>
             <div className="space-y-2">
-              <div className="text-brand-gold text-lg font-bold">Verified Accuracy</div>
-              <p className="text-brand-muted text-sm">Every tab is checked by real musicians. If it's wrong, we fix it — not you.</p>
+              <p className="font-semibold text-white">Support</p>
+              <div className="space-y-1 text-brand-muted">
+                <Link href="/pricing" className="block hover:text-white transition">Pricing</Link>
+                <Link href="/contact" className="block hover:text-white transition">Contact</Link>
+              </div>
             </div>
           </div>
         </div>
-      </section>
+        <p className="text-xs text-brand-muted mt-8 pt-4 border-t border-white/5">
+          © {new Date().getFullYear()} ChordProof. Verified guitar tabs for every musician.
+        </p>
+      </footer>
     </div>
   );
 }
