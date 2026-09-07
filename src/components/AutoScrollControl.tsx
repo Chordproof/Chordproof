@@ -7,18 +7,19 @@ import { Play, Pause, Minus, Plus } from "lucide-react";
 const MIN_LEVEL = 1;
 const MAX_LEVEL = 10;
 
-// Velocidade por nível — progressão suave (nível 1 bem lento, nível 10 rápido)
+// Velocidade em px/segundo por nível — progressão suave e gradual.
+// Nível 1 = lento mas visível; nível 10 = rápido.
 const SPEED_BY_LEVEL: Record<number, number> = {
-  1: 0.5,
-  2: 1,
-  3: 1.8,
-  4: 3,
-  5: 4.5,
-  6: 6.5,
-  7: 9,
-  8: 12,
-  9: 16,
-  10: 22,
+  1: 20,
+  2: 30,
+  3: 45,
+  4: 65,
+  5: 90,
+  6: 120,
+  7: 155,
+  8: 195,
+  9: 240,
+  10: 300,
 };
 
 export default function AutoScrollControl() {
@@ -27,6 +28,8 @@ export default function AutoScrollControl() {
   const rafRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
   const levelRef = useRef(level);
+  // Acumula os pixels fracionários para não perder movimento em velocidades baixas
+  const accumulatorRef = useRef(0);
 
   // Mantém o nível atual acessível dentro do loop de animação
   useEffect(() => { levelRef.current = level; }, [level]);
@@ -36,17 +39,28 @@ export default function AutoScrollControl() {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
+    accumulatorRef.current = 0;
     setIsPlaying(false);
   }, []);
 
   const start = useCallback(() => {
     if (rafRef.current) return;
     lastTimeRef.current = performance.now();
+    accumulatorRef.current = 0;
     setIsPlaying(true);
+
     const tick = (now: number) => {
-      const dt = (now - lastTimeRef.current) / 1000;
+      const dt = (now - lastTimeRef.current) / 1000; // segundos
       lastTimeRef.current = now;
-      window.scrollBy({ top: SPEED_BY_LEVEL[levelRef.current] * dt * 60, behavior: "auto" });
+
+      // Acumula a distância fracionária e rola apenas quando soma 1px inteiro
+      accumulatorRef.current += SPEED_BY_LEVEL[levelRef.current] * dt;
+      const px = Math.floor(accumulatorRef.current);
+      if (px > 0) {
+        window.scrollBy({ top: px, behavior: "auto" });
+        accumulatorRef.current -= px;
+      }
+
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
