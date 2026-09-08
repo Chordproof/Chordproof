@@ -15,10 +15,11 @@ import { supabase } from "@/lib/supabase";
 
 const GENRES = ["Rock", "Pop", "Indie", "Country", "Folk", "Metal", "Jazz", "R&B"];
 
+// Tags de dificuldade com contraste reforçado (WCAG AA)
 const difficultyColor: Record<string, string> = {
-  Beginner: "text-green-400 bg-green-400/10",
-  Intermediate: "text-yellow-400 bg-yellow-400/10",
-  Advanced: "text-red-400 bg-red-400/10",
+  Beginner: "bg-green-500/20 text-green-300 border border-green-400/40",
+  Intermediate: "bg-yellow-500/20 text-yellow-300 border border-yellow-400/40",
+  Advanced: "bg-red-500/20 text-red-300 border border-red-400/40",
 };
 
 const formatViews = (n: number) => {
@@ -30,19 +31,16 @@ const formatViews = (n: number) => {
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  // Trending: top 6 cifras por views
   const { data: trendingTabs } = await supabase
     .from("tabs")
     .select("song, artist, slug_artist, slug_song, is_verified, views, artist_image_url, difficulty, key_sig")
     .order("views", { ascending: false })
     .limit(6);
 
-  // Todos os tabs para agregar artistas populares
   const { data: allTabs } = await supabase
     .from("tabs")
     .select("artist, slug_artist, views, artist_image_url");
 
-  // Artistas populares (top 8 por soma de views)
   const artistMap = new Map<string, { name: string; slug: string; views: number; image: string | null }>();
   (allTabs || []).forEach((t) => {
     if (!artistMap.has(t.slug_artist)) {
@@ -70,7 +68,6 @@ export default async function HomePage() {
           <SearchBar />
         </div>
 
-        {/* Estatísticas de confiança */}
         <div className="mt-8 flex items-center justify-center gap-6 md:gap-10 flex-wrap">
           <div className="flex items-center gap-2">
             <BadgeCheck size={16} className="text-brand-gold" />
@@ -112,18 +109,13 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ===== TAB OF THE DAY (destaque editorial) ===== */}
+      {/* ===== TAB OF THE DAY ===== */}
       {featured && (
         <section className="py-6">
           <div className="relative rounded-2xl overflow-hidden border border-white/5">
             <div className="absolute inset-0 bg-gradient-to-r from-brand-gold/10 via-transparent to-transparent" />
             <div className="relative flex flex-col md:flex-row items-center gap-5 p-6 bg-brand-card/80">
-              <ArtistAvatar
-                name={featured.artist}
-                slug={featured.slug_artist}
-                imageUrl={featured.artist_image_url}
-                size="md"
-              />
+              <ArtistAvatar name={featured.artist} slug={featured.slug_artist} imageUrl={featured.artist_image_url} size="md" />
               <div className="flex-1">
                 <span className="inline-flex items-center gap-1 bg-brand-gold/10 text-brand-gold px-3 py-1 rounded-full text-xs font-bold">
                   <Flame size={12} /> Tab of the Day
@@ -160,7 +152,7 @@ export default async function HomePage() {
           {trending.map((t) => (
             <div
               key={`${t.slug_artist}-${t.slug_song}`}
-              className="group bg-brand-card rounded-xl p-5 border border-white/5 hover:border-brand-gold/40 hover:-translate-y-1 transition-all"
+              className="group bg-brand-card rounded-xl p-5 border border-white/5 hover:border-brand-gold/40 hover:-translate-y-0.5 transition-all"
             >
               <div className="flex items-center gap-3">
                 <ArtistAvatar name={t.artist} slug={t.slug_artist} imageUrl={t.artist_image_url} size="sm" />
@@ -178,14 +170,26 @@ export default async function HomePage() {
                   </span>
                 )}
               </div>
+              {/* Tags com contraste reforçado */}
               <div className="flex gap-2 mt-3">
-                {t.key_sig && <span className="text-xs bg-white/5 px-2 py-1 rounded">Key: <strong>{t.key_sig}</strong></span>}
+                {t.key_sig && (
+                  <span className="text-xs px-2 py-1 rounded font-semibold bg-white/10 text-white/90 border border-white/10">
+                    Key: {t.key_sig}
+                  </span>
+                )}
                 {t.difficulty && (
-                  <span className={`text-xs px-2 py-1 rounded font-semibold ${difficultyColor[t.difficulty] || "bg-white/5 text-white/70"}`}>
+                  <span className={`text-xs px-2 py-1 rounded font-bold ${difficultyColor[t.difficulty] || "bg-white/10 text-white/90"}`}>
                     {t.difficulty}
                   </span>
                 )}
               </div>
+              {/* CTA sempre visível nos cards */}
+              <Link
+                href={`/tab/${t.slug_artist}/${t.slug_song}`}
+                className="mt-4 w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-sm font-semibold text-white/90 hover:bg-brand-gold hover:text-black hover:border-brand-gold transition-colors"
+              >
+                View Tab <ArrowRight size={14} />
+              </Link>
             </div>
           ))}
         </div>
