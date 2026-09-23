@@ -1,20 +1,57 @@
-import ChordDiagram from "./ChordDiagram";
+"use client";
 
-interface ChordGalleryProps {
-  chords: string[];
+import { useEffect, useState } from "react";
+import ChordDiagram from "./ChordDiagram";
+import { getChord, type Chord } from "@/lib/chords";
+
+interface ChordsGalleryProps {
+  chords: string[]; // nomes únicos dos acordes usados na cifra
 }
 
-export default function ChordGallery({ chords }: ChordGalleryProps) {
-  const uniqueChords = Array.from(new Set(chords));
+export default function ChordsGallery({ chords }: ChordsGalleryProps) {
+  const [loaded, setLoaded] = useState<Chord[] | null>(null);
 
-  return (
-    <div className="bg-[#1A1A1A] rounded-2xl p-6 md:p-8 border border-white/[0.06]">
-      <h3 className="text-lg font-display font-bold mb-6">Chords used in this song</h3>
+  useEffect(() => {
+    let alive = true;
+    const unique = Array.from(new Set(chords.map((c) => c.trim()).filter(Boolean)));
+
+    Promise.all(
+      unique.map((name) =>
+        getChord(name).catch(() => null)
+      )
+    ).then((results) => {
+      if (!alive) return;
+      setLoaded(results.filter((c): c is Chord => Boolean(c && c.variants.length > 0)));
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [chords.join("|")]);
+
+  // Carregando: skeleton discreto para não "pular" a página
+  if (!loaded) {
+    return (
       <div className="flex flex-wrap gap-4 justify-center">
-        {uniqueChords.map((chord) => (
-          <ChordDiagram key={chord} chord={chord} />
+        {Array.from(new Set(chords)).slice(0, 8).map((name) => (
+          <div key={name} className="w-[88px] h-[120px] rounded-lg bg-white/5 animate-pulse" />
         ))}
       </div>
+    );
+  }
+
+  if (loaded.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-4 justify-center">
+      {loaded.map((chord) => (
+        <ChordDiagram
+          key={chord.name}
+          name={chord.name}
+          variant={chord.variants[0]}
+          width={88}
+        />
+      ))}
     </div>
   );
 }
