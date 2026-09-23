@@ -1,32 +1,32 @@
 "use client";
-import { type ReactNode } from "react";
-import { ChevronDown } from "lucide-react";
-import { CHORD_TOKEN_RE, CHORD_STRICT_RE, TAB_LINE_RE, transposeChord } from "./chordData";
-import { ChordSpan } from "./fretboard";
 
-export function renderPair(chordLine: string, lyricLine: string, key: number, transpose: number, onChord: (c: string) => void, theme: any): ReactNode {
-  if (!chordLine) chordLine = "";
-  if (!lyricLine) lyricLine = "";
-  const parts: ReactNode[] = [];
-  let li = 0, c = 0;
-  const re = new RegExp(CHORD_TOKEN_RE.source, "g");
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(chordLine)) !== null) {
-    if (m[0] === "") { re.lastIndex++; continue; }
-    if (m.index > li) parts.push(<span key={"sp" + c} style={{ color: "transparent" }}>{chordLine.slice(li, m.index)}</span>);
-    const ch = transposeChord(m[0], transpose);
-    parts.push(<ChordSpan key={c++} chord={ch} onClick={onChord} theme={theme} />);
-    li = m.index + m[0].length;
-  }
-  if (li < chordLine.length) parts.push(<span key="rest" style={{ color: "transparent" }}>{chordLine.slice(li)}</span>);
+import { useRef, useState } from "react";
+import ChordTooltip from "@/components/ChordTooltip";
+
+export function ChordSpan({ children }: { children: string }) {
+  const [hover, setHover] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const show = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setHover(true), 250); // delay anti-poluição
+  };
+  const hide = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setHover(false), 150);
+  };
+
   return (
-    <div key={key} style={{ marginBottom: "2px" }}>
-      <div style={{ whiteSpace: "pre-wrap", fontFamily: "monospace", lineHeight: "1.4em", height: lyricLine ? "1.4em" : "auto" }}>{parts}</div>
-      {lyricLine && <div style={{ whiteSpace: "pre-wrap", lineHeight: "1.6em", fontFamily: "monospace", color: "#e0e0e0" }}>{lyricLine}</div>}
-    </div>
+    <span
+      className="relative font-bold text-[#34d399] cursor-pointer hover:text-white transition-colors"
+      onMouseEnter={show}
+      onMouseLeave={hide}
+    >
+      {children}
+      {hover && <ChordTooltip chordName={children} />}
+    </span>
   );
 }
-
 export function hasInlineTablature(content: string): boolean {
   if (!content) return false;
   return content.split("\n").some((line: string) => TAB_LINE_RE.test(line.trim()));
