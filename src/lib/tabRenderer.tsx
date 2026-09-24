@@ -292,6 +292,73 @@ export function renderContent(
       </div>
     );
   }
+/* ============================================================
+ * renderTablature
+ * Renderiza os blocos de tablatura (e seções/acordes/letra que
+ * os acompanham) do content, mantendo a fonte monoespaçada e o
+ * pre-wrap. Compatível com a antiga exportação usada por
+ * TabDetailComponent. Os args extras são ignorados (defensivo
+ * contra diferenças de assinatura entre chamadas).
+ * ============================================================ */
+export function renderTablature(content: string, ..._extra: unknown[]): ReactNode[] {
+  const themeLocal = { ...DEFAULT_THEME } as Required<TabTheme>;
+  const lines = content.split("\n");
+  const out: ReactNode[] = [];
+  let k = 0;
 
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+
+    // Cabeçalho de seção: [Intro], [Solo]...
+    if (SECTION_RE.test(line)) {
+      out.push(renderSection(line, themeLocal, k++));
+      continue;
+    }
+
+    // Linha de tablatura: e|, B|, G|, D|, A|, E|
+    if (TAB_LINE_RE.test(line)) {
+      out.push(renderTabLine(raw, themeLocal, k++));
+      continue;
+    }
+
+    // Linha de acordes
+    if (isChordLine(line)) {
+      out.push(
+        <div
+          key={k++}
+          style={{
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+            whiteSpace: "pre-wrap",
+            color: themeLocal.chordColor,
+            lineHeight: 1.5,
+            marginBottom: "0.5rem",
+          }}
+        >
+          {renderChordLine(line, 0, themeLocal, undefined)}
+        </div>
+      );
+      continue;
+    }
+
+    // Letra / texto solto
+    out.push(
+      <div
+        key={k++}
+        style={{
+          fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+          whiteSpace: "pre-wrap",
+          color: themeLocal.lyricColor,
+          lineHeight: 1.5,
+          marginBottom: "0.5rem",
+        }}
+      >
+        {line}
+      </div>
+    );
+  }
+
+  return out;
+}
   return out;
 }
