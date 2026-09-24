@@ -177,9 +177,9 @@ export function renderContent(
   showTablature: boolean,
   transpose: number,
   onChord: (c: string) => void,
-  themeData?: TabTheme
+  themeData?: object
 ): ReactNode[] {
-  const theme = { ...DEFAULT_THEME, ...themeData } as Required<TabTheme>;
+  const theme = { ...DEFAULT_THEME, ...(themeData ?? {}) } as Required<TabTheme>;
   const lines = content.split("\n");
   const out: ReactNode[] = [];
   let k = 0;
@@ -240,9 +240,10 @@ export function renderContent(
   return out;
 }
 
-export function renderTablature(content: string, ..._extra: unknown[]): ReactNode[] {
+export function renderTablature(content?: string | null, ..._extra: unknown[]): ReactNode[] {
+  const text = content ?? "";
   const themeLocal = { ...DEFAULT_THEME } as Required<TabTheme>;
-  const lines = content.split("\n");
+  const lines = text.split("\n");
   const out: ReactNode[] = [];
   let k = 0;
 
