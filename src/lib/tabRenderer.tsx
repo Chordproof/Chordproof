@@ -1,107 +1,297 @@
 "use client";
 
-import { useRef, useState } from "react";
-import ChordTooltip from "@/components/ChordTooltip";
+import { Fragment, type ReactNode } from "react";
 
-export function ChordSpan({ children }: { children: string }) {
-  const [hover, setHover] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+/* ============================================================
+ * Constantes e regex
+ * ============================================================ */
 
-  const show = () => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setHover(true), 250); // delay anti-poluição
-  };
-  const hide = () => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setHover(false), 150);
-  };
+// Símbolo de linha de tablatura: começa com e|, B|, G|, D|, A| ou E|
+export const TAB_LINE_RE = /^\s*(e|B|G|D|A|E)\|/;
 
-  return (
-    <span
-      className="relative font-bold text-[#34d399] cursor-pointer hover:text-white transition-colors"
-      onMouseEnter={show}
-      onMouseLeave={hide}
-    >
-      {children}
-      {hover && <ChordTooltip chordName={children} />}
-    </span>
-  );
+// Nome de acorde: nota (A-G + #/b) + sufixo + slash (baixo alternativo)
+export const CHORD_RE =
+  /^[A-G](#|b)?(maj7|maj|min7|min|m7|m|M7|M|sus4|sus2|sus|add9|add|dim7|dim|aug|[0-9]+|[+\-])*(\([^)]*\))*(\/[A-G](#|b)?)?$/;
+
+// Cabeçalho de seção: [Intro], [Verse 1], [Chorus]...
+const SECTION_RE = /^\[(.+)\]$/;
+
+// Marcadores rítmicos que aparecem junto aos acordes (↓ ↑ v ^)
+const RHYTHM_RE = /^[↓↑v^]+$/;
+
+// Ordem cromática (para transposição)
+const NOTE_ORDER = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const ENHARMONIC: Record<string, string> = {
+  Db: "C#",
+  Eb: "D#",
+  Gb: "F#",
+  Ab: "G#",
+  Bb: "A#",
+  "B#": "C",
+  "E#": "F",
+  Cb: "B",
+};
+
+/* ============================================================
+ * Transposição
+ * ============================================================ */
+
+export function transposeChord(name: string, semitones: number): string {
+  if (!semitones) return name;
+  const m = name.match(/^([A-G][#b]?)(.*)$/);
+  if (!m) return name;
+  const norm = ENHARMONIC[m[1]] ?? m[1];
+  let idx = NOTE_ORDER.indexOf(norm);
+  if (idx < 0) return name;
+  idx = (idx + semitones + 12) % 12;
+  return NOTE_ORDER[idx] + m[2];
 }
+
+/* ============================================================
+ * Detectores
+ * ============================================================ */
+
+export function isChordToken(token: string): boolean {
+  if (RHYTHM_RE.test(token)) return false;
+  return CHORD_RE.test(token);
+}
+
+export function isChordLine(line: string): boolean {
+  const tokens = line.trim().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return false;
+  return tokens.every((t) => RHYTHM_RE.test(t) || isChordToken(t));
+}
+
 export function hasInlineTablature(content: string): boolean {
   if (!content) return false;
   return content.split("\n").some((line: string) => TAB_LINE_RE.test(line.trim()));
 }
 
-export function renderContent(content: string, showTablature: boolean, transpose: number, onChord: (c: string) => void, theme: any): ReactNode[] {
-  const lines = content.split("\n");
-  const result: ReactNode[] = [];
-  let i = 0, kc = 0;
-  while (i < lines.length) {
-    const line = lines[i] || "";
-    const tr = line.trim();
-    if (!tr) { result.push(<div key={kc++} style={{ height: "0.8em" }}> </div>); i++; continue; }
-    if (tr.startsWith("[") && tr.endsWith("]")) {
-      result.push(<div key={kc++} style={{ color: "#f0b429", fontWeight: 700, marginTop: "16px", marginBottom: "4px", fontSize: "1.1em" }}>{tr}</div>);
-      i++; continue;
-    }
-    const tokens = tr.split(/\s+/).filter(Boolean);
-    const isChord = tokens.length > 0 && tokens.every((t: string) => CHORD_STRICT_RE.test(t));
-    if (isChord) {
-      const chordLines: string[] = [line];
-      let j = i + 1;
-      while (j < lines.length) {
-        const nl = lines[j] || "";
-        const nt = nl.trim();
-        if (!nt) break;
-        if (nt.startsWith("[") && nt.endsWith("]")) break;
-        if (TAB_LINE_RE.test(nt)) break;
-        const ntk = nt.split(/\s+/).filter(Boolean);
-        const nIsChord = ntk.length > 0 && ntk.every((t: string) => CHORD_STRICT_RE.test(t));
-        if (nIsChord) { chordLines.push(nl); j++; } else { break; }
-      }
-      const lyricLine = lines[j] || "";
-      const lyricTrim = lyricLine.trim();
-      const lyricTokens = lyricTrim.split(/\s+/).filter(Boolean);
-      const lyricIsChord = lyricTokens.length > 0 && lyricTokens.every((t: string) => CHORD_STRICT_RE.test(t));
-      const hasLyric = lyricTrim && !lyricTrim.startsWith("[") && !TAB_LINE_RE.test(lyricTrim) && !lyricIsChord;
-      if (hasLyric) {
-        for (let k = 0; k < chordLines.length - 1; k++) {
-          result.push(renderPair(chordLines[k], "", kc++, transpose, onChord, theme));
-        }
-        result.push(renderPair(chordLines[chordLines.length - 1], lyricLine, kc++, transpose, onChord, theme));
-        i = j + 1;
-        continue;
-      } else {
-        for (const cl of chordLines) {
-          result.push(renderPair(cl, "", kc++, transpose, onChord, theme));
-        }
-        i = j;
-        continue;
+/** Extrai os acordes únicos usados numa cifra (na ordem de aparição). */
+export function extractUniqueChords(content: string): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of content.split("\n")) {
+    const line = raw.trim();
+    if (!line || SECTION_RE.test(line) || TAB_LINE_RE.test(line) || !isChordLine(line)) continue;
+    for (const token of line.split(/\s+/)) {
+      if (!isChordToken(token)) continue;
+      if (!seen.has(token)) {
+        seen.add(token);
+        out.push(token);
       }
     }
-    if (TAB_LINE_RE.test(tr)) {
-      if (showTablature) {
-        result.push(<div key={kc++} style={{ whiteSpace: "pre-wrap", fontFamily: "monospace", color: "#69db7c", fontSize: "0.85em", lineHeight: "1.3em" }}>{line}</div>);
-      }
-      i++; continue;
-    }
-    result.push(<div key={kc++} style={{ whiteSpace: "pre-wrap", lineHeight: "1.6em", fontFamily: "monospace", color: "#e0e0e0" }}>{line}</div>);
-    i++;
   }
-  return result;
+  return out;
 }
 
-export function renderTablature(tab: string): ReactNode {
-  if (!tab || !tab.trim()) return null;
-  const lines = tab.split("\n");
+/* ============================================================
+ * Renderização
+ * ============================================================ */
+
+interface TabTheme {
+  chordColor?: string;
+  lyricColor?: string;
+  sectionColor?: string;
+  tabColor?: string;
+}
+
+const DEFAULT_THEME: Required<TabTheme> = {
+  chordColor: "#34d399",
+  lyricColor: "#e5e7eb",
+  sectionColor: "#f0b429",
+  tabColor: "#9ca3af",
+};
+
+function renderChordToken(
+  token: string,
+  transpose: number,
+  theme: Required<TabTheme>,
+  onChord?: (c: string) => void,
+  key?: React.Key
+): ReactNode {
+  const name = transposeChord(token, transpose);
   return (
-    <div style={{ background: "#0a0a0a", borderRadius: "12px", padding: "16px", border: "1px solid #333", marginTop: "16px", maxHeight: "500px", overflowY: "auto" }}>
-      <div style={{ color: "#f0b429", fontWeight: 700, fontSize: "14px", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
-        <ChevronDown size={16} /> Tablature Notation
-      </div>
-      {lines.map((line: string, i: number) => (
-        <div key={i} style={{ whiteSpace: "pre-wrap", fontFamily: "monospace", fontSize: "0.85em", lineHeight: "1.4em", color: TAB_LINE_RE.test(line) ? "#69db7c" : "#9E9E9E" }}>{line || "\u00a0"}</div>
-      ))}
+    <span
+      key={key}
+      role="button"
+      tabIndex={0}
+      onClick={() => onChord?.(name)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") onChord?.(name);
+      }}
+      className="cursor-pointer font-bold hover:underline"
+      style={{ color: theme.chordColor }}
+    >
+      {name}
+    </span>
+  );
+}
+
+/** Para renderPair: renderiza uma linha só de acordes, preservando espaços. */
+export function renderChordLine(
+  line: string,
+  transpose: number,
+  theme: Required<TabTheme>,
+  onChord?: (c: string) => void,
+  key?: React.Key
+): ReactNode {
+  const nodes: ReactNode[] = [];
+  const re = /\s+|\S+/g;
+  let m: RegExpExecArray | null;
+  let i = 0;
+  while ((m = re.exec(line)) !== null) {
+    const seg = m[0];
+    if (/^\s+$/.test(seg)) {
+      nodes.push(<Fragment key={`ws${i}`}>{seg}</Fragment>);
+    } else if (isChordToken(seg)) {
+      nodes.push(renderChordToken(seg, transpose, theme, onChord, `ch${i}`));
+    } else {
+      nodes.push(<Fragment key={`tx${i}`}>{seg}</Fragment>);
+    }
+    i++;
+  }
+  return (
+    <div key={key} style={{ whiteSpace: "pre-wrap", fontFamily: "inherit" }}>
+      {nodes}
     </div>
   );
+}
+
+/**
+ * renderPair — par acordes/letra: a linha de acordes (verde) fica ACIMA
+ * da letra (branca), ambas monoespaçadas com pre-wrap para o alinhamento
+ * por espaços ser preservado (padrão da skill).
+ */
+export function renderPair(
+  chordLine: string,
+  lyricLine: string,
+  transpose: number,
+  theme: Required<TabTheme>,
+  onChord?: (c: string) => void,
+  key?: React.Key
+): ReactNode {
+  const mono: React.CSSProperties = {
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+    whiteSpace: "pre-wrap",
+    lineHeight: 1.5,
+  };
+  return (
+    <div key={key} style={{ marginBottom: "0.5rem" }}>
+      {renderChordLine(chordLine, transpose, theme, onChord)}
+      <div style={{ ...mono, color: theme.lyricColor }}>{lyricLine}</div>
+    </div>
+  );
+}
+
+function renderSection(line: string, theme: Required<TabTheme>, key?: React.Key): ReactNode {
+  const title = line.match(SECTION_RE)?.[1] ?? line;
+  return (
+    <div
+      key={key}
+      className="font-bold uppercase tracking-wide"
+      style={{ color: theme.sectionColor, marginTop: "1rem", marginBottom: "0.4rem" }}
+    >
+      {title}
+    </div>
+  );
+}
+
+function renderTabLine(line: string, theme: Required<TabTheme>, key?: React.Key): ReactNode {
+  return (
+    <div
+      key={key}
+      style={{
+        fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+        whiteSpace: "pre-wrap",
+        color: theme.tabColor,
+        lineHeight: 1.4,
+      }}
+    >
+      {line}
+    </div>
+  );
+}
+
+/**
+ * renderContent — ponto de entrada principal.
+ * processa o `content` linha a linha:
+ *  - [Seção]      → cabeçalho dourado
+ *  - linha de tab → tablatura (visível apenas se showTablature)
+ *  - linha de acordes seguida de letra → renderPair (alinhamento)
+ *  - linha de acordes sozinha         → linha de acordes
+ *  - demais linhas                    → letra/texto
+ */
+export function renderContent(
+  content: string,
+  showTablature: boolean,
+  transpose: number,
+  onChord: (c: string) => void,
+  themeData?: TabTheme
+): ReactNode[] {
+  const theme = { ...DEFAULT_THEME, ...themeData } as Required<TabTheme>;
+  const lines = content.split("\n");
+  const out: ReactNode[] = [];
+  let k = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    const line = raw.trim();
+    if (!line) continue;
+
+    // Cabeçalho de seção
+    if (SECTION_RE.test(line)) {
+      out.push(renderSection(line, theme, k++));
+      continue;
+    }
+
+    // Linha de tablatura
+    if (TAB_LINE_RE.test(line)) {
+      if (showTablature) out.push(renderTabLine(raw, theme, k++));
+      continue;
+    }
+
+    // Linha de acordes (sozinha ou seguida de letra)
+    if (isChordLine(line)) {
+      const next = lines[i + 1]?.trim() ?? "";
+      if (next && !SECTION_RE.test(next) && !TAB_LINE_RE.test(next) && !isChordLine(next)) {
+        // Par acordes + letra
+        out.push(renderPair(raw, lines[i + 1], transpose, theme, onChord, k++));
+        i++; // consome a linha da letra
+      } else {
+        // Só acordes (intro, refrões instrumentais etc.)
+        out.push(
+          <div
+            key={k++}
+            style={{
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+              whiteSpace: "pre-wrap",
+              marginBottom: "0.5rem",
+            }}
+          >
+            {renderChordLine(raw, transpose, theme, onChord)}
+          </div>
+        );
+      }
+      continue;
+    }
+
+    // Letra / texto solto
+    out.push(
+      <div
+        key={k++}
+        style={{
+          fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+          whiteSpace: "pre-wrap",
+          color: theme.lyricColor,
+          lineHeight: 1.5,
+          marginBottom: "0.5rem",
+        }}
+      >
+        {line}
+      </div>
+    );
+  }
+
+  return out;
 }
