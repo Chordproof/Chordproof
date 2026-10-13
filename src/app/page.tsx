@@ -41,6 +41,9 @@ export default async function HomePage() {
     .from("tabs")
     .select("artist, slug_artist, views, artist_image_url");
 
+  const totalTabs = allTabs?.length ?? 0;
+  const totalViews = (allTabs || []).reduce((acc, t) => acc + (t.views || 0), 0);
+
   const artistMap = new Map<string, { name: string; slug: string; views: number; image: string | null }>();
   (allTabs || []).forEach((t) => {
     if (!artistMap.has(t.slug_artist)) {
@@ -72,22 +75,22 @@ export default async function HomePage() {
           <div className="flex items-center gap-2">
             <BadgeCheck size={16} className="text-brand-gold" />
             <div className="text-left">
-              <p className="text-lg font-bold leading-tight">12,400+</p>
+              <p className="text-lg font-bold leading-tight">{totalTabs}</p>
               <p className="text-xs text-brand-muted">Verified Tabs</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Users size={16} className="text-brand-gold" />
             <div className="text-left">
-              <p className="text-lg font-bold leading-tight">85,000</p>
-              <p className="text-xs text-brand-muted">Active Musicians</p>
+              <p className="text-lg font-bold leading-tight">{topArtists.length}</p>
+              <p className="text-xs text-brand-muted">Artists Cataloged</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Music size={16} className="text-brand-gold" />
             <div className="text-left">
-              <p className="text-lg font-bold leading-tight">450,000</p>
-              <p className="text-xs text-brand-muted">Total Songs</p>
+              <p className="text-lg font-bold leading-tight">{formatViews(totalViews)}</p>
+              <p className="text-xs text-brand-muted">Tab Views</p>
             </div>
           </div>
         </div>
@@ -195,10 +198,10 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ===== ARTISTAS POPULARES ===== */}
+      {/* ===== POPULAR ARTISTS ===== */}
       <section className="py-6">
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <Users size={18} className="text-brand-gold" /> Artistas Populares
+          <Users size={18} className="text-brand-gold" /> Popular Artists
         </h2>
         <div className="flex flex-wrap justify-center gap-6">
           {topArtists.map((artist) => (
