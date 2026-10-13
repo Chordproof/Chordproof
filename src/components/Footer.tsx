@@ -8,7 +8,7 @@ export default function Footer() {
           <div className="flex flex-col items-center md:items-start gap-1">
             <p className="text-white font-display font-bold tracking-tight">ChordProof</p>
             <p className="text-brand-muted text-xs">
-              © 2024 ChordProof. All rights reserved.
+              © {new Date().getFullYear()} ChordProof. All rights reserved.
             </p>
           </div>
           <div className="flex gap-8 text-sm text-brand-muted">
