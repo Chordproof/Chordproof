@@ -1,4 +1,4 @@
-import { BadgeCheck, Shield, Users, Music, Globe, Heart } from "lucide-react";
+import { BadgeCheck, Shield, Music, Globe, Heart } from "lucide-react";
 import Link from "next/link";
 
 export default function About() {
@@ -26,10 +26,10 @@ export default function About() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {[
-          { value: "12,400+", label: "Verified Tabs", icon: BadgeCheck },
-          { value: "85K+", label: "Active Users", icon: Users },
-          { value: "450K+", label: "Songs Covered", icon: Music },
-          { value: "150+", label: "Countries", icon: Globe },
+          { value: "294", label: "Verified Tabs", icon: BadgeCheck },
+          { value: "8", label: "Genres", icon: Globe },
+          { value: "100%", label: "Free Forever", icon: Heart },
+          { value: "0", label: "Paywalls", icon: Shield },
         ].map((s) => (
           <div key={s.label} className="bg-brand-card rounded-2xl p-6 border border-white/5 text-center space-y-2">
             <s.icon className="text-brand-gold mx-auto" size={28} />
@@ -47,7 +47,7 @@ export default function About() {
             {
               step: "01",
               title: "Community Submits",
-              desc: "Musicians from around the world submit tabs for every song imaginable. Our community grows by thousands of tabs every month.",
+              desc: "Musicians from around the world submit tabs for every song imaginable. Our community grows every week.",
             },
             {
               step: "02",
@@ -76,7 +76,7 @@ export default function About() {
           {[
             { icon: BadgeCheck, title: "Accuracy First", desc: "Every tab is hand-checked. If it's not right, it doesn't get the seal." },
             { icon: Heart, title: "Community Driven", desc: "We're built by and for musicians. Your feedback shapes the platform." },
-            { icon: Shield, title: "No Paywalls", desc: "Community tabs are always free. Premium is optional — for those who want more." },
+            { icon: Shield, title: "No Paywalls", desc: "Community tabs are always free. Support features are optional — for those who want more." },
             { icon: Globe, title: "Global Access", desc: "Tabs in every genre, every language, every skill level. Music has no borders." },
           ].map((v) => (
             <div key={v.title} className="flex gap-4">
@@ -92,9 +92,9 @@ export default function About() {
 
       {/* Team / CTA */}
       <div className="text-center space-y-6 pb-8">
-        <h2 className="text-3xl font-bold">Join 85,000+ Musicians</h2>
+        <h2 className="text-3xl font-bold">Start Playing Today</h2>
         <p className="text-brand-muted">
-          Start playing the right chords today.
+          Browse the catalog or request a song — the right chords are waiting.
         </p>
         <div className="flex gap-4 justify-center">
           <Link href="/browse" className="bg-brand-gold text-black px-8 py-4 rounded-full font-bold hover:scale-105 transition">
