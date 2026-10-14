@@ -1,5 +1,6 @@
 import { Check, X, WifiOff, FileText, ListMusic, Wand2, Heart, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import CheckoutButton from "@/components/CheckoutButton";
 
 export const metadata = {
   title: "ChordProof+ — Support the community, get pro features",
@@ -72,12 +73,16 @@ export default function Pricing() {
             ))}
           </ul>
           <div className="space-y-3">
-            <button className="w-full py-4 rounded-xl bg-amber-400 text-black font-bold hover:scale-105 transition shadow-lg shadow-amber-400/20">
-              Get ChordProof+ — $3.99/mo
-            </button>
-            <button className="w-full py-3 rounded-xl border border-amber-400/40 text-amber-400 font-bold hover:bg-amber-400/10 transition">
-              Or $29/year (2.4 months free)
-            </button>
+            <CheckoutButton
+              plan="monthly"
+              label="Get ChordProof+ — $3.99/mo"
+              className="w-full py-4 rounded-xl bg-amber-400 text-black font-bold hover:scale-105 transition shadow-lg shadow-amber-400/20"
+            />
+            <CheckoutButton
+              plan="annual"
+              label="Or $29/year (2.4 months free)"
+              className="w-full py-3 rounded-xl border border-amber-400/40 text-amber-400 font-bold hover:bg-amber-400/10 transition"
+            />
             <p className="text-xs text-gray-500 text-center">
               Payments by Stripe. We never see your card. Cancel in 2 clicks — no retention calls, no hidden fees.
             </p>
