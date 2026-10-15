@@ -5,6 +5,7 @@ import TransposeControls from "@/components/TransposeControls";
 import AutoScrollControl from "@/components/AutoScrollControl";
 import ArtistAvatar from "@/components/ArtistAvatar";
 import SaveOfflineButton from "@/components/SaveOfflineButton";
+import StageMode from "@/components/StageMode";
 import { BadgeCheck, AlertTriangle, Share2, Bookmark, Play, MousePointer2, Loader2, ChevronDown, Youtube } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { chordsUsed } from "@/lib/chordData";
@@ -105,6 +106,10 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
       <div className="flex flex-wrap items-center gap-4 bg-brand-card rounded-2xl p-4 border border-white/5" style={{marginBottom:"24px"}}>
         <TransposeControls transpose={transpose} onTranspose={setTranspose} />
         <button onClick={() => setShowTablature(!showTablature)} className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (showTablature ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}><ChevronDown size={16} /> Tablature {showTablature ? "ON" : "OFF"}</button>
+        <StageMode>
+          {renderContent(content, showTablature, transpose, setActiveChord, theme)}
+          {showTablature && hasTab && !hasInlineTablature(content) && renderTablature(tablature)}
+        </StageMode>
         <div className="ml-auto"><ThemePicker current={themeKey} onChange={setThemeKey} /></div>
       </div>
       <div style={{display:"flex",gap:"24px",alignItems:"flex-start"}}>
