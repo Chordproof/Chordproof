@@ -12,6 +12,8 @@ import PrintButton from "@/components/PrintButton";
 import AddToSetlist from "@/components/AddToSetlist";
 import ChordTransitionTrainer from "@/components/ChordTransitionTrainer";
 import SmartKey from "@/components/SmartKey";
+import InstrumentPicker from "@/components/InstrumentPicker";
+import type { InstrumentKey } from "@/lib/instruments";
 import { BadgeCheck, AlertTriangle, Share2, Bookmark, Play, MousePointer2, Loader2, ChevronDown, Youtube, Zap } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { recordAction } from "@/lib/gamification";
@@ -32,6 +34,13 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
   const [themeKey, setThemeKey] = useState<ThemeKey>("amber");
   const [easyOverride, setEasyOverride] = useState<{ content: string; capo: number | null } | null>(null);
   const [trainerOpen, setTrainerOpen] = useState(false);
+  const [instrument, setInstrument] = useState<InstrumentKey>("guitar");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("chordproof-instrument") as InstrumentKey | null;
+    if (saved && ["guitar", "acoustic", "bass"].includes(saved)) setInstrument(saved);
+  }, []);
+  useEffect(() => { localStorage.setItem("chordproof-instrument", instrument); }, [instrument]);
 
   useEffect(() => {
     const saved = localStorage.getItem("chordproof-theme") as ThemeKey | null;
@@ -145,6 +154,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
           easyApplied={!!easyOverride}
           easyCapo={easyOverride?.capo ?? null}
         />
+        <InstrumentPicker current={instrument} onChange={setInstrument} />
         <div className="ml-auto"><ThemePicker current={themeKey} onChange={setThemeKey} /></div>
       </div>
       <div style={{display:"flex",gap:"24px",alignItems:"flex-start"}}>
@@ -158,7 +168,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
               <h2 className="text-2xl font-bold">Chords used in this tab</h2>
               <p className="text-sm text-brand-muted">Hover over a chord in the tab to see its shape. Click to enlarge:</p>
               <div style={{display:"flex",flexWrap:"wrap",gap:"12px"}}>
-                {usedChords.map((c) => (<div key={c} onClick={() => setActiveChord(c)} style={{cursor:"pointer"}}><MiniFretboard chord={c} theme={theme} /></div>))}
+                {usedChords.map((c) => (<div key={c} onClick={() => setActiveChord(c)} style={{cursor:"pointer"}}><MiniFretboard chord={c} theme={theme} instrument={instrument} /></div>))}
               </div>
             </section>
           )}
@@ -200,7 +210,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
           </div>
         </div>
       </div>
-      {activeChord && <ChordDiagram chord={activeChord} onClose={() => setActiveChord(null)} theme={theme} />}
+      {activeChord && <ChordDiagram chord={activeChord} onClose={() => setActiveChord(null)} theme={theme} instrument={instrument} />}
       {trainerOpen && <ChordTransitionTrainer chords={usedChords} onClose={() => setTrainerOpen(false)} theme={theme} />}
       <AutoScrollControl />
     </div>
