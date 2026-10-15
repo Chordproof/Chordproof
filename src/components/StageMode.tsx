@@ -480,6 +480,9 @@ export default function StageMode({ children }: { children: React.ReactNode }) {
                 transition: "background 0.1s, box-shadow 0.1s",
               }} />
               <span style={{ fontSize: 12, color: "#f0b429", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{bpm} BPM</span>
+              {(window as any).__stageTrackInfo?.keySig && (
+                <span style={{ fontSize: 12, color: "#34d399", fontWeight: 600 }}>{(window as any).__stageTrackInfo.keySig}</span>
+              )}
               {loopOn && <span style={{ fontSize: 10, background: "rgba(240,180,41,0.2)", color: "#f0b429", padding: "2px 8px", borderRadius: 999, fontWeight: 700 }}>LOOP</span>}
               {metroOn && <span style={{ fontSize: 10, background: "rgba(52,211,153,0.2)", color: "#34d399", padding: "2px 8px", borderRadius: 999, fontWeight: 700 }}>♪ {beatsPerBar}/4</span>}
             </div>
