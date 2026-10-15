@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Music } from "lucide-react";
 import SearchBar from "@/components/SearchBar";
+import GamificationBadge from "@/components/GamificationBadge";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -30,6 +31,7 @@ export default function Navbar() {
             <Link href="/browse" className="hover:text-brand-gold transition-colors">Browse</Link>
             <Link href="/request" className="hover:text-brand-gold transition-colors">Request</Link>
             <Link href="/about" className="hover:text-brand-gold transition-colors">About</Link>
+            <GamificationBadge />
             <Link href="/signin" className="bg-brand-gold text-black px-4 py-2 rounded-full font-bold hover:scale-105 transition">
               Sign In
             </Link>
