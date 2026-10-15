@@ -1,7 +1,6 @@
-// instruments.ts — Fase 1: versões por instrumento (violão, guitarra, baixo)
-// Cada instrumento define: nº de cordas, afinação e como converter os voicings de 6 cordas.
+// instruments.ts — Versões por instrumento (guitarra, violão, baixo, cavaco, ukulele)
 
-export type InstrumentKey = "guitar" | "acoustic" | "bass";
+export type InstrumentKey = "guitar" | "acoustic" | "bass" | "cavaco" | "ukulele";
 
 export interface InstrumentDef {
   key: InstrumentKey;
@@ -15,35 +14,33 @@ export interface InstrumentDef {
 
 export const INSTRUMENTS: Record<InstrumentKey, InstrumentDef> = {
   guitar: {
-    key: "guitar",
-    label: "Guitar",
-    icon: "🎸",
-    strings: 6,
-    tuning: ["E2", "A2", "D3", "G3", "B3", "E4"],
-    maxFret: 22,
+    key: "guitar", label: "Guitar", icon: "🎸", strings: 6,
+    tuning: ["E2", "A2", "D3", "G3", "B3", "E4"], maxFret: 22,
     description: "6-string electric guitar",
   },
   acoustic: {
-    key: "acoustic",
-    label: "Acoustic",
-    icon: "🪕",
-    strings: 6,
-    tuning: ["E2", "A2", "D3", "G3", "B3", "E4"],
-    maxFret: 19,
+    key: "acoustic", label: "Acoustic", icon: "🪕", strings: 6,
+    tuning: ["E2", "A2", "D3", "G3", "B3", "E4"], maxFret: 19,
     description: "6-string acoustic guitar (same shapes)",
   },
   bass: {
-    key: "bass",
-    label: "Bass",
-    icon: "🎸",
-    strings: 4,
-    tuning: ["E1", "A1", "D2", "G2"],
-    maxFret: 20,
+    key: "bass", label: "Bass", icon: "🎸", strings: 4,
+    tuning: ["E1", "A1", "D2", "G2"], maxFret: 20,
     description: "4-string bass — root notes, one octave below",
+  },
+  cavaco: {
+    key: "cavaco", label: "Cavaco", icon: "🎵", strings: 4,
+    tuning: ["D3", "G3", "B3", "E4"], maxFret: 17,
+    description: "4-string cavaquinho (D-G-B-E)",
+  },
+  ukulele: {
+    key: "ukulele", label: "Ukulele", icon: "🪕", strings: 4,
+    tuning: ["G4", "C4", "E4", "A4"], maxFret: 17,
+    description: "4-string ukulele (G-C-E-A)",
   },
 };
 
-export const INSTRUMENT_ORDER: InstrumentKey[] = ["guitar", "acoustic", "bass"];
+export const INSTRUMENT_ORDER: InstrumentKey[] = ["guitar", "acoustic", "bass", "cavaco", "ukulele"];
 
 const NOTE_TO_SEMITONE: Record<string, number> = {
   C: 0, "C#": 1, Db: 1, D: 2, "D#": 3, Eb: 3, E: 4, F: 5,
@@ -58,27 +55,30 @@ export function noteToSemitone(note: string): number {
  * Converte um voicing de guitarra (6 cordas) para baixo (4 cordas).
  * Baixo = melodia de fundamento: fundamental na corda grave + quinta opcional.
  */
-export function guitarToBass(chordName: string, _guitarShape: number[]): number[] {
+export function guitarToBass(chordName: string): number[] {
   const m = chordName.match(/^([A-G][#b]?)/);
   if (!m) return [-1, -1, -1, -1];
-  const root = m[1];
-  const rootSemi = noteToSemitone(root);
+  const rootPc = noteToSemitone(m[1]);
 
-  const eStringFret = rootSemi; // corda E1: casa 0-11 para as 12 notas
-  const aStringFret = ((rootSemi - 5) % 12 + 12) % 12; // corda A1
+  // Casa da fundamental em cada corda: (pc alvo - pc da corda solta) mod 12
+  // E1 tem pc 4, A1 tem pc 9
+  const eFret = (rootPc - 4 + 12) % 12;
+  const aFret = (rootPc - 9 + 12) % 12;
 
-  let shape: number[];
-  if (eStringFret <= 12) {
-    shape = [eStringFret, -1, -1, -1];
-  } else {
-    shape = [-1, aStringFret, -1, -1];
-  }
+  // Fundamental na corda com a MENOR casa (posição mais confortável)
+  const useE = eFret <= aFret;
+  const shape: number[] = [-1, -1, -1, -1];
+  shape[0] = useE ? eFret : -1;
+  shape[1] = useE ? -1 : aFret;
 
-  // Quinta (+7 semitons) na corda D, quando couber
-  const fifthSemi = (rootSemi + 7) % 12;
-  const dStringFret = ((fifthSemi - 10) % 12 + 12) % 12; // D2 = E1+10 semitons
-  if (dStringFret >= 0 && dStringFret <= 15) {
-    shape[2] = dStringFret;
+  // Quinta (+7 semitons): prefere a corda G (casa ≤ 5), senão a D (casa ≤ 7)
+  const fifthPc = (rootPc + 7) % 12;
+  const gFret = (fifthPc - 7 + 12) % 12; // G2 tem pc 7
+  const dFret = (fifthPc - 2 + 12) % 12; // D2 tem pc 2
+  if (gFret <= 5) {
+    shape[3] = gFret;
+  } else if (dFret <= 7) {
+    shape[2] = dFret;
   }
 
   return shape;
@@ -97,7 +97,7 @@ export function guitarToAcoustic(shape: number[]): number[] {
 export function adaptShape(chordName: string, guitarShape: number[], instrument: InstrumentKey): number[] {
   switch (instrument) {
     case "bass":
-      return guitarToBass(chordName, guitarShape);
+      return guitarToBass(chordName);
     case "acoustic":
       return guitarToAcoustic(guitarShape);
     default:
@@ -114,18 +114,16 @@ export function openStringLabels(instrument: InstrumentKey): string[] {
 }
 
 // ============ Identidade visual do braço por instrumento ============
-// Cada instrumento tem madeira, cordas, inlays e nut próprios — o diagrama
-// deve "parecer" o braço daquele instrumento, não um genérico.
 export interface InstrumentVisual {
   wood1: string; wood2: string; wood3: string; wood4: string; wood5: string;
-  binding: string;         // borda lateral do braço
+  binding: string;
   bindingWidth: number;
-  nut: string;             // cor do nut (osso/plástico/metal)
+  nut: string;
   nutHeight: number;
-  stringColor: string;     // cordas graves
-  stringHighlight: string; // cordas agudas
-  stringWidths: number[];  // espessura por corda (grave → aguda)
-  inlay: string;           // cor dos marcadores de posição (casas 3/5/7/9/12)
+  stringColor: string;
+  stringHighlight: string;
+  stringWidths: number[];
+  inlay: string;
   inlayRadius: number;
   fretColor: string; fretColor2: string;
 }
@@ -160,6 +158,26 @@ export const INSTRUMENT_VISUALS: Record<InstrumentKey, InstrumentVisual> = {
     stringWidths: [6, 5, 4.2, 3.6],
     inlay: "#e0d8c8", inlayRadius: 4,
     fretColor: "#b8b8b8", fretColor2: "#6a6a6a",
+  },
+  cavaco: {
+    // Cavaquinho: madeira clara (freijó), cordas de aço finas, nut pequeno
+    wood1: "#b08048", wood2: "#946234", wood3: "#744824", wood4: "#503014", wood5: "#845830",
+    binding: "#2a180c", bindingWidth: 1.5,
+    nut: "#e8dcc8", nutHeight: 5,
+    stringColor: "#b8c0c8", stringHighlight: "#d8e0e8",
+    stringWidths: [2.4, 2.0, 1.7, 1.4],
+    inlay: "#f0e8d8", inlayRadius: 3,
+    fretColor: "#c8c0b0", fretColor2: "#8a8070",
+  },
+  ukulele: {
+    // Ukulele: koa dourado avermelhado, cordas de NYLON pálidas, nut de osso
+    wood1: "#a87040", wood2: "#8a5630", wood3: "#6a3e1e", wood4: "#482a10", wood5: "#7a4c28",
+    binding: "#3a2410", bindingWidth: 2,
+    nut: "#f0e8d8", nutHeight: 6,
+    stringColor: "#e8e0cc", stringHighlight: "#f8f4e8",
+    stringWidths: [2.8, 2.4, 2.0, 1.7],
+    inlay: "#f5eedd", inlayRadius: 3,
+    fretColor: "#d0c0a0", fretColor2: "#96825e",
   },
 };
 
