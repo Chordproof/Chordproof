@@ -189,7 +189,6 @@ function FretboardSVG({ shape, fingers, theme }: { shape: number[]; fingers: num
   const stringW = [3.5, 3, 2.5, 2, 1.5, 1.2];
   const dotSize = 18;
   const fretH = 28;
-  const woodGrad = "linear-gradient(180deg," + C.wood1 + " 0%," + C.wood2 + " 18%," + C.wood3 + " 40%," + C.wood4 + " 65%," + C.wood5 + " 100%)";
   return (
     <svg width="100" height="130" viewBox="0 0 100 130">
       <defs>
@@ -239,7 +238,6 @@ function FretboardSVG({ shape, fingers, theme }: { shape: number[]; fingers: num
 
 export function MiniFretboard({ chord, theme }: { chord: string; theme: typeof THEMES[ThemeKey] }) {
   const C = theme;
-  // FALLBACK: acorde sem shape registrado → mostra só o nome, sem fretboard vazio
   if (!CHORD_SHAPES[chord]) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", padding: "4px" }}>
@@ -279,16 +277,22 @@ export function MiniFretboard({ chord, theme }: { chord: string; theme: typeof T
 
 export function ChordDiagram({ chord, onClose, theme }: { chord: string; onClose: () => void; theme: typeof THEMES[ThemeKey] }) {
   const C = theme;
-  // FALLBACK: acorde sem shape registrado → mostra só o nome, sem fretboard vazio
+  // FALLBACK: acorde sem shape registrado → modal centrado com aviso claro (fecha no mouseleave)
   if (!CHORD_SHAPES[chord]) {
     return (
       <div
         onClick={onClose}
-        style={{ background: "#1a1a2e", border: "1px solid #333", borderRadius: "16px", padding: "16px", boxShadow: "0 12px 40px rgba(0,0,0,0.7)", minWidth: "220px", textAlign: "center", cursor: "pointer" }}
+        style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}
       >
-        <div style={{ fontSize: "24px", fontWeight: 700, color: C.text }}>{chord}</div>
-        <div style={{ fontSize: "12px", color: C.muted, marginTop: "8px" }}>Sem diagrama disponível</div>
-        <div style={{ fontSize: "11px", color: "#666", marginTop: "12px" }}>Click anywhere to close</div>
+        <div
+          onClick={(e) => e.stopPropagation()}
+          onMouseLeave={onClose}
+          style={{ background: "#1a1a2e", border: "1px solid #333", borderRadius: "16px", padding: "24px", boxShadow: "0 12px 40px rgba(0,0,0,0.7)", minWidth: "260px", textAlign: "center", cursor: "pointer" }}
+        >
+          <div style={{ fontSize: "24px", fontWeight: 700, color: C.text }}>{chord}</div>
+          <div style={{ fontSize: "13px", color: C.muted, marginTop: "8px" }}>Diagram under construction</div>
+          <div style={{ fontSize: "11px", color: "#888", marginTop: "12px" }}>Click anywhere to close</div>
+        </div>
       </div>
     );
   }
@@ -302,7 +306,6 @@ export function ChordDiagram({ chord, onClose, theme }: { chord: string; onClose
   const frets = [baseFret + 1, baseFret + 2, baseFret + 3, baseFret + 4];
   const stringW = [5, 4.5, 4, 3.5, 3, 2.5];
   const dotSize = 32;
-  const woodGrad = "linear-gradient(180deg," + C.wood1 + " 0%," + C.wood2 + " 18%," + C.wood3 + " 40%," + C.wood4 + " 65%," + C.wood5 + " 100%)";
   return (
     <div
       onClick={onClose}
