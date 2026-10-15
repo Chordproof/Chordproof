@@ -1,6 +1,6 @@
-// instruments.ts — Versões por instrumento (guitarra, violão, baixo, cavaco, ukulele)
+// instruments.ts — Versões por instrumento (guitarra, violão, baixo, cavaco, ukulele, piano)
 
-export type InstrumentKey = "guitar" | "acoustic" | "bass" | "cavaco" | "ukulele";
+export type InstrumentKey = "guitar" | "acoustic" | "bass" | "cavaco" | "ukulele" | "piano";
 
 export interface InstrumentDef {
   key: InstrumentKey;
@@ -38,9 +38,14 @@ export const INSTRUMENTS: Record<InstrumentKey, InstrumentDef> = {
     tuning: ["G4", "C4", "E4", "A4"], maxFret: 17,
     description: "4-string ukulele (G-C-E-A)",
   },
+  piano: {
+    key: "piano", label: "Piano", icon: "🎹", strings: 0,
+    tuning: [], maxFret: 0,
+    description: "Keyboard — chord notes on the keys",
+  },
 };
 
-export const INSTRUMENT_ORDER: InstrumentKey[] = ["guitar", "acoustic", "bass", "cavaco", "ukulele"];
+export const INSTRUMENT_ORDER: InstrumentKey[] = ["guitar", "acoustic", "bass", "cavaco", "ukulele", "piano"];
 
 const NOTE_TO_SEMITONE: Record<string, number> = {
   C: 0, "C#": 1, Db: 1, D: 2, "D#": 3, Eb: 3, E: 4, F: 5,
@@ -178,6 +183,16 @@ export const INSTRUMENT_VISUALS: Record<InstrumentKey, InstrumentVisual> = {
     stringWidths: [2.8, 2.4, 2.0, 1.7],
     inlay: "#f5eedd", inlayRadius: 3,
     fretColor: "#d0c0a0", fretColor2: "#96825e",
+  },
+  piano: {
+    // Piano: não usa braço — o componente PianoDiagram cuida do desenho
+    wood1: "#1a1a2e", wood2: "#14141f", wood3: "#0f0f18", wood4: "#0a0a10", wood5: "#101018",
+    binding: "#000000", bindingWidth: 0,
+    nut: "#000000", nutHeight: 0,
+    stringColor: "#000000", stringHighlight: "#000000",
+    stringWidths: [],
+    inlay: "#000000", inlayRadius: 0,
+    fretColor: "#000000", fretColor2: "#000000",
   },
 };
 
