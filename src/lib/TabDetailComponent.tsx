@@ -7,6 +7,7 @@ import ArtistAvatar from "@/components/ArtistAvatar";
 import SaveOfflineButton from "@/components/SaveOfflineButton";
 import StageMode from "@/components/StageMode";
 import EasyModeToggle from "@/components/EasyModeToggle";
+import PrintButton from "@/components/PrintButton";
 import { BadgeCheck, AlertTriangle, Share2, Bookmark, Play, MousePointer2, Loader2, ChevronDown, Youtube } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { chordsUsed } from "@/lib/chordData";
@@ -117,6 +118,13 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
           content={tab.content || ""}
           transpose={transpose}
           onContentOverride={(easyContent, capo) => setEasyOverride(easyContent ? { content: easyContent, capo } : null)}
+        />
+        <PrintButton
+          tab={tab}
+          content={content}
+          transpose={transpose}
+          easyApplied={!!easyOverride}
+          easyCapo={easyOverride?.capo ?? null}
         />
         <div className="ml-auto"><ThemePicker current={themeKey} onChange={setThemeKey} /></div>
       </div>
