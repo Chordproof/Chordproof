@@ -13,6 +13,7 @@ import AddToSetlist from "@/components/AddToSetlist";
 import ChordTransitionTrainer from "@/components/ChordTransitionTrainer";
 import { BadgeCheck, AlertTriangle, Share2, Bookmark, Play, MousePointer2, Loader2, ChevronDown, Youtube, Zap } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { recordAction } from "@/lib/gamification";
 import { chordsUsed } from "@/lib/chordData";
 import { MiniFretboard, ChordDiagram, ThemePicker, THEMES, type ThemeKey } from "@/lib/fretboard";
 import { renderContent, renderTablature, hasInlineTablature } from "@/lib/tabRenderer";
@@ -46,7 +47,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
       setLoading(true);
       const { data, error } = await supabase.from("tabs").select("*").eq("slug_artist", params.artist).eq("slug_song", params.song).maybeSingle();
       if (!active) return;
-      if (error || !data) { setNotFound(true); } else { setTab(data); }
+      if (error || !data) { setNotFound(true); } else { setTab(data); recordAction("OPEN_TAB"); }
       setLoading(false);
     })();
     return () => { active = false; };
