@@ -10,7 +10,8 @@ import EasyModeToggle from "@/components/EasyModeToggle";
 import PdfButton from "@/components/PdfButton";
 import PrintButton from "@/components/PrintButton";
 import AddToSetlist from "@/components/AddToSetlist";
-import { BadgeCheck, AlertTriangle, Share2, Bookmark, Play, MousePointer2, Loader2, ChevronDown, Youtube } from "lucide-react";
+import ChordTransitionTrainer from "@/components/ChordTransitionTrainer";
+import { BadgeCheck, AlertTriangle, Share2, Bookmark, Play, MousePointer2, Loader2, ChevronDown, Youtube, Zap } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { chordsUsed } from "@/lib/chordData";
 import { MiniFretboard, ChordDiagram, ThemePicker, THEMES, type ThemeKey } from "@/lib/fretboard";
@@ -28,6 +29,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
   const [youtubeLoading, setYoutubeLoading] = useState(false);
   const [themeKey, setThemeKey] = useState<ThemeKey>("amber");
   const [easyOverride, setEasyOverride] = useState<{ content: string; capo: number | null } | null>(null);
+  const [trainerOpen, setTrainerOpen] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("chordproof-theme") as ThemeKey | null;
@@ -113,6 +115,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
       <div className="flex flex-wrap items-center gap-4 bg-brand-card rounded-2xl p-4 border border-white/5" style={{marginBottom:"24px"}}>
         <TransposeControls transpose={transpose} onTranspose={setTranspose} />
         <button onClick={() => setShowTablature(!showTablature)} className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (showTablature ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}><ChevronDown size={16} /> Tablature {showTablature ? "ON" : "OFF"}</button>
+        <button onClick={() => setTrainerOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition bg-white/5 hover:bg-white/10" title="Train chord transitions with a timer"><Zap size={16} className="text-brand-gold" /> Trainer</button>
         <StageMode>
           {renderContent(content, showTablature, transpose, setActiveChord, theme)}
           {showTablature && hasTab && !hasInlineTablature(content) && renderTablature(tablature)}
@@ -188,6 +191,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
         </div>
       </div>
       {activeChord && <ChordDiagram chord={activeChord} onClose={() => setActiveChord(null)} theme={theme} />}
+      {trainerOpen && <ChordTransitionTrainer chords={usedChords} onClose={() => setTrainerOpen(false)} theme={theme} />}
       <AutoScrollControl />
     </div>
   );
