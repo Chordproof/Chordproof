@@ -6,6 +6,7 @@ import AutoScrollControl from "@/components/AutoScrollControl";
 import ArtistAvatar from "@/components/ArtistAvatar";
 import SaveOfflineButton from "@/components/SaveOfflineButton";
 import StageMode from "@/components/StageMode";
+import EasyModeToggle from "@/components/EasyModeToggle";
 import { BadgeCheck, AlertTriangle, Share2, Bookmark, Play, MousePointer2, Loader2, ChevronDown, Youtube } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { chordsUsed } from "@/lib/chordData";
@@ -23,6 +24,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
   const [youtubeId, setYoutubeId] = useState("");
   const [youtubeLoading, setYoutubeLoading] = useState(false);
   const [themeKey, setThemeKey] = useState<ThemeKey>("amber");
+  const [easyOverride, setEasyOverride] = useState<{ content: string; capo: number | null } | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("chordproof-theme") as ThemeKey | null;
@@ -66,7 +68,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
 
   const songName = tab.song || params.song.replace(/-/g, " ");
   const artistName = tab.artist || params.artist.replace(/-/g, " ");
-  const content = tab.content || "";
+  const content = easyOverride ? easyOverride.content : tab.content || "";
   const tablature = tab.tablature || "";
   const usedChords = chordsUsed(content, transpose);
   const hasTab = tablature && tablature.trim().length > 0;
@@ -94,6 +96,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
             {tab.key_sig && <span className="bg-white/5 px-3 py-1 rounded text-sm">Key: <strong>{tab.key_sig}</strong></span>}
             {tab.difficulty && <span className="bg-white/5 px-3 py-1 rounded text-sm">Difficulty: <strong className="text-green-400">{tab.difficulty}</strong></span>}
             {tab.capo && <span className="bg-white/5 px-3 py-1 rounded text-sm">Capo: <strong>{tab.capo}</strong></span>}
+            {easyOverride?.capo && <span className="bg-brand-gold/10 text-brand-gold px-3 py-1 rounded text-sm font-bold">Easy capo: <strong>{easyOverride.capo}</strong></span>}
           </div>
         </div>
         <div className="flex gap-3">
@@ -110,6 +113,11 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
           {renderContent(content, showTablature, transpose, setActiveChord, theme)}
           {showTablature && hasTab && !hasInlineTablature(content) && renderTablature(tablature)}
         </StageMode>
+        <EasyModeToggle
+          content={tab.content || ""}
+          transpose={transpose}
+          onContentOverride={(easyContent, capo) => setEasyOverride(easyContent ? { content: easyContent, capo } : null)}
+        />
         <div className="ml-auto"><ThemePicker current={themeKey} onChange={setThemeKey} /></div>
       </div>
       <div style={{display:"flex",gap:"24px",alignItems:"flex-start"}}>
