@@ -13,6 +13,7 @@ import AddToSetlist from "@/components/AddToSetlist";
 import ChordTransitionTrainer from "@/components/ChordTransitionTrainer";
 import SmartKey from "@/components/SmartKey";
 import InstrumentPicker from "@/components/InstrumentPicker";
+import DrumMachine from "@/components/DrumMachine";
 import type { InstrumentKey } from "@/lib/instruments";
 import { BadgeCheck, AlertTriangle, Share2, Bookmark, Play, MousePointer2, Loader2, ChevronDown, Youtube, Zap } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -34,6 +35,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
   const [themeKey, setThemeKey] = useState<ThemeKey>("amber");
   const [easyOverride, setEasyOverride] = useState<{ content: string; capo: number | null } | null>(null);
   const [trainerOpen, setTrainerOpen] = useState(false);
+  const [drumOpen, setDrumOpen] = useState(false);
   const [instrument, setInstrument] = useState<InstrumentKey>("guitar");
 
   useEffect(() => {
@@ -129,6 +131,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
         <TransposeControls transpose={transpose} onTranspose={setTranspose} />
         <button onClick={() => setShowTablature(!showTablature)} className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (showTablature ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}><ChevronDown size={16} /> Tablature {showTablature ? "ON" : "OFF"}</button>
         <button onClick={() => setTrainerOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition bg-white/5 hover:bg-white/10" title="Train chord transitions with a timer"><Zap size={16} className="text-brand-gold" /> Trainer</button>
+        <button onClick={() => setDrumOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition bg-white/5 hover:bg-white/10" title="Drum machine — groove by genre at the song BPM">🥁 Drums</button>
         <StageMode>
           {renderContent(content, showTablature, transpose, setActiveChord, theme)}
           {showTablature && hasTab && !hasInlineTablature(content) && renderTablature(tablature)}
@@ -212,6 +215,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
       </div>
       {activeChord && <ChordDiagram chord={activeChord} onClose={() => setActiveChord(null)} theme={theme} instrument={instrument} />}
       {trainerOpen && <ChordTransitionTrainer chords={usedChords} onClose={() => setTrainerOpen(false)} theme={theme} />}
+      {drumOpen && <DrumMachine genre={tab.genre || null} artist={artistName} song={songName} onClose={() => setDrumOpen(false)} accentColor={theme.dot} />}
       <AutoScrollControl />
     </div>
   );
