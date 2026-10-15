@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, Palette, X } from "lucide-react";
 import { CHORD_SHAPES } from "./chordData";
-import { adaptShape, type InstrumentKey } from "./instruments";
+import { adaptShape, INSTRUMENTS, INSTRUMENT_VISUALS, type InstrumentKey } from "./instruments";
 
 export type ThemeKey = "amber" | "classic" | "emerald" | "crimson" | "ocean";
 export type Theme = {
@@ -186,35 +186,46 @@ function getVariations(chord: string, instrument: InstrumentKey = "guitar"): { s
   return { shapes: [base], fingers: [baseFingers] };
 }
 
-function FretboardSVG({ shape, fingers, theme, strings = 6 }: { shape: number[]; fingers: number[]; theme: typeof THEMES[ThemeKey]; strings?: number }) {
+function FretboardSVG({ shape, fingers, theme, instrument = "guitar" }: { shape: number[]; fingers: number[]; theme: typeof THEMES[ThemeKey]; instrument?: InstrumentKey }) {
   const C = theme;
+  const V = INSTRUMENT_VISUALS[instrument];
+  const strings = INSTRUMENTS[instrument].strings;
   const posFrets = shape.filter((f: number) => f > 0);
   const minPos = posFrets.length > 0 ? Math.min(...posFrets) : 0;
   const baseFret = minPos > 3 ? minPos - 1 : 0;
   const frets = [baseFret + 1, baseFret + 2, baseFret + 3, baseFret + 4];
   const W = strings === 4 ? 78 : 100;
   const spacing = strings === 4 ? 19 : 16;
-  const stringW = strings === 4 ? [4.5, 3.5, 2.5, 2] : [3.5, 3, 2.5, 2, 1.5, 1.2];
   const dotSize = 18;
   const fretH = 28;
+  // Inlays reais ficam nas casas absolutas 3, 5, 7, 9, 12, 15, 17
+  const INLAY_FRETS = [3, 5, 7, 9, 12, 15, 17];
+  const visibleInlays = frets.filter((f) => INLAY_FRETS.includes(f));
   return (
     <svg width={W} height="130" viewBox={`0 0 ${W} 130`}>
       <defs>
-        <linearGradient id="wood" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={C.wood1} />
-          <stop offset="18%" stopColor={C.wood2} />
-          <stop offset="40%" stopColor={C.wood3} />
-          <stop offset="65%" stopColor={C.wood4} />
-          <stop offset="100%" stopColor={C.wood5} />
+        <linearGradient id={"wood-" + instrument} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={V.wood1} />
+          <stop offset="18%" stopColor={V.wood2} />
+          <stop offset="40%" stopColor={V.wood3} />
+          <stop offset="65%" stopColor={V.wood4} />
+          <stop offset="100%" stopColor={V.wood5} />
         </linearGradient>
       </defs>
-      <rect x="0" y="0" width={W} height="130" fill="url(#wood)" rx="6" />
-      <rect x="0" y="0" width={W} height="6" fill={C.nut1} />
+      <rect x="0" y="0" width={W} height="130" fill={`url(#wood-${instrument})`} rx="6" />
+      <rect x="0" y="0" width={W} height="130" fill="none" stroke={V.binding} strokeWidth={V.bindingWidth} rx="6" />
+      <rect x="0" y="0" width={W} height={V.nutHeight} fill={V.nut} />
       {frets.map((fret, fi) => (
-        <line key={fi} x1="0" y1={6 + (fi + 1) * fretH} x2={W} y2={6 + (fi + 1) * fretH} stroke={C.fret1} strokeWidth="2" />
+        <line key={fi} x1="0" y1={6 + (fi + 1) * fretH} x2={W} y2={6 + (fi + 1) * fretH} stroke={fi % 2 === 0 ? V.fretColor : V.fretColor2} strokeWidth="2" />
       ))}
+      {/* Inlays (marcadores de posição) — embaixo das cordas */}
+      {visibleInlays.map((f) => {
+        const fi = f - baseFret - 1;
+        const y = 6 + fi * fretH + fretH / 2;
+        return <circle key={"inl" + f} cx={W / 2} cy={y} r={V.inlayRadius} fill={V.inlay} opacity="0.9" />;
+      })}
       {shape.map((f, i) => (
-        <line key={i} x1={10 + i * spacing} y1="6" x2={10 + i * spacing} y2="130" stroke={i < 3 ? C.strThick1 : C.strThin1} strokeWidth={stringW[i]} />
+        <line key={i} x1={10 + i * spacing} y1="6" x2={10 + i * spacing} y2="130" stroke={i < strings / 2 ? V.stringColor : V.stringHighlight} strokeWidth={V.stringWidths[i] ?? 1.5} />
       ))}
       {shape.map((f, i) => (
         <text key={"m" + i} x={10 + i * spacing} y="4" textAnchor="middle" fontSize="9" fill={f === -1 ? C.x : C.o} fontWeight="bold">
@@ -262,7 +273,7 @@ export function MiniFretboard({ chord, theme, instrument = "guitar" }: { chord: 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
       <span style={{ color: C.text, fontWeight: 700, fontSize: "14px" }}>{chord}</span>
-      <FretboardSVG shape={shape} fingers={finger} theme={theme} strings={instrument === "bass" ? 4 : 6} />
+      <FretboardSVG shape={shape} fingers={finger} theme={theme} instrument={instrument} />
       {shapes.length > 1 && (
         <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
           <button
@@ -313,7 +324,6 @@ export function ChordDiagram({ chord, onClose, theme, instrument = "guitar" }: {
   const minPos = posFrets.length > 0 ? Math.min(...posFrets) : 0;
   const baseFret = minPos > 3 ? minPos - 1 : 0;
   const frets = [baseFret + 1, baseFret + 2, baseFret + 3, baseFret + 4];
-  const stringW = [5, 4.5, 4, 3.5, 3, 2.5];
   const dotSize = 32;
   return (
     <div
@@ -336,7 +346,7 @@ export function ChordDiagram({ chord, onClose, theme, instrument = "guitar" }: {
             Starting at fret {baseFret + 1}
           </div>
         )}
-        <FretboardSVG shape={shape} fingers={finger} theme={theme} strings={instrument === "bass" ? 4 : 6} />
+        <FretboardSVG shape={shape} fingers={finger} theme={theme} instrument={instrument} />
         {shapes.length > 1 && (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginTop: "8px" }}>
             <button
@@ -362,7 +372,7 @@ export function ChordDiagram({ chord, onClose, theme, instrument = "guitar" }: {
   );
 }
 
-export function ChordSpan({ chord, onClick, theme }: { chord: string; onClick: (chord: string) => void; theme: typeof THEMES[ThemeKey] }) {
+export function ChordSpan({ chord, onClick, theme, instrument = "guitar" }: { chord: string; onClick: (chord: string) => void; theme: typeof THEMES[ThemeKey]; instrument?: InstrumentKey }) {
   const [showTip, setShowTip] = useState(false);
   return (
     <span
@@ -374,7 +384,7 @@ export function ChordSpan({ chord, onClick, theme }: { chord: string; onClick: (
       {chord}
       {showTip && (
         <span style={{ position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)", zIndex: 10 }}>
-          <MiniFretboard chord={chord} theme={theme} />
+          <MiniFretboard chord={chord} theme={theme} instrument={instrument} />
         </span>
       )}
     </span>
