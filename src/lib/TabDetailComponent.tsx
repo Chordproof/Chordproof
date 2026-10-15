@@ -7,6 +7,7 @@ import ArtistAvatar from "@/components/ArtistAvatar";
 import SaveOfflineButton from "@/components/SaveOfflineButton";
 import StageMode from "@/components/StageMode";
 import EasyModeToggle from "@/components/EasyModeToggle";
+import PdfButton from "@/components/PdfButton";
 import PrintButton from "@/components/PrintButton";
 import { BadgeCheck, AlertTriangle, Share2, Bookmark, Play, MousePointer2, Loader2, ChevronDown, Youtube } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -118,6 +119,15 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
           content={tab.content || ""}
           transpose={transpose}
           onContentOverride={(easyContent, capo) => setEasyOverride(easyContent ? { content: easyContent, capo } : null)}
+        />
+        <PdfButton
+          song={songName}
+          artist={artistName}
+          content={content}
+          transpose={transpose}
+          capo={tab.capo}
+          easyCapo={easyOverride?.capo ?? null}
+          keySig={tab.key_sig}
         />
         <PrintButton
           tab={tab}
