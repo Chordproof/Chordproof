@@ -38,7 +38,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
 
   useEffect(() => {
     const saved = localStorage.getItem("chordproof-instrument") as InstrumentKey | null;
-    if (saved && ["guitar", "acoustic", "bass", "cavaco", "ukulele"].includes(saved)) setInstrument(saved);
+    if (saved && ["guitar", "acoustic", "bass", "cavaco", "ukulele", "piano"].includes(saved)) setInstrument(saved);
   }, []);
   useEffect(() => { localStorage.setItem("chordproof-instrument", instrument); }, [instrument]);
 
