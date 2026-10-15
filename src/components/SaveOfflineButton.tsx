@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { WifiOff, Check, Loader2 } from "lucide-react";
 import { saveTabOffline, removeTabOffline, getOfflineTab } from "@/lib/offlineLibrary";
+import { recordAction } from "@/lib/gamification";
 
 // Botão "Available Offline" — salva a cifra no IndexedDB (recurso ChordProof+).
 export default function SaveOfflineButton({
@@ -40,6 +41,7 @@ export default function SaveOfflineButton({
           difficulty: tab.difficulty,
         });
         setSaved(true);
+        recordAction("SAVE_TAB");
       }
     } catch (e) {
       console.error("offline save failed", e);
