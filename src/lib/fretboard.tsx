@@ -3,6 +3,7 @@ import { useState } from "react";
 import { BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, Palette, X } from "lucide-react";
 import { CHORD_SHAPES } from "./chordData";
 import { adaptShape, INSTRUMENTS, INSTRUMENT_VISUALS, type InstrumentKey } from "./instruments";
+import { generateVoicing, suggestFingers } from "./fourStringVoicings";
 
 export type ThemeKey = "amber" | "classic" | "emerald" | "crimson" | "ocean";
 export type Theme = {
@@ -167,21 +168,32 @@ function generateBarre(chord: string): { shape: number[] | null; fingers: number
 }
 
 function getVariations(chord: string, instrument: InstrumentKey = "guitar"): { shapes: number[][]; fingers: number[][] } {
+  // Cavaquinho/Ukulele: voicing gerado por teoria (4 cordas)
+  if (instrument === "cavaco" || instrument === "ukulele") {
+    const shape = generateVoicing(chord, instrument);
+    if (shape.every((f) => f === -1)) {
+      return { shapes: [[-1,-1,-1,-1]], fingers: [[-1,-1,-1,-1]] };
+    }
+    return { shapes: [shape], fingers: [suggestFingers(shape)] };
+  }
+  // Baixo: adapter fundamental+quinta (4 cordas)
+  if (instrument === "bass") {
+    const base6 = CHORD_SHAPES[chord];
+    const shape = adaptShape(chord, base6 || [-1,-1,-1,-1,-1,-1], instrument);
+    return { shapes: [shape], fingers: [shape.map((f) => (f > 0 ? 1 : f))] };
+  }
+  // Guitarra/Violão: dicionário de voicings (6 cordas)
   const base6 = CHORD_SHAPES[chord];
   if (!base6 || !Array.isArray(base6) || base6.length !== 6) {
     return { shapes: [[-1,-1,-1,-1,-1,-1]], fingers: [[-1,-1,-1,-1,-1,-1]] };
   }
-  // Adapta o shape para o instrumento (baixo = 4 cordas com fundamental+quinta)
   const base = adaptShape(chord, base6, instrument);
-  const baseFingers = instrument === "bass" ? base.map(f => (f > 0 ? 1 : f)) : (CHORD_FINGERS[chord] || autoGenerateFingers(base6));
-  // Barre só se aplica a instrumentos de 6 cordas
-  if (instrument !== "bass") {
-    const barre = generateBarre(chord);
-    if (barre.shape && Array.isArray(barre.shape) && barre.shape.length === 6) {
-      const shapesEqual = JSON.stringify(base) === JSON.stringify(barre.shape);
-      if (shapesEqual) return { shapes: [base], fingers: [baseFingers] };
-      return { shapes: [base, barre.shape], fingers: [baseFingers, barre.fingers] };
-    }
+  const baseFingers = CHORD_FINGERS[chord] || autoGenerateFingers(base6);
+  const barre = generateBarre(chord);
+  if (barre.shape && Array.isArray(barre.shape) && barre.shape.length === 6) {
+    const shapesEqual = JSON.stringify(base) === JSON.stringify(barre.shape);
+    if (shapesEqual) return { shapes: [base], fingers: [baseFingers] };
+    return { shapes: [base, barre.shape], fingers: [baseFingers, barre.fingers] };
   }
   return { shapes: [base], fingers: [baseFingers] };
 }
@@ -257,8 +269,9 @@ function FretboardSVG({ shape, fingers, theme, instrument = "guitar" }: { shape:
 
 export function MiniFretboard({ chord, theme, instrument = "guitar" }: { chord: string; theme: typeof THEMES[ThemeKey]; instrument?: InstrumentKey }) {
   const C = theme;
-  // FALLBACK: acorde sem shape registrado → mostra só o nome, sem fretboard vazio
-  if (!CHORD_SHAPES[chord]) {
+  // FALLBACK: acorde sem voicing possível → mostra só o nome
+  const probe = getVariations(chord, instrument);
+  if (probe.shapes.length === 1 && probe.shapes[0].every((f) => f === -1)) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", padding: "4px" }}>
         <span style={{ color: C.text, fontWeight: 700, fontSize: "14px" }}>{chord}</span>
@@ -297,8 +310,9 @@ export function MiniFretboard({ chord, theme, instrument = "guitar" }: { chord: 
 
 export function ChordDiagram({ chord, onClose, theme, instrument = "guitar" }: { chord: string; onClose: () => void; theme: typeof THEMES[ThemeKey]; instrument?: InstrumentKey }) {
   const C = theme;
-  // FALLBACK: acorde sem shape registrado → modal no centro com aviso claro
-  if (!CHORD_SHAPES[chord]) {
+  // FALLBACK: acorde sem voicing possível → modal no centro com aviso claro
+  const probe = getVariations(chord, instrument);
+  if (probe.shapes.length === 1 && probe.shapes[0].every((f) => f === -1)) {
     return (
       <div
         onClick={onClose}
