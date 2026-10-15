@@ -5,6 +5,7 @@ import Providers from "./providers";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import JsonLd from "@/components/JsonLd";
+import RegisterSW from "@/components/RegisterSW";
 import { SITE_URL } from "@/lib/seo";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -22,10 +23,9 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/icons/icon.svg", type: "image/svg+xml" },
     ],
-    apple: "/icons/apple-touch-icon.png",
+    apple: "/icons/icon.svg",
   },
   openGraph: {
     title: "ChordProof - Verified Guitar Tabs",
@@ -53,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className={inter.className}>
+        <RegisterSW />
         <Providers>
           <div className="flex flex-col min-h-screen">
             <Navbar />
