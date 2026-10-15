@@ -112,3 +112,57 @@ export function stringCount(instrument: InstrumentKey): number {
 export function openStringLabels(instrument: InstrumentKey): string[] {
   return INSTRUMENTS[instrument].tuning.map((t) => t.replace(/\d/, ""));
 }
+
+// ============ Identidade visual do braço por instrumento ============
+// Cada instrumento tem madeira, cordas, inlays e nut próprios — o diagrama
+// deve "parecer" o braço daquele instrumento, não um genérico.
+export interface InstrumentVisual {
+  wood1: string; wood2: string; wood3: string; wood4: string; wood5: string;
+  binding: string;         // borda lateral do braço
+  bindingWidth: number;
+  nut: string;             // cor do nut (osso/plástico/metal)
+  nutHeight: number;
+  stringColor: string;     // cordas graves
+  stringHighlight: string; // cordas agudas
+  stringWidths: number[];  // espessura por corda (grave → aguda)
+  inlay: string;           // cor dos marcadores de posição (casas 3/5/7/9/12)
+  inlayRadius: number;
+  fretColor: string; fretColor2: string;
+}
+
+export const INSTRUMENT_VISUALS: Record<InstrumentKey, InstrumentVisual> = {
+  guitar: {
+    // Guitarra elétrica: rosewood escuro frio, cordas de aço finas, nut metálico
+    wood1: "#5a3a28", wood2: "#332015", wood3: "#1e120b", wood4: "#120a06", wood5: "#2a1a10",
+    binding: "#1a0f08", bindingWidth: 1.5,
+    nut: "#d8d8d8", nutHeight: 6,
+    stringColor: "#c8c8c8", stringHighlight: "#f0f0f0",
+    stringWidths: [2.8, 2.4, 2.0, 1.6, 1.3, 1.1],
+    inlay: "#e8e0d0", inlayRadius: 3,
+    fretColor: "#c0c0c0", fretColor2: "#787878",
+  },
+  acoustic: {
+    // Violão: rosewood quente mais claro, cordas de BRONZE, nut de osso, binding creme
+    wood1: "#8a5a38", wood2: "#6a3f24", wood3: "#4a2a16", wood4: "#2e1a0c", wood5: "#5a3820",
+    binding: "#f0e4d0", bindingWidth: 2.5,
+    nut: "#f0e4d0", nutHeight: 7,
+    stringColor: "#d4a860", stringHighlight: "#f0d090",
+    stringWidths: [3.4, 2.9, 2.4, 1.9, 1.5, 1.2],
+    inlay: "#f0e4d0", inlayRadius: 3.5,
+    fretColor: "#c8b090", fretColor2: "#8a7050",
+  },
+  bass: {
+    // Baixo: madeira quase preta, cordas GROSSAS de aço, nut largo
+    wood1: "#3a2418", wood2: "#241410", wood3: "#160c08", wood4: "#0c0604", wood5: "#1e120c",
+    binding: "#0a0503", bindingWidth: 2,
+    nut: "#f0f0f0", nutHeight: 8,
+    stringColor: "#d0d0d0", stringHighlight: "#f8f8f8",
+    stringWidths: [6, 5, 4.2, 3.6],
+    inlay: "#e0d8c8", inlayRadius: 4,
+    fretColor: "#b8b8b8", fretColor2: "#6a6a6a",
+  },
+};
+
+export function getInstrumentVisual(instrument: InstrumentKey): InstrumentVisual {
+  return INSTRUMENT_VISUALS[instrument];
+}
