@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
@@ -10,9 +10,23 @@ import { SITE_URL } from "@/lib/seo";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "ChordProof - Verified Guitar Tabs",
   description: "The world's first verified guitar tab platform. No paywalls on community content. Accurate chords for real musicians.",
   alternates: { canonical: SITE_URL },
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "ChordProof",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/icons/apple-touch-icon.png",
+  },
   openGraph: {
     title: "ChordProof - Verified Guitar Tabs",
     description: "The world's first verified guitar tab platform. No paywalls on community content. Accurate chords for real musicians.",
@@ -20,6 +34,10 @@ export const metadata: Metadata = {
     url: SITE_URL,
     siteName: "ChordProof",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#121212",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
