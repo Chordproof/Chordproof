@@ -9,6 +9,7 @@ import StageMode from "@/components/StageMode";
 import EasyModeToggle from "@/components/EasyModeToggle";
 import PdfButton from "@/components/PdfButton";
 import PrintButton from "@/components/PrintButton";
+import AddToSetlist from "@/components/AddToSetlist";
 import { BadgeCheck, AlertTriangle, Share2, Bookmark, Play, MousePointer2, Loader2, ChevronDown, Youtube } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { chordsUsed } from "@/lib/chordData";
@@ -104,6 +105,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
         <div className="flex gap-3">
           <button onClick={() => { navigator.clipboard?.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 2000); }} className="p-3 bg-white/5 rounded-full hover:bg-white/10" title={copied ? "Link copied!" : "Share"}><Share2 size={20} className={copied ? "text-brand-gold" : ""} /></button>
           <SaveOfflineButton tab={tab} slugArtist={params.artist} slugSong={params.song} />
+          <AddToSetlist tabId={tab.id} song={songName} artist={artistName} />
           <button className="p-3 bg-white/5 rounded-full hover:bg-white/10" title="Bookmark"><Bookmark size={20} /></button>
           <a href="#tab-content" className="flex items-center gap-2 px-6 py-3 bg-brand-gold text-black rounded-full font-bold hover:scale-105 transition"><Play size={18} /> Play</a>
         </div>
