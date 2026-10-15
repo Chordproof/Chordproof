@@ -16,7 +16,7 @@ export default function SmartKey({
   currentTranspose,
 }: {
   keySig: string | null;
-  chords: string[];
+  chords: string[]; // acordes JÁ transpostos (para o score exibido)
   onApplyTranspose?: (semitones: number) => void;
   currentTranspose: number;
 }) {
@@ -24,11 +24,20 @@ export default function SmartKey({
 
   const info = useMemo(() => (keySig ? parseKey(keySig) : null), [keySig]);
   const playability = useMemo(() => playabilityScore(chords), [chords]);
+  // A sugestão é sempre calculada sobre os acordes ORIGINAIS (transpose=0),
+  // e o Try it seta o valor ABSOLUTO de transposição — evita confusão de valores relativos.
+  const originalChords = useMemo(
+    () => (currentTranspose !== 0 ? chords.map((c) => transposeChord(c, -currentTranspose)) : chords),
+    [chords, currentTranspose]
+  );
   const suggestion = useMemo(
-    () => (keySig ? suggestEasierKey(keySig, chords, transposeChord) : null),
-    [keySig, chords]
+    () => (keySig ? suggestEasierKey(keySig, originalChords, transposeChord) : null),
+    [keySig, originalChords]
   );
   const related = useMemo(() => (keySig ? relatedKeys(keySig) : []), [keySig]);
+
+  // A sugestão só faz sentido se ainda não estiver aplicada
+  const suggestionActive = suggestion && suggestion.semitones !== currentTranspose;
 
   if (!keySig || !info) return null;
 
@@ -73,7 +82,7 @@ export default function SmartKey({
       </div>
 
       {/* Sugestão de capo */}
-      {suggestion && (
+      {suggestionActive && suggestion && (
         <div className="mt-4 p-4 rounded-xl border" style={{ background: "rgba(240,180,41,0.06)", borderColor: "rgba(240,180,41,0.25)" }}>
           <div className="flex items-start gap-3">
             <Lightbulb size={20} className="text-brand-gold shrink-0 mt-0.5" />
