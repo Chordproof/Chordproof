@@ -54,6 +54,8 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
 
   useEffect(() => {
     if (!tab) return;
+    // Injeta info da música para o StageMode buscar o BPM automaticamente
+    (window as any).__stageTrackInfo = { artist: tab.artist || params.artist.replace(/-/g, " "), song: tab.song || params.song.replace(/-/g, " ") };
     const id = tab.youtube_id || tab.video_id || tab.youtube || tab.video_url || tab.yt_id || "";
     if (id) { setYoutubeId(id); return; }
     setYoutubeLoading(true);
