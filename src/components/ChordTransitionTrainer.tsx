@@ -1,23 +1,26 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { Play, RotateCcw, X, Zap, CheckCircle2, ChevronRight, Volume2, VolumeX } from "lucide-react";
+import { Play, Pause, RotateCcw, X, Timer, Zap, CheckCircle2, ChevronRight, Volume2, VolumeX } from "lucide-react";
+import { MiniFretboard } from "@/lib/fretboard";
 
 /**
  * ChordTransitionTrainer — ChordProof+ feature 2
- * Treina a troca entre 2 acordes (ou progressão da cifra) com timer de 30s.
- * Conta trocas limpas (benchmark: 20+ em 30s = nível pro).
+ * Treina a troca entre 2 acordes (ou progressão da cifra) com metrônomo de 60s.
+ * Conta trocas limpas por minuto (1DPS = one chord per second benchmark).
  */
+
+export type TrainerChord = { name: string; shape: number[] };
 
 type Phase = "idle" | "countdown" | "running" | "done";
 
-const ROUND_SECONDS = 30;
+const ROUND_SECONDS = 30; // 30s por round (padrão do 1-minute changes: 30s/60s)
 
 export default function ChordTransitionTrainer({
   chords,
   onClose,
   theme,
 }: {
-  chords: string[];
+  chords: string[]; // acordes da cifra (pós-transposição/Easy Mode)
   onClose: () => void;
   theme: any;
 }) {
@@ -37,21 +40,24 @@ export default function ChordTransitionTrainer({
     return parseInt(localStorage.getItem("chordproof-trainer-sessions") || "0", 10);
   });
   const [soundOn, setSoundOn] = useState(true);
-  const [targetChord, setTargetChord] = useState(0);
+  const [targetChord, setTargetChord] = useState(0); // índice do acorde alvo no par atual
 
   const audioRef = useRef<AudioContext | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Pares de treino: sequência de pares adjacentes da progressão
   const pairs = useMemo(() => {
     const out: [string, string][] = [];
     if (chords.length < 2) return out;
     if (chords.length === 2) return [[chords[0], chords[1]]];
     for (let i = 0; i < chords.length - 1; i++) out.push([chords[i], chords[i + 1]]);
+    // fecha o ciclo (último → primeiro) se houver 3+
     if (chords.length > 2) out.push([chords[chords.length - 1], chords[0]]);
     return out;
   }, [chords]);
 
   const activePair = pairs[pairIdx] || null;
+  const progression = mode === "progression" ? chords : null;
 
   const beep = useCallback((freq: number, dur = 0.08) => {
     if (!soundOn) return;
@@ -91,6 +97,7 @@ export default function ChordTransitionTrainer({
     }, 1000);
   };
 
+  // Timer principal do round
   useEffect(() => {
     if (phase !== "running") return;
     timerRef.current = setInterval(() => {
@@ -108,6 +115,7 @@ export default function ChordTransitionTrainer({
     return stopTimer;
   }, [phase]);
 
+  // Persistir resultado
   useEffect(() => {
     if (phase !== "done") return;
     const total = sessions + 1;
@@ -119,6 +127,7 @@ export default function ChordTransitionTrainer({
     }
   }, [phase]);
 
+  // ESC fecha
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", h);
@@ -127,12 +136,7 @@ export default function ChordTransitionTrainer({
 
   useEffect(() => () => stopTimer(), []);
 
-  const registerSwitch = () => {
-    if (phase !== "running") return;
-    setSwitches((s) => s + 1);
-    beep(990, 0.05);
-    setTargetChord((t) => t + 1);
-  };
+  const registerSwitch = () => { if (phase === "running") { setSwitches((s) => s + 1); beep(990, 0.05); setTargetChord((t) => t + 1); } };
 
   const nextPair = () => { setPairIdx((i) => (i + 1) % Math.max(pairs.length, 1)); setPhase("idle"); };
   const prevPair = () => { setPairIdx((i) => (i - 1 + pairs.length) % Math.max(pairs.length, 1)); setPhase("idle"); };
@@ -144,6 +148,7 @@ export default function ChordTransitionTrainer({
       onClick={phase === "idle" ? onClose : undefined}
       style={{ position: "fixed", inset: 0, background: "#000", zIndex: 2000, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px" }}
     >
+      {/* Header */}
       <div style={{ position: "absolute", top: "20px", left: "24px", right: "24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#f0b429", fontWeight: 700 }}>
           <Zap size={20} /> Chord Transition Trainer
@@ -158,11 +163,13 @@ export default function ChordTransitionTrainer({
         </div>
       </div>
 
+      {/* Stats no topo */}
       <div style={{ position: "absolute", top: "24px", left: "50%", transform: "translateX(-50%)", display: "flex", gap: "24px", fontSize: "13px", color: "#888" }}>
         <span>Best: <strong style={{ color: "#f0b429" }}>{best}</strong> changes</span>
         <span>Sessions: <strong style={{ color: "#f0b429" }}>{sessions}</strong></span>
       </div>
 
+      {/* IDLE: escolher modo */}
       {phase === "idle" && (
         <div style={{ textAlign: "center", maxWidth: "640px", width: "100%" }} onClick={(e) => e.stopPropagation()}>
           <h2 style={{ fontSize: "28px", fontWeight: 700, color: "#fff", marginBottom: "8px" }}>Train your chord changes</h2>
@@ -174,6 +181,7 @@ export default function ChordTransitionTrainer({
             <p style={{ color: "#e74c3c" }}>This tab needs at least 2 chords to train transitions.</p>
           ) : (
             <>
+              {/* Modo: par ou progressão */}
               <div style={{ display: "flex", gap: "8px", justifyContent: "center", marginBottom: "24px" }}>
                 <button
                   onClick={() => setMode("pair")}
@@ -197,12 +205,14 @@ export default function ChordTransitionTrainer({
                   <div style={{ display: "flex", alignItems: "center", gap: "20px", background: "rgba(255,255,255,0.04)", padding: "20px 32px", borderRadius: "20px", border: "1px solid #222" }}>
                     <div style={{ textAlign: "center" }}>
                       <div style={{ fontSize: "36px", fontWeight: 700, color: "#34d399" }}>{activePair[0]}</div>
-                      <div style={{ fontSize: "11px", color: "#666", marginTop: "4px" }}>FROM</div>
+                      <div style={{ fontSize: "11px", color: "#666", marginTop: "4px", marginBottom: "8px" }}>FROM</div>
+                      <MiniFretboard chord={activePair[0]} theme={C} />
                     </div>
                     <ChevronRight size={28} color="#f0b429" />
                     <div style={{ textAlign: "center" }}>
                       <div style={{ fontSize: "36px", fontWeight: 700, color: "#34d399" }}>{activePair[1]}</div>
-                      <div style={{ fontSize: "11px", color: "#666", marginTop: "4px" }}>TO</div>
+                      <div style={{ fontSize: "11px", color: "#666", marginTop: "4px", marginBottom: "8px" }}>TO</div>
+                      <MiniFretboard chord={activePair[1]} theme={C} />
                     </div>
                   </div>
                   <button onClick={nextPair} style={{ background: "none", border: "none", color: "#666", cursor: "pointer", padding: "8px" }}>›</button>
@@ -210,9 +220,12 @@ export default function ChordTransitionTrainer({
               )}
 
               {mode === "progression" && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", justifyContent: "center", marginBottom: "24px" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", justifyContent: "center", marginBottom: "24px", maxWidth: "700px" }}>
                   {chords.map((c, i) => (
-                    <span key={i} style={{ padding: "8px 16px", borderRadius: "12px", background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.3)", color: "#34d399", fontWeight: 700, fontSize: "18px" }}>{c}</span>
+                    <div key={i} style={{ textAlign: "center", padding: "10px 14px", borderRadius: "12px", background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.3)" }}>
+                      <div style={{ color: "#34d399", fontWeight: 700, fontSize: "20px", marginBottom: "6px" }}>{c}</div>
+                      <MiniFretboard chord={c} theme={C} />
+                    </div>
                   ))}
                 </div>
               )}
@@ -231,6 +244,7 @@ export default function ChordTransitionTrainer({
         </div>
       )}
 
+      {/* COUNTDOWN */}
       {phase === "countdown" && (
         <div style={{ textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
           <div style={{ fontSize: "120px", fontWeight: 700, color: "#f0b429" }}>{countdown}</div>
@@ -239,6 +253,7 @@ export default function ChordTransitionTrainer({
         </div>
       )}
 
+      {/* RUNNING */}
       {phase === "running" && (
         <div style={{ textAlign: "center", width: "100%", maxWidth: "700px" }} onClick={(e) => e.stopPropagation()}>
           <div style={{ fontSize: "64px", fontWeight: 700, color: "#fff", fontVariantNumeric: "tabular-nums" }}>
@@ -253,9 +268,12 @@ export default function ChordTransitionTrainer({
               <p style={{ color: "#888", fontSize: "14px", marginBottom: "8px" }}>Switch to:</p>
               <button
                 onClick={registerSwitch}
-                style={{ background: "rgba(52,211,153,0.12)", border: "2px solid #34d399", borderRadius: "24px", padding: "32px 64px", cursor: "pointer", marginBottom: "24px" }}
+                style={{ background: "rgba(52,211,153,0.12)", border: "2px solid #34d399", borderRadius: "24px", padding: "24px 48px", cursor: "pointer", marginBottom: "16px" }}
               >
-                <div style={{ fontSize: "72px", fontWeight: 700, color: "#34d399" }}>{activePair[targetChord % 2]}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+                  <div style={{ fontSize: "64px", fontWeight: 700, color: "#34d399" }}>{activePair[targetChord % 2]}</div>
+                  <MiniFretboard chord={activePair[targetChord % 2]} theme={C} />
+                </div>
               </button>
               <p style={{ color: "#666", fontSize: "13px" }}>Tap the big button EVERY TIME you play the chord</p>
             </>
@@ -266,9 +284,12 @@ export default function ChordTransitionTrainer({
               <p style={{ color: "#888", fontSize: "14px", marginBottom: "8px" }}>Play in order — tap when you hit:</p>
               <button
                 onClick={registerSwitch}
-                style={{ background: "rgba(52,211,153,0.12)", border: "2px solid #34d399", borderRadius: "24px", padding: "32px 64px", cursor: "pointer", marginBottom: "24px" }}
+                style={{ background: "rgba(52,211,153,0.12)", border: "2px solid #34d399", borderRadius: "24px", padding: "24px 48px", cursor: "pointer", marginBottom: "16px" }}
               >
-                <div style={{ fontSize: "72px", fontWeight: 700, color: "#34d399" }}>{chords[targetChord % chords.length]}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+                  <div style={{ fontSize: "64px", fontWeight: 700, color: "#34d399" }}>{chords[targetChord % chords.length]}</div>
+                  <MiniFretboard chord={chords[targetChord % chords.length]} theme={C} />
+                </div>
               </button>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "center" }}>
                 {chords.map((c, i) => (
@@ -282,6 +303,7 @@ export default function ChordTransitionTrainer({
         </div>
       )}
 
+      {/* DONE */}
       {phase === "done" && (
         <div style={{ textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
           <CheckCircle2 size={56} color="#34d399" style={{ margin: "0 auto 16px" }} />
