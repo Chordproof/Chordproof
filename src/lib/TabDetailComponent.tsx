@@ -11,6 +11,7 @@ import PdfButton from "@/components/PdfButton";
 import PrintButton from "@/components/PrintButton";
 import AddToSetlist from "@/components/AddToSetlist";
 import ChordTransitionTrainer from "@/components/ChordTransitionTrainer";
+import SmartKey from "@/components/SmartKey";
 import { BadgeCheck, AlertTriangle, Share2, Bookmark, Play, MousePointer2, Loader2, ChevronDown, Youtube, Zap } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { recordAction } from "@/lib/gamification";
@@ -55,8 +56,8 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
 
   useEffect(() => {
     if (!tab) return;
-    // Injeta info da música para o StageMode buscar o BPM automaticamente
-    (window as any).__stageTrackInfo = { artist: tab.artist || params.artist.replace(/-/g, " "), song: tab.song || params.song.replace(/-/g, " ") };
+    // Injeta info da música para o StageMode (BPM automático + tom no rodapé)
+    (window as any).__stageTrackInfo = { artist: tab.artist || params.artist.replace(/-/g, " "), song: tab.song || params.song.replace(/-/g, " "), keySig: tab.key_sig || "" };
     const id = tab.youtube_id || tab.video_id || tab.youtube || tab.video_url || tab.yt_id || "";
     if (id) { setYoutubeId(id); return; }
     setYoutubeLoading(true);
@@ -161,6 +162,12 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
               </div>
             </section>
           )}
+          <SmartKey
+            keySig={tab.key_sig}
+            chords={usedChords}
+            currentTranspose={transpose}
+            onApplyTranspose={setTranspose}
+          />
           <div className="flex items-center gap-2 text-sm text-brand-muted"><AlertTriangle size={16} className="text-brand-gold" /><span>Found an error? </span><button className="text-brand-gold hover:underline">Report this tab</button></div>
         </div>
         <div style={{flex:"1 0 320px",maxWidth:"360px"}}>
