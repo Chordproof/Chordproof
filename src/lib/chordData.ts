@@ -1,9 +1,14 @@
+import { EXTRA_SHAPES } from "./chordShapesGenerated";
+
 // chordData.ts — Complete chord library for ChordProof
 export const SHARP = "#";
 export const FLAT = "b";
 
 // Chord shapes: [E, A, D, G, B, e] — -1 = mute, 0 = open, n = fret
 export const CHORD_SHAPES: Record<string, number[]> = {};
+
+// Merge com os shapes gerados automaticamente (cobertura total das cifras)
+Object.assign(CHORD_SHAPES, EXTRA_SHAPES);
 
 // ============================================
 // MAJOR CHORDS (all 12 keys)
@@ -145,7 +150,7 @@ CHORD_SHAPES["Esus4"] = [0,2,2,2,0,0];
 CHORD_SHAPES["Fsus4"] = [1,3,3,3,1,1];
 CHORD_SHAPES["F"+SHARP+"sus4"] = [2,4,4,4,2,2];
 CHORD_SHAPES["Gsus4"] = [3,5,5,5,3,3];
-CHORD_SHAPES["G"+SHARP+"sus4"] = [4,6,6,6,4,4];
+CHORD_SHAPES["G"+SHARP+"sus4"] = [3,5,5,5,4,4];
 CHORD_SHAPES["Asus4"] = [-1,0,2,2,3,0];
 CHORD_SHAPES["A"+SHARP+"sus4"] = [-1,1,3,3,4,1];
 CHORD_SHAPES["Bsus4"] = [-1,2,4,4,5,2];
@@ -204,11 +209,11 @@ CHORD_SHAPES["C9"] = [-1,3,2,3,3,3];
 CHORD_SHAPES["C"+SHARP+"9"] = [-1,4,3,4,4,4];
 CHORD_SHAPES["D9"] = [-1,-1,0,2,1,2];
 CHORD_SHAPES["D"+SHARP+"9"] = [-1,6,5,6,5,6];
-CHORD_SHAPES["E9"] = [0,2,0,1,0,2];
+CHORD_SHAPES["E9"] = [0,2,0,1,2,0];
 CHORD_SHAPES["F9"] = [1,3,1,2,1,3];
 CHORD_SHAPES["F"+SHARP+"9"] = [2,4,2,3,2,4];
 CHORD_SHAPES["G9"] = [3,2,0,0,0,1];
-CHORD_SHAPES["G"+SHARP+"9"] = [4,6,4,5,4,5];
+CHORD_SHAPES["G"+SHARP+"9"] = [4,4,4,5,4,4];
 CHORD_SHAPES["A9"] = [-1,0,2,0,2,4];
 CHORD_SHAPES["A"+SHARP+"9"] = [-1,1,3,1,2,3];
 CHORD_SHAPES["B9"] = [-1,2,1,2,0,2];
@@ -220,8 +225,8 @@ CHORD_SHAPES["Cm9"] = [-1,3,5,3,3,3];
 CHORD_SHAPES["Dm9"] = [-1,-1,0,2,1,0];
 CHORD_SHAPES["Em9"] = [0,2,0,0,0,2];
 CHORD_SHAPES["Fm9"] = [1,3,1,1,1,3];
-CHORD_SHAPES["Gm9"] = [3,5,3,3,3,5];
-CHORD_SHAPES["Am9"] = [-1,0,2,0,1,0];
+CHORD_SHAPES["Gm9"] = [3,5,3,3,3,3];
+CHORD_SHAPES["Am9"] = [-1,0,2,0,0,0];
 CHORD_SHAPES["Bm9"] = [-1,2,4,2,3,2];
 
 // ============================================
@@ -319,27 +324,7 @@ CHORD_SHAPES["E/G#"] = [0,1,2,1,0,0];
 CHORD_SHAPES["C7M"] = [-1,3,2,0,0,0];
 CHORD_SHAPES["D6(9)/F#"] = [-1,2,0,2,0,0];
 CHORD_SHAPES["D9(11)/F#"] = [-1,2,0,2,1,0];
-CHORD_SHAPES["C/B"] = [-1,2,0,0,1,0];
-CHORD_SHAPES["D/F#"] = [2,-1,0,2,3,2];
 CHORD_SHAPES["D/F"] = [0,-1,0,2,3,2];
-CHORD_SHAPES["B7"] = [-1,2,1,2,0,2];
-CHORD_SHAPES["A7"] = [-1,0,2,0,2,0];
-CHORD_SHAPES["Am7"] = [-1,0,2,0,1,0];
-CHORD_SHAPES["Em/B"] = [-1,2,2,0,0,0];
-CHORD_SHAPES["D7M"] = [-1,-1,0,2,2,2];
-CHORD_SHAPES["F7M"] = [-1,-1,3,2,1,0];
-
-// ============================================
-// POWER CHORDS — notação com bemol (flat)
-// ============================================
-CHORD_SHAPES["Bb5"] = [-1,1,3,3,-1,-1];
-CHORD_SHAPES["Ab5"] = [-1,4,6,6,-1,-1];
-CHORD_SHAPES["Db5"] = [-1,4,6,6,-1,-1];
-CHORD_SHAPES["Gb5"] = [2,4,4,-1,-1,-1];
-
-// ============================================
-// SLASH CHORDS — adicionais
-// ============================================
 CHORD_SHAPES["Am/E"] = [0,0,2,2,1,0];
 
 // ============================================
