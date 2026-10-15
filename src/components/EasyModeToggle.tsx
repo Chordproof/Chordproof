@@ -65,6 +65,11 @@ export default function EasyModeToggle({
           <button onClick={() => setDismissed(true)} title="Dismiss"><X size={12} /></button>
         </div>
       )}
+      {enabled && analysis.suggestedCapo !== null && (
+        <div className="flex items-center gap-2 text-xs bg-brand-gold/10 text-brand-gold px-3 py-1.5 rounded-full font-semibold">
+          <span>Place a capo on fret {analysis.suggestedCapo} — the chords below are the easy shapes to play with the capo on.</span>
+        </div>
+      )}
     </>
   );
 }
