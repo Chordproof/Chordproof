@@ -310,6 +310,7 @@ export function ChordDiagram({ chord, onClose, theme }: { chord: string; onClose
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        onMouseLeave={onClose}
         style={{ background: "#1a1a2e", border: "1px solid #333", borderRadius: "16px", padding: "16px", boxShadow: "0 12px 40px rgba(0,0,0,0.7)", minWidth: "220px" }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
