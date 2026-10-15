@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, Palette, X } from "lucide-react";
 import { CHORD_SHAPES } from "./chordData";
+import { adaptShape, type InstrumentKey } from "./instruments";
 
 export type ThemeKey = "amber" | "classic" | "emerald" | "crimson" | "ocean";
 export type Theme = {
@@ -165,32 +166,39 @@ function generateBarre(chord: string): { shape: number[] | null; fingers: number
   }
 }
 
-function getVariations(chord: string): { shapes: number[][]; fingers: number[][] } {
-  const base = CHORD_SHAPES[chord];
-  if (!base || !Array.isArray(base) || base.length !== 6) {
+function getVariations(chord: string, instrument: InstrumentKey = "guitar"): { shapes: number[][]; fingers: number[][] } {
+  const base6 = CHORD_SHAPES[chord];
+  if (!base6 || !Array.isArray(base6) || base6.length !== 6) {
     return { shapes: [[-1,-1,-1,-1,-1,-1]], fingers: [[-1,-1,-1,-1,-1,-1]] };
   }
-  const baseFingers = CHORD_FINGERS[chord] || autoGenerateFingers(base);
-  const barre = generateBarre(chord);
-  if (barre.shape && Array.isArray(barre.shape) && barre.shape.length === 6) {
-    const shapesEqual = JSON.stringify(base) === JSON.stringify(barre.shape);
-    if (shapesEqual) return { shapes: [base], fingers: [baseFingers] };
-    return { shapes: [base, barre.shape], fingers: [baseFingers, barre.fingers] };
+  // Adapta o shape para o instrumento (baixo = 4 cordas com fundamental+quinta)
+  const base = adaptShape(chord, base6, instrument);
+  const baseFingers = instrument === "bass" ? base.map(f => (f > 0 ? 1 : f)) : (CHORD_FINGERS[chord] || autoGenerateFingers(base6));
+  // Barre só se aplica a instrumentos de 6 cordas
+  if (instrument !== "bass") {
+    const barre = generateBarre(chord);
+    if (barre.shape && Array.isArray(barre.shape) && barre.shape.length === 6) {
+      const shapesEqual = JSON.stringify(base) === JSON.stringify(barre.shape);
+      if (shapesEqual) return { shapes: [base], fingers: [baseFingers] };
+      return { shapes: [base, barre.shape], fingers: [baseFingers, barre.fingers] };
+    }
   }
   return { shapes: [base], fingers: [baseFingers] };
 }
 
-function FretboardSVG({ shape, fingers, theme }: { shape: number[]; fingers: number[]; theme: typeof THEMES[ThemeKey] }) {
+function FretboardSVG({ shape, fingers, theme, strings = 6 }: { shape: number[]; fingers: number[]; theme: typeof THEMES[ThemeKey]; strings?: number }) {
   const C = theme;
   const posFrets = shape.filter((f: number) => f > 0);
   const minPos = posFrets.length > 0 ? Math.min(...posFrets) : 0;
   const baseFret = minPos > 3 ? minPos - 1 : 0;
   const frets = [baseFret + 1, baseFret + 2, baseFret + 3, baseFret + 4];
-  const stringW = [3.5, 3, 2.5, 2, 1.5, 1.2];
+  const W = strings === 4 ? 78 : 100;
+  const spacing = strings === 4 ? 19 : 16;
+  const stringW = strings === 4 ? [4.5, 3.5, 2.5, 2] : [3.5, 3, 2.5, 2, 1.5, 1.2];
   const dotSize = 18;
   const fretH = 28;
   return (
-    <svg width="100" height="130" viewBox="0 0 100 130">
+    <svg width={W} height="130" viewBox={`0 0 ${W} 130`}>
       <defs>
         <linearGradient id="wood" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={C.wood1} />
@@ -200,16 +208,16 @@ function FretboardSVG({ shape, fingers, theme }: { shape: number[]; fingers: num
           <stop offset="100%" stopColor={C.wood5} />
         </linearGradient>
       </defs>
-      <rect x="0" y="0" width="100" height="130" fill="url(#wood)" rx="6" />
-      <rect x="0" y="0" width="100" height="6" fill={C.nut1} />
+      <rect x="0" y="0" width={W} height="130" fill="url(#wood)" rx="6" />
+      <rect x="0" y="0" width={W} height="6" fill={C.nut1} />
       {frets.map((fret, fi) => (
-        <line key={fi} x1="0" y1={6 + (fi + 1) * fretH} x2="100" y2={6 + (fi + 1) * fretH} stroke={C.fret1} strokeWidth="2" />
+        <line key={fi} x1="0" y1={6 + (fi + 1) * fretH} x2={W} y2={6 + (fi + 1) * fretH} stroke={C.fret1} strokeWidth="2" />
       ))}
       {shape.map((f, i) => (
-        <line key={i} x1={10 + i * 16} y1="6" x2={10 + i * 16} y2="130" stroke={i < 3 ? C.strThick1 : C.strThin1} strokeWidth={stringW[i]} />
+        <line key={i} x1={10 + i * spacing} y1="6" x2={10 + i * spacing} y2="130" stroke={i < 3 ? C.strThick1 : C.strThin1} strokeWidth={stringW[i]} />
       ))}
       {shape.map((f, i) => (
-        <text key={"m" + i} x={10 + i * 16} y="4" textAnchor="middle" fontSize="9" fill={f === -1 ? C.x : C.o} fontWeight="bold">
+        <text key={"m" + i} x={10 + i * spacing} y="4" textAnchor="middle" fontSize="9" fill={f === -1 ? C.x : C.o} fontWeight="bold">
           {f === -1 ? "×" : f === 0 ? "○" : ""}
         </text>
       ))}
@@ -219,16 +227,16 @@ function FretboardSVG({ shape, fingers, theme }: { shape: number[]; fingers: num
         const y = 6 + fretIdx * fretH - fretH / 2;
         return (
           <g key={"d" + i}>
-            <circle cx={10 + i * 16} cy={y} r={dotSize / 2} fill={C.dot} />
-            <circle cx={10 + i * 16 - 2} cy={y - 2} r={dotSize / 4} fill={C.dotHi} opacity="0.6" />
-            <text x={10 + i * 16} y={y + 4} textAnchor="middle" fontSize="9" fill="#000" fontWeight="bold">
+            <circle cx={10 + i * spacing} cy={y} r={dotSize / 2} fill={C.dot} />
+            <circle cx={10 + i * spacing - 2} cy={y - 2} r={dotSize / 4} fill={C.dotHi} opacity="0.6" />
+            <text x={10 + i * spacing} y={y + 4} textAnchor="middle" fontSize="9" fill="#000" fontWeight="bold">
               {fingers[i] || ""}
             </text>
           </g>
         );
       })}
       {baseFret > 0 && (
-        <text x="98" y="34" textAnchor="end" fontSize="9" fill={C.muted}>
+        <text x={W - 2} y="34" textAnchor="end" fontSize="9" fill={C.muted}>
           {baseFret + 1}fr
         </text>
       )}
@@ -236,8 +244,9 @@ function FretboardSVG({ shape, fingers, theme }: { shape: number[]; fingers: num
   );
 }
 
-export function MiniFretboard({ chord, theme }: { chord: string; theme: typeof THEMES[ThemeKey] }) {
+export function MiniFretboard({ chord, theme, instrument = "guitar" }: { chord: string; theme: typeof THEMES[ThemeKey]; instrument?: InstrumentKey }) {
   const C = theme;
+  // FALLBACK: acorde sem shape registrado → mostra só o nome, sem fretboard vazio
   if (!CHORD_SHAPES[chord]) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", padding: "4px" }}>
@@ -246,14 +255,14 @@ export function MiniFretboard({ chord, theme }: { chord: string; theme: typeof T
       </div>
     );
   }
-  const { shapes, fingers } = getVariations(chord);
+  const { shapes, fingers } = getVariations(chord, instrument);
   const [varIdx, setVarIdx] = useState(0);
   const shape = shapes[varIdx] || shapes[0];
   const finger = fingers[varIdx] || fingers[0];
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
       <span style={{ color: C.text, fontWeight: 700, fontSize: "14px" }}>{chord}</span>
-      <FretboardSVG shape={shape} fingers={finger} theme={theme} />
+      <FretboardSVG shape={shape} fingers={finger} theme={theme} strings={instrument === "bass" ? 4 : 6} />
       {shapes.length > 1 && (
         <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
           <button
@@ -275,9 +284,9 @@ export function MiniFretboard({ chord, theme }: { chord: string; theme: typeof T
   );
 }
 
-export function ChordDiagram({ chord, onClose, theme }: { chord: string; onClose: () => void; theme: typeof THEMES[ThemeKey] }) {
+export function ChordDiagram({ chord, onClose, theme, instrument = "guitar" }: { chord: string; onClose: () => void; theme: typeof THEMES[ThemeKey]; instrument?: InstrumentKey }) {
   const C = theme;
-  // FALLBACK: acorde sem shape registrado → modal centrado com aviso claro (fecha no mouseleave)
+  // FALLBACK: acorde sem shape registrado → modal no centro com aviso claro
   if (!CHORD_SHAPES[chord]) {
     return (
       <div
@@ -296,7 +305,7 @@ export function ChordDiagram({ chord, onClose, theme }: { chord: string; onClose
       </div>
     );
   }
-  const { shapes, fingers } = getVariations(chord);
+  const { shapes, fingers } = getVariations(chord, instrument);
   const [varIdx, setVarIdx] = useState(0);
   const shape = shapes[varIdx] || shapes[0];
   const finger = fingers[varIdx] || fingers[0];
@@ -327,7 +336,7 @@ export function ChordDiagram({ chord, onClose, theme }: { chord: string; onClose
             Starting at fret {baseFret + 1}
           </div>
         )}
-        <FretboardSVG shape={shape} fingers={finger} theme={theme} />
+        <FretboardSVG shape={shape} fingers={finger} theme={theme} strings={instrument === "bass" ? 4 : 6} />
         {shapes.length > 1 && (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginTop: "8px" }}>
             <button
