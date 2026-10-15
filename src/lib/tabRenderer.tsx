@@ -83,6 +83,7 @@ function renderChordToken(
       key={key}
       role="button"
       tabIndex={0}
+      onMouseEnter={() => onChord?.(name)}
       onClick={() => onChord?.(name)}
       onKeyDown={(e) => { if (e.key === "Enter") onChord?.(name); }}
       className="cursor-pointer font-bold hover:underline"
