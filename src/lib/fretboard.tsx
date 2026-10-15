@@ -4,6 +4,7 @@ import { BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, Palette, X } from "
 import { CHORD_SHAPES } from "./chordData";
 import { adaptShape, INSTRUMENTS, INSTRUMENT_VISUALS, type InstrumentKey } from "./instruments";
 import { generateVoicing, suggestFingers } from "./fourStringVoicings";
+import PianoDiagramLazy, { MiniPiano } from "@/components/PianoDiagram";
 
 export type ThemeKey = "amber" | "classic" | "emerald" | "crimson" | "ocean";
 export type Theme = {
@@ -269,6 +270,10 @@ function FretboardSVG({ shape, fingers, theme, instrument = "guitar" }: { shape:
 
 export function MiniFretboard({ chord, theme, instrument = "guitar" }: { chord: string; theme: typeof THEMES[ThemeKey]; instrument?: InstrumentKey }) {
   const C = theme;
+  // Piano: teclado em vez de braço
+  if (instrument === "piano") {
+    return <MiniPiano chord={chord} accentColor={theme.dot} />;
+  }
   // FALLBACK: acorde sem voicing possível → mostra só o nome
   const probe = getVariations(chord, instrument);
   if (probe.shapes.length === 1 && probe.shapes[0].every((f) => f === -1)) {
@@ -310,9 +315,12 @@ export function MiniFretboard({ chord, theme, instrument = "guitar" }: { chord: 
 
 export function ChordDiagram({ chord, onClose, theme, instrument = "guitar" }: { chord: string; onClose: () => void; theme: typeof THEMES[ThemeKey]; instrument?: InstrumentKey }) {
   const C = theme;
-  // FALLBACK: acorde sem voicing possível → modal no centro com aviso claro
-  const probe = getVariations(chord, instrument);
-  if (probe.shapes.length === 1 && probe.shapes[0].every((f) => f === -1)) {
+  // Piano: modal de teclado próprio
+  if (instrument === "piano") {
+    return <PianoDiagramLazy chord={chord} onClose={onClose} accentColor={theme.dot} />;
+  }
+  // FALLBACK: acorde sem shape registrado → modal no centro com aviso claro
+  if (!CHORD_SHAPES[chord]) {
     return (
       <div
         onClick={onClose}
