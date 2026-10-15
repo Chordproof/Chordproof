@@ -84,9 +84,9 @@ export function analyzeEasyMode(content: string, transpose: number): {
   // Capo sugerido = o que resolve mais acordes
   let suggestedCapo: number | null = null;
   let best = 0;
-  for (const [capo, count] of capos) {
+  capos.forEach((count, capo) => {
     if (count > best) { best = count; suggestedCapo = capo; }
-  }
+  });
 
   const substitutionMap: Record<string, string> = {};
   for (const ch of hardChords) {
