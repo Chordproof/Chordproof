@@ -127,7 +127,8 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
           <a href="#tab-content" className="flex items-center gap-2 px-6 py-3 bg-brand-gold text-black rounded-full font-bold hover:scale-105 transition"><Play size={18} /> Play</a>
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-4 bg-brand-card rounded-2xl p-4 border border-white/5" style={{marginBottom:"24px"}}>
+      {/* Toolbar sticky: acompanha a rolagem, logo abaixo da navbar (top-14 = 56px) */}
+      <div className="flex flex-wrap items-center gap-4 bg-brand-card rounded-2xl p-4 border border-white/5 sticky top-14 z-40" style={{marginBottom:"24px", boxShadow: "0 4px 16px rgba(0,0,0,0.35)"}}>
         <TransposeControls transpose={transpose} onTranspose={setTranspose} />
         <button onClick={() => setShowTablature(!showTablature)} className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (showTablature ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}><ChevronDown size={16} /> Tablature {showTablature ? "ON" : "OFF"}</button>
         <button onClick={() => setTrainerOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition bg-white/5 hover:bg-white/10" title="Train chord transitions with a timer"><Zap size={16} className="text-brand-gold" /> Trainer</button>
