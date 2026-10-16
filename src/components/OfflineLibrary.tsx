@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { WifiOff, Music, Trash2 } from "lucide-react";
+import { WifiOff, Music, Trash2, Download } from "lucide-react";
 import { listOfflineTabs, removeTabOffline, type OfflineTab } from "@/lib/offlineLibrary";
 
 // Seção "Offline Library" — cifras salvas no dispositivo (recurso ChordProof+).
@@ -41,7 +41,7 @@ export default function OfflineLibrary() {
       <p className="text-sm text-brand-muted">These tabs work without internet — perfect for rehearsal rooms, cabins and planes.</p>
       <div className="space-y-2">
         {tabs.map((t) => (
-          <div key={t.slug_artist + "/" + t.slug_song} className="bg-[#1A1A1A] rounded-xl p-4 border border-white/[0.06] flex justify-between items-center">
+          <div key={t.slug_artist + "/" + t.slug_song} className="bg-[var(--c-card)] rounded-xl p-4 border border-[var(--c-hairline)] flex justify-between items-center">
             <Link href={`/tab/${t.slug_artist}/${t.slug_song}`} className="flex items-center gap-3 hover:opacity-80 transition">
               <Music size={16} className="text-brand-accent" />
               <div>
@@ -51,7 +51,7 @@ export default function OfflineLibrary() {
             </Link>
             <div className="flex items-center gap-3">
               <span className="text-xs text-brand-muted">{new Date(t.saved_at).toLocaleDateString()}</span>
-              <button onClick={() => remove(t)} title="Remove from offline library" className="p-2 rounded-full hover:bg-white/10 transition">
+              <button onClick={() => remove(t)} title="Remove from offline library" className="p-2 rounded-full hover:bg-[var(--c-overlay)] transition">
                 <Trash2 size={16} className="text-red-400" />
               </button>
             </div>

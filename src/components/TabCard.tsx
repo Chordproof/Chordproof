@@ -30,7 +30,7 @@ export default function TabCard({
   artistImageUrl,
 }: TabCardProps) {
   return (
-    <div className="group bg-brand-card rounded-xl p-6 border border-white/5 hover:border-brand-gold/40 hover:-translate-y-1 transition-all">
+    <div className="group bg-brand-card rounded-xl p-6 border border-[var(--c-hairline)] hover:border-brand-gold/40 hover:-translate-y-1 transition-all">
       <div className="flex items-center gap-3">
         {/* Foto do artista */}
         <ArtistAvatar name={artist} slug={slug_artist} imageUrl={artistImageUrl} size="xs" />
@@ -49,8 +49,8 @@ export default function TabCard({
         )}
       </div>
       <div className="flex gap-2 mt-4 pl-0">
-        <span className="text-xs bg-white/5 px-2 py-1 rounded">Key: <strong>{key_sig}</strong></span>
-        <span className={`text-xs px-2 py-1 rounded font-semibold ${difficultyColor[difficulty] || "bg-white/5 text-white/70"}`}>
+        <span className="text-xs bg-[var(--c-overlay-soft)] px-2 py-1 rounded">Key: <strong>{key_sig}</strong></span>
+        <span className={`text-xs px-2 py-1 rounded font-semibold ${difficultyColor[difficulty] || "bg-[var(--c-overlay-soft)] text-[var(--c-text)]/70"}`}>
           {difficulty}
         </span>
       </div>

@@ -34,7 +34,7 @@ export default function ChordsGallery({ chords }: ChordsGalleryProps) {
     return (
       <div className="flex flex-wrap gap-4 justify-center">
         {Array.from(new Set(chords)).slice(0, 8).map((name) => (
-          <div key={name} className="w-[88px] h-[120px] rounded-lg bg-white/5 animate-pulse" />
+          <div key={name} className="w-[88px] h-[120px] rounded-lg bg-[var(--c-overlay-soft)] animate-pulse" />
         ))}
       </div>
     );

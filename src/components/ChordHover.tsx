@@ -59,12 +59,12 @@ export default function ChordHover({ chord }: ChordHoverProps) {
                   e.stopPropagation();
                   setIdx(i - 1);
                 }}
-                className="text-[#333] text-sm font-bold leading-none hover:opacity-70 px-1"
+                className="text-[var(--c-text-secondary)] text-sm font-bold leading-none hover:opacity-70 px-1"
                 aria-label="Previous variation"
               >
                 ‹
               </button>
-              <span className="text-[#444] text-[11px] font-medium whitespace-nowrap">
+              <span className="text-[var(--c-text-secondary)] text-[11px] font-medium whitespace-nowrap">
                 Variation {i + 1} of {count}
               </span>
               <button
@@ -73,7 +73,7 @@ export default function ChordHover({ chord }: ChordHoverProps) {
                   e.stopPropagation();
                   setIdx(i + 1);
                 }}
-                className="text-[#333] text-sm font-bold leading-none hover:opacity-70 px-1"
+                className="text-[var(--c-text-secondary)] text-sm font-bold leading-none hover:opacity-70 px-1"
                 aria-label="Next variation"
               >
                 ›

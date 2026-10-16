@@ -42,7 +42,7 @@ export default function PdfButton({
       onClick={download}
       disabled={busy}
       title="Download print-ready PDF (ChordProof+)"
-      className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-white/5 hover:bg-white/10 transition"
+      className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)] transition"
     >
       {busy ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />} PDF
     </button>

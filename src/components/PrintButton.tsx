@@ -35,6 +35,7 @@ export default function PrintButton({
     if (!w) return;
     w.document.write(html);
     w.document.close();
+    // Pequeno delay para o CSS carregar antes de abrir o diálogo de impressão
     setTimeout(() => {
       w.focus();
       w.print();
@@ -45,7 +46,7 @@ export default function PrintButton({
     <button
       onClick={handlePrint}
       title="Print / Save as PDF — print-ready layout"
-      className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-white/5 hover:bg-white/10 transition"
+      className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)] transition"
     >
       <Printer size={16} /> PDF
     </button>

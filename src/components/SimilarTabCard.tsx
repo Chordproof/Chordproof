@@ -31,7 +31,7 @@ export default function SimilarTabCard({
   const artistHref = `/artist/${artistSlug}${genre ? `?genre=${encodeURIComponent(genre)}` : ""}`;
 
   return (
-    <div className="flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.08] rounded-lg p-3 transition-colors group">
+    <div className="flex items-center gap-3 bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)] rounded-lg p-3 transition-colors group">
       {/* Foto do artista → página do artista */}
       <Link href={artistHref} className="shrink-0">
         <ArtistAvatar name={artist} slug={artistSlug} size="xs" />

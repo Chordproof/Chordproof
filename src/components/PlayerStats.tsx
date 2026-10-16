@@ -23,7 +23,7 @@ export default function PlayerStats() {
   return (
     <div className="space-y-6">
       {/* Level + XP + Streak */}
-      <div className="bg-[#1A1A1A] rounded-2xl p-6 border border-white/[0.06] space-y-4">
+      <div className="bg-[var(--c-card)] rounded-2xl p-6 border border-[var(--c-hairline)] space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs text-brand-muted uppercase tracking-widest">Level {level}</p>
@@ -44,7 +44,7 @@ export default function PlayerStats() {
               <span>Max level</span>
             )}
           </div>
-          <div className="h-2 bg-white/[0.08] rounded-full overflow-hidden">
+          <div className="h-2 bg-[var(--c-overlay)] rounded-full overflow-hidden">
             <div
               className="h-full bg-brand-accent rounded-full transition-all duration-500"
               style={{ width: `${progress}%` }}
@@ -63,7 +63,7 @@ export default function PlayerStats() {
         ].map((s) => (
           <div
             key={s.label}
-            className="bg-[#1A1A1A] rounded-2xl p-4 border border-white/[0.06] text-center"
+            className="bg-[var(--c-card)] rounded-2xl p-4 border border-[var(--c-hairline)] text-center"
           >
             <p className="text-2xl font-bold">{s.value}</p>
             <p className="text-xs text-brand-muted">{s.label}</p>
@@ -72,7 +72,7 @@ export default function PlayerStats() {
       </div>
 
       {/* Achievements */}
-      <div className="bg-[#1A1A1A] rounded-2xl p-6 border border-white/[0.06] space-y-4">
+      <div className="bg-[var(--c-card)] rounded-2xl p-6 border border-[var(--c-hairline)] space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-display font-bold flex items-center gap-2">
             <Trophy size={18} className="text-brand-accent" /> Achievements
@@ -88,7 +88,7 @@ export default function PlayerStats() {
               className={`flex items-center gap-3 rounded-xl p-3 border transition-colors ${
                 a.unlocked
                   ? "bg-brand-accent/10 border-brand-accent/20"
-                  : "bg-white/[0.03] border-white/[0.06] opacity-50"
+                  : "bg-[var(--c-overlay-soft)] border-[var(--c-hairline)] opacity-50"
               }`}
             >
               <span className="text-2xl">{a.icon}</span>

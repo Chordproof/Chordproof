@@ -55,7 +55,7 @@ export default function SaveOfflineButton({
       onClick={toggle}
       disabled={busy}
       title={saved ? "Saved for offline use — click to remove" : "Save for offline use (ChordProof+)"}
-      className={"p-3 rounded-full transition " + (saved ? "bg-brand-gold/20 text-brand-gold" : "bg-white/5 hover:bg-white/10")}
+      className={"p-3 rounded-full transition " + (saved ? "bg-brand-gold/20 text-brand-gold" : "bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)]")}
     >
       {busy ? (
         <Loader2 size={20} className="animate-spin" />

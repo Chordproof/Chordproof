@@ -16,7 +16,7 @@ export default function GenreBar({ selectedGenre, onSelect }: GenreBarProps) {
     `px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
       active
         ? "bg-brand-accent text-black"
-        : "bg-white/[0.06] text-brand-muted hover:bg-white/10 hover:text-white"
+        : "bg-[var(--c-overlay-soft)] text-brand-muted hover:bg-[var(--c-overlay)] hover:text-[var(--c-text)]"
     }`;
 
   return (

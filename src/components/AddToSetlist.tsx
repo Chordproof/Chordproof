@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ListMusic, Plus, X, Loader2, Check } from "lucide-react";
+import { ListMusic, Plus, X, Loader2, Link2, Check } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 // AddToSetlist — botão na cifra para adicionar a uma setlist do usuário (ChordProof+ feat 5).
+// Cria setlist inline se não houver nenhuma.
 export default function AddToSetlist({
   tabId,
   song,
@@ -80,15 +81,15 @@ export default function AddToSetlist({
       <button
         onClick={openModal}
         title="Add to setlist"
-        className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition"
+        className="p-3 bg-[var(--c-overlay-soft)] rounded-full hover:bg-[var(--c-overlay)] transition"
       >
         <ListMusic size={20} />
       </button>
       {open && (
         <div className="fixed inset-0 z-[10000] bg-black/70 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
-          <div className="bg-[#1A1A1A] rounded-2xl border border-white/10 p-6 w-full max-w-md space-y-4" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[var(--c-card)] rounded-2xl border border-[var(--c-hairline)] p-6 w-full max-w-md space-y-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-bold">Add \"{song}\" to setlist</h3>
+              <h3 className="text-lg font-bold">Add "{song}" to setlist</h3>
               <button onClick={() => setOpen(false)}><X size={18} /></button>
             </div>
             {loading && <div className="flex justify-center py-4"><Loader2 className="animate-spin" /></div>}
@@ -100,7 +101,7 @@ export default function AddToSetlist({
                       <button
                         key={sl.id}
                         onClick={() => addTo(sl.id)}
-                        className="w-full text-left px-4 py-3 bg-white/5 hover:bg-white/10 rounded-xl transition flex justify-between items-center"
+                        className="w-full text-left px-4 py-3 bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)] rounded-xl transition flex justify-between items-center"
                       >
                         <span className="font-semibold">{sl.title}</span>
                         <span className="text-xs text-brand-muted">{sl.item_count ?? 0} songs</span>
@@ -108,14 +109,14 @@ export default function AddToSetlist({
                     ))}
                   </div>
                 )}
-                <div className="flex gap-2 pt-2 border-t border-white/10">
+                <div className="flex gap-2 pt-2 border-t border-[var(--c-hairline)]">
                   <input
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
-                    placeholder={`New setlist (e.g. \"${artist} gig\")`}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-gold"
+                    placeholder={`New setlist (e.g. "${artist} gig")`}
+                    className="flex-1 bg-[var(--c-overlay-soft)] border border-[var(--c-hairline)] rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-gold"
                   />
-                  <button onClick={createAndAdd} className="px-4 bg-brand-gold text-black rounded-xl font-bold hover:brightness-110 transition">
+                  <button onClick={createAndAdd} className="px-4 bg-[var(--c-cta-bg)] text-[var(--c-cta-text)] rounded-xl font-bold hover:brightness-110 transition">
                     <Plus size={18} />
                   </button>
                 </div>

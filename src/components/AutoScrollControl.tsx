@@ -78,12 +78,12 @@ export default function AutoScrollControl() {
 
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
-      <div className="flex items-center gap-3 px-4 py-3 bg-[#1A1A1A]/95 backdrop-blur border border-white/10 rounded-2xl shadow-2xl">
+      <div className="flex items-center gap-3 px-4 py-3 bg-[var(--c-card)]/95 backdrop-blur border border-[var(--c-hairline)] rounded-2xl shadow-2xl">
         {/* Play / Pause */}
         <button
           onClick={toggle}
           aria-label={isPlaying ? "Pausar autoscroll" : "Iniciar autoscroll"}
-          className="w-9 h-9 flex items-center justify-center rounded-full bg-brand-gold text-black hover:opacity-90 transition"
+          className="w-9 h-9 flex items-center justify-center rounded-full bg-[var(--c-cta-bg)] text-[var(--c-cta-text)] hover:opacity-90 transition"
         >
           {isPlaying ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
         </button>
@@ -93,7 +93,7 @@ export default function AutoScrollControl() {
           onClick={decrease}
           disabled={level === MIN_LEVEL}
           aria-label="Diminuir velocidade"
-          className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-brand-gold hover:bg-white/10 transition disabled:opacity-30 disabled:cursor-not-allowed"
+          className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--c-overlay-soft)] text-brand-gold hover:bg-[var(--c-overlay)] transition disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <Minus size={16} />
         </button>
@@ -108,7 +108,7 @@ export default function AutoScrollControl() {
             value={level}
             onChange={handleSlider}
             aria-label="Velocidade do autoscroll"
-            className="w-full h-1.5 appearance-none rounded-full bg-white/10 cursor-pointer"
+            className="w-full h-1.5 appearance-none rounded-full bg-[var(--c-overlay)] cursor-pointer"
             style={{ background: `linear-gradient(to right, #f0b429 ${pct}%, rgba(255,255,255,0.1) ${pct}%)` }}
           />
         </div>
@@ -118,14 +118,14 @@ export default function AutoScrollControl() {
           onClick={increase}
           disabled={level === MAX_LEVEL}
           aria-label="Aumentar velocidade"
-          className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-brand-gold hover:bg-white/10 transition disabled:opacity-30 disabled:cursor-not-allowed"
+          className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--c-overlay-soft)] text-brand-gold hover:bg-[var(--c-overlay)] transition disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <Plus size={16} />
         </button>
 
         {/* Badge de nível + velocidade */}
         <div className="flex flex-col items-center min-w-[44px]">
-          <span className="w-8 h-8 flex items-center justify-center rounded-full bg-brand-gold text-black text-sm font-bold">{level}</span>
+          <span className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--c-cta-bg)] text-[var(--c-cta-text)] text-sm font-bold">{level}</span>
           <span className="text-[10px] text-brand-muted mt-0.5">{level}x</span>
         </div>
       </div>

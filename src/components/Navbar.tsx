@@ -11,7 +11,7 @@ export default function Navbar() {
   const isHome = pathname === "/";
 
   return (
-    <header className="sticky top-0 z-50 bg-brand-dark/80 backdrop-blur-md border-b border-white/10">
+    <header style={{ background: "var(--c-nav-bg)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)" }} className="sticky top-0 z-50 border-b border-[var(--c-hairline)]">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between gap-4">
           {/* Logo */}
@@ -34,7 +34,7 @@ export default function Navbar() {
             <Link href="/about" className="hover:text-brand-gold transition-colors">About</Link>
             <GamificationBadge />
             <ThemeToggle />
-            <Link href="/signin" className="bg-brand-gold text-black px-4 py-2 rounded-full font-bold hover:scale-105 transition">
+            <Link href="/signin" className="bg-[var(--c-cta-bg)] text-[var(--c-cta-text)] px-4 py-2 rounded-full font-bold hover:scale-105 transition">
               Sign In
             </Link>
           </nav>

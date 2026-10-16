@@ -132,11 +132,11 @@ export default function SearchBar() {
           aria-controls="search-suggestions"
           aria-activedescendant={highlighted >= 0 ? `suggestion-${highlighted}` : undefined}
           autoComplete="off"
-          className="w-full pl-12 pr-28 py-3.5 rounded-full bg-[#1A1A1A] border border-white/15 text-white placeholder:text-brand-muted focus:outline-none focus:border-brand-gold/60 focus:ring-2 focus:ring-brand-gold/20 transition"
+          className="w-full pl-12 pr-28 py-3.5 rounded-full bg-[var(--c-card)] border border-[var(--c-hairline)] text-[var(--c-text)] placeholder:text-brand-muted focus:outline-none focus:border-brand-gold/60 focus:ring-2 focus:ring-brand-gold/20 transition"
         />
         <button
           type="submit"
-          className="absolute right-1.5 top-1/2 -translate-y-1/2 px-5 py-2 rounded-full bg-brand-gold text-black text-sm font-bold hover:opacity-90 transition"
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 px-5 py-2 rounded-full bg-[var(--c-cta-bg)] text-[var(--c-cta-text)] text-sm font-bold hover:opacity-90 transition"
         >
           Search
         </button>
@@ -147,7 +147,7 @@ export default function SearchBar() {
         <ul
           id="search-suggestions"
           role="listbox"
-          className="absolute z-50 top-full mt-2 w-full bg-[#1A1A1A] border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
+          className="absolute z-50 top-full mt-2 w-full bg-[var(--c-card)] border border-[var(--c-hairline)] rounded-2xl overflow-hidden shadow-2xl"
         >
           {suggestions.map((s, i) => (
             <li key={`${s.type}-${s.label}-${i}`} role="option" aria-selected={highlighted === i}>
@@ -156,7 +156,7 @@ export default function SearchBar() {
                 onClick={() => go(s.href)}
                 onMouseEnter={() => setHighlighted(i)}
                 className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ${
-                  highlighted === i ? "bg-white/10 text-brand-gold" : "text-white hover:bg-white/5"
+                  highlighted === i ? "bg-[var(--c-overlay)] text-brand-gold" : "text-[var(--c-text)] hover:bg-[var(--c-overlay-soft)]"
                 }`}
               >
                 {s.type === "artist" ? (

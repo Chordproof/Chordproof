@@ -32,14 +32,14 @@ export default function GamificationBadge() {
     <Link
       href="/profile"
       title={streak > 0 ? `${streak} ${days} in a row — keep it going!` : "Start your practice streak today!"}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/10 transition-colors shrink-0"
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)] transition-colors shrink-0"
     >
       <Flame
         size={15}
-        className={streak > 0 ? "text-orange-400" : "text-white/30"}
+        className={streak > 0 ? "text-orange-400" : "text-[var(--c-text)]/30"}
         style={streak >= 3 ? { filter: "drop-shadow(0 0 4px rgba(251,146,60,0.6))" } : undefined}
       />
-      <span className={"font-bold text-sm " + (streak > 0 ? "text-white" : "text-white/50")}>{streak}</span>
+      <span className={"font-bold text-sm " + (streak > 0 ? "text-[var(--c-text)]" : "text-[var(--c-text)]/50")}>{streak}</span>
       <span className="text-xs text-brand-muted hidden sm:inline">Lv {level}</span>
     </Link>
   );
