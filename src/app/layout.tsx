@@ -37,13 +37,18 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#121212",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#1d1d1f" },
+    { media: "(prefers-color-scheme: light)", color: "#f5f5f7" },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
+        {/* Anti-flash: aplica o tema salvo ANTES do primeiro paint */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('chordproof-theme-mode');if(t==='light'){document.documentElement.classList.add('light')}}catch(e){}})()` }} />
         {/* Google tag (gtag.js) — troque G-XXXXXXXXXX pelo seu ID real */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX" />
         <script
