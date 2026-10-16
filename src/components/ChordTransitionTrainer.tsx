@@ -146,7 +146,7 @@ export default function ChordTransitionTrainer({
   return (
     <div
       onClick={phase === "idle" ? onClose : undefined}
-      style={{ position: "fixed", inset: 0, background: "#000", zIndex: 2000, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px" }}
+      className="dark" style={{ position: "fixed", inset: 0, background: "#000", zIndex: 2000, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px" }}
     >
       {/* Header */}
       <div style={{ position: "absolute", top: "20px", left: "24px", right: "24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>

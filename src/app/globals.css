@@ -26,6 +26,7 @@
   --c-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
   --c-overlay: rgba(255, 255, 255, 0.10);
   --c-overlay-soft: rgba(255, 255, 255, 0.05);
+  --c-chord: #34d399;
 }
 
 /* ============ DESIGN TOKENS — LIGHT (apple.com) ============ */
@@ -51,6 +52,28 @@ html.light {
   --c-shadow: 0 12px 36px rgba(0, 0, 0, 0.10);
   --c-overlay: rgba(0, 0, 0, 0.08);
   --c-overlay-soft: rgba(0, 0, 0, 0.04);
+  --c-chord: #059669;
+}
+
+/* ============ TOKENS DARK EM ESCOPO .dark (portais fullscreen pretos) ============ */
+.dark {
+  --c-bg: #1d1d1f;
+  --c-bg-elevated: #2c2c2e;
+  --c-bg-secondary: #161617;
+  --c-text: #f5f5f7;
+  --c-text-secondary: #a1a1a6;
+  --c-text-tertiary: #6e6e73;
+  --c-gold: #f0b429;
+  --c-gold-soft: rgba(240, 180, 41, 0.14);
+  --c-hairline: rgba(255, 255, 255, 0.08);
+  --c-card: #2c2c2e;
+  --c-muted: #a1a1a6;
+  --c-cta-bg: #f0b429;
+  --c-cta-text: #1d1d1f;
+  --c-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  --c-overlay: rgba(255, 255, 255, 0.10);
+  --c-overlay-soft: rgba(255, 255, 255, 0.05);
+  --c-chord: #34d399;
 }
 
 body {

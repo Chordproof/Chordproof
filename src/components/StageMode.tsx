@@ -164,95 +164,74 @@ export default function StageMode({ children }: { children: React.ReactNode }) {
       const ctx = audioRef.current;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.frequency.value = accent ? 1400 : 900;
-      osc.type = "square";
-      gain.gain.setValueAtTime(accent ? 0.2 : 0.1, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+      osc.frequency.value = accent ? 1320 : 880;
+      osc.type = "sine";
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
       osc.connect(gain); gain.connect(ctx.destination);
       osc.start(); osc.stop(ctx.currentTime + 0.06);
     } catch {}
   }, []);
 
-  const stopMetro = useCallback(() => {
-    if (metroTimerRef.current) {
-      clearInterval(metroTimerRef.current);
-      metroTimerRef.current = null;
-    }
-  }, []);
-
   const startMetro = useCallback(() => {
     stopMetro();
     beatCountRef.current = 0;
-    metroClick(true); // primeiro tempo com accent
     metroTimerRef.current = setInterval(() => {
-      beatCountRef.current = (beatCountRef.current + 1) % beatsPerBar;
-      metroClick(beatCountRef.current === 0);
-    }, 60000 / bpmRef.current);
-  }, [beatsPerBar, metroClick, stopMetro]);
+      const b = beatCountRef.current;
+      metroClick(b % beatsPerBar === 0);
+      beatCountRef.current = (b + 1) % beatsPerBar;
+      setBeatPulse(true);
+      setTimeout(() => setBeatPulse(false), 120);
+    }, 60000 / bpm);
+  }, [bpm, beatsPerBar, metroClick]);
 
-  // Liga/desliga o metrônomo; reinicia quando BPM ou compasso mudam
-  useEffect(() => {
-    if (metroOn && open) startMetro();
-    else stopMetro();
-    return stopMetro;
-  }, [metroOn, open, bpm, beatsPerBar]);
-
-  const stopScroll = useCallback(() => {
-    if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
-    accumulatorRef.current = 0;
-    beatAccumRef.current = 0;
+  const stopMetro = useCallback(() => {
+    if (metroTimerRef.current) { clearInterval(metroTimerRef.current); metroTimerRef.current = null; }
   }, []);
 
+  function toggleMetro() {
+    if (metroOn) { stopMetro(); setMetroOn(false); }
+    else { startMetro(); setMetroOn(true); }
+  }
+
+  // Autoscroll rítmico
   const startScroll = useCallback(() => {
-    if (rafRef.current) return;
+    stopScroll();
     lastTimeRef.current = performance.now();
     accumulatorRef.current = 0;
     beatAccumRef.current = 0;
-
     const tick = (now: number) => {
       const dt = (now - lastTimeRef.current) / 1000;
       lastTimeRef.current = now;
-
-      const speed = (bpmRef.current / 60) * pxRef.current;
-      accumulatorRef.current += speed * dt;
-      const px = Math.floor(accumulatorRef.current);
-      if (px > 0 && scrollRef.current) {
-        const el = scrollRef.current;
-        const maxScroll = el.scrollHeight - el.clientHeight;
-        let target = el.scrollTop + px;
-
-        if (loopOnRef.current && loopEndRef.current !== null) {
-          // Loop ativo: ao passar do fim do trecho, volta ao início
-          if (target >= loopEndRef.current) {
-            target = loopStartRef.current ?? 0;
-            accumulatorRef.current = 0;
+      const el = scrollRef.current;
+      if (!el) { rafRef.current = requestAnimationFrame(tick); return; }
+      const pxPerSec = (bpmRef.current / 60) * pxRef.current;
+      accumulatorRef.current += dt * pxPerSec;
+      const step = Math.floor(accumulatorRef.current);
+      if (step > 0) {
+        const next = el.scrollTop + step;
+        if (loopOnRef.current && loopStartRef.current !== null && loopEndRef.current !== null) {
+          if (next + el.clientHeight >= loopEndRef.current) {
+            el.scrollTop = loopStartRef.current;
+          } else {
+            el.scrollTop = next;
           }
-        } else if (target >= maxScroll) {
-          stopScroll();
-          setAutoScroll(false);
-          return;
+        } else {
+          el.scrollTop = next;
         }
-        el.scrollTop = target;
-        accumulatorRef.current -= px;
+        accumulatorRef.current -= step;
       }
-
-      beatAccumRef.current += dt * (bpmRef.current / 60);
-      if (beatAccumRef.current >= 1) {
-        beatAccumRef.current -= 1;
-        setBeatPulse(true);
-        setTimeout(() => setBeatPulse(false), 120);
-      }
-
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
-  }, [stopScroll]);
+  }, []);
+
+  const stopScroll = useCallback(() => {
+    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+  }, []);
 
   useEffect(() => {
-    if (!open) { stopScroll(); setAutoScroll(false); return; }
+    if (!open) return;
     if (autoScroll) startScroll();
     else stopScroll();
     return stopScroll;
@@ -279,12 +258,12 @@ export default function StageMode({ children }: { children: React.ReactNode }) {
       <button
         onClick={() => setOpen(true)}
         title="Stage Mode — fullscreen, pure black, giant text"
-        className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-white/5 hover:bg-white/10 transition"
+        className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)] transition"
       >
         <Sun size={16} /> Stage Mode
       </button>
       {mounted && open && createPortal(
-        <div style={{
+        <div className="dark" style={{
           position: "fixed", inset: 0, zIndex: 9999,
           background: "#000", color: "#fff",
           display: "flex", flexDirection: "column",

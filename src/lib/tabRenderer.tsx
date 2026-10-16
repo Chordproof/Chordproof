@@ -64,10 +64,12 @@ interface TabTheme {
 }
 
 const DEFAULT_THEME: Required<TabTheme> = {
-  chordColor: "#34d399",
-  lyricColor: "#e5e7eb",
-  sectionColor: "#f0b429",
-  tabColor: "#9ca3af",
+  // Cores via tokens CSS: alternam automaticamente entre dark/light da página.
+  // Acordes: verde legível nos 2 temas. Letra: cor de texto da página.
+  chordColor: "var(--c-chord, #34d399)",
+  lyricColor: "var(--c-text, #e5e7eb)",
+  sectionColor: "var(--c-gold, #f0b429)",
+  tabColor: "var(--c-text-secondary, #9ca3af)",
 };
 
 function renderChordToken(
