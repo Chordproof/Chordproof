@@ -2,16 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============ DESIGN TOKENS — DARK (padrão) ============ */
 :root {
   --foreground-rgb: 224, 224, 224;
   --background-start-rgb: 8, 8, 8;
   --background-end-rgb: 5, 5, 5;
+
+  /* Tokens Apple dark refinado */
+  --c-bg: #1d1d1f;
+  --c-bg-elevated: #2c2c2e;
+  --c-bg-secondary: #161617;
+  --c-text: #f5f5f7;
+  --c-text-secondary: #a1a1a6;
+  --c-text-tertiary: #6e6e73;
+  --c-gold: #f0b429;
+  --c-gold-soft: rgba(240, 180, 41, 0.14);
+  --c-hairline: rgba(255, 255, 255, 0.08);
+  --c-card: #2c2c2e;
+  --c-muted: #a1a1a6;
+  --c-cta-bg: #f0b429;
+  --c-cta-text: #1d1d1f;
+  --c-nav-bg: rgba(29, 29, 31, 0.72);
+  --c-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* ============ DESIGN TOKENS — LIGHT (apple.com) ============ */
+html.light {
+  --foreground-rgb: 29, 29, 31;
+  --background-start-rgb: 245, 245, 247;
+  --background-end-rgb: 251, 251, 253;
+
+  --c-bg: #f5f5f7;
+  --c-bg-elevated: #ffffff;
+  --c-bg-secondary: #fbfbfd;
+  --c-text: #1d1d1f;
+  --c-text-secondary: #6e6e73;
+  --c-text-tertiary: #86868b;
+  --c-gold: #b8860b;
+  --c-gold-soft: rgba(184, 134, 11, 0.10);
+  --c-hairline: rgba(0, 0, 0, 0.08);
+  --c-card: #ffffff;
+  --c-muted: #6e6e73;
+  --c-cta-bg: #1d1d1f;
+  --c-cta-text: #f5f5f7;
+  --c-nav-bg: rgba(245, 245, 247, 0.8);
+  --c-shadow: 0 12px 36px rgba(0, 0, 0, 0.10);
 }
 
 body {
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(to bottom, transparent, rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
   min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .cifra-content {
@@ -23,7 +65,7 @@ body {
 }
 
 .chord {
-  color: #f0b429;
+  color: var(--c-gold);
   font-weight: 700;
   cursor: pointer;
 }
@@ -33,21 +75,7 @@ body {
 }
 
 @keyframes pulse-gold {
-  0% { filter: drop-shadow(0 0 2px #f0b429); }
-  50% { filter: drop-shadow(0 0 8px #f0b429); }
-  100% { filter: drop-shadow(0 0 2px #f0b429); }
-}
-
-::-webkit-scrollbar {
-  width: 8px;
-}
-::-webkit-scrollbar-track {
-  background: #080808;
-}
-::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #f0b429;
+  0% { filter: drop-shadow(0 0 2px var(--c-gold)); }
+  50% { filter: drop-shadow(0 0 8px var(--c-gold)); }
+  100% { filter: drop-shadow(0 0 2px var(--c-gold)); }
 }
