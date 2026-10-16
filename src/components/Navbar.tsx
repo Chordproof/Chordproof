@@ -28,13 +28,13 @@ export default function Navbar() {
           )}
 
           {/* Nav Links */}
-          <nav className="flex items-center gap-4 shrink-0">
+          <nav className="flex items-center gap-2 sm:gap-4 shrink-0">
             <Link href="/browse" className="hover:text-brand-gold transition-colors">Browse</Link>
             <Link href="/request" className="hover:text-brand-gold transition-colors">Request</Link>
             <Link href="/about" className="hover:text-brand-gold transition-colors">About</Link>
             <GamificationBadge />
             <ThemeToggle />
-            <Link href="/signin" className="bg-[var(--c-cta-bg)] text-[var(--c-cta-text)] px-4 py-2 rounded-full font-bold hover:scale-105 transition">
+            <Link href="/signin" className="bg-[var(--c-cta-bg)] text-[var(--c-cta-text)] px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base rounded-full font-bold hover:scale-105 transition">
               Sign In
             </Link>
           </nav>

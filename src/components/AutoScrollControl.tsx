@@ -77,7 +77,7 @@ export default function AutoScrollControl() {
   const pct = ((level - MIN_LEVEL) / (MAX_LEVEL - MIN_LEVEL)) * 100;
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+    <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 scale-90 sm:scale-100 origin-bottom">
       <div className="flex items-center gap-3 px-4 py-3 bg-[var(--c-card)]/95 backdrop-blur border border-[var(--c-hairline)] rounded-2xl shadow-2xl">
         {/* Play / Pause */}
         <button

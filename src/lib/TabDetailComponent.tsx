@@ -122,7 +122,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
           <div className="flex gap-4 pt-2 flex-wrap">
             {tab.key_sig && <span className="bg-[var(--c-overlay-soft)] px-3 py-1 rounded text-sm">Key: <strong>{tab.key_sig}</strong></span>}
             {tab.difficulty && <span className="bg-[var(--c-overlay-soft)] px-3 py-1 rounded text-sm">Difficulty: <strong className="text-green-400">{tab.difficulty}</strong></span>}
-            {tab.capo && <span className="bg-[var(--c-overlay-soft)] px-3 py-1 rounded text-sm">Capo: <strong>{tab.capo}</strong></span>}
+            {tab.capo && <span className="bg-[var(--c-overlay-soft)] px-3 py-1 rounded text-sm font-bold">CAPO ON FRET {tab.capo}</span>}
             {easyOverride?.capo && <span className="bg-brand-gold/10 text-brand-gold px-3 py-1 rounded text-sm font-bold">Easy capo: <strong>{easyOverride.capo}</strong></span>}
           </div>
         </div>
@@ -134,7 +134,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
           <a href="#tab-content" className="flex items-center gap-2 px-6 py-3 bg-[var(--c-cta-bg)] text-[var(--c-cta-text)] rounded-full font-bold hover:scale-105 transition"><Play size={18} /> Play</a>
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-4 bg-brand-card rounded-2xl p-4 border border-[var(--c-hairline)]" style={{marginBottom:"24px", boxShadow: "var(--c-shadow)", position: "sticky", top: "56px", zIndex: 40}}>
+      <div className="flex flex-wrap items-center gap-2 sm:gap-4 bg-brand-card rounded-2xl p-2 sm:p-4 border border-[var(--c-hairline)]" style={{marginBottom:"24px", boxShadow: "var(--c-shadow)", position: "sticky", top: "56px", zIndex: 40}}>
         <TransposeControls transpose={transpose} onTranspose={setTranspose} />
         <button onClick={() => setShowTablature(!showTablature)} className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (showTablature ? "bg-[var(--c-cta-bg)] text-[var(--c-cta-text)]" : "bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)]")}><ChevronDown size={16} /> Tablature {showTablature ? "ON" : "OFF"}</button>
         <button onClick={() => setTrainerOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)]" title="Train chord transitions with a timer"><Zap size={16} className="text-brand-gold" /> Trainer</button>
@@ -179,14 +179,14 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
           )}
         </div>
       </div>
-      <div style={{display:"flex",gap:"24px",alignItems:"flex-start"}}>
-        <div style={{flex:"3 1 0%",minWidth:"0"}}>
-          <div id="tab-content" className="bg-brand-card rounded-2xl p-8 border border-[var(--c-hairline)]" style={{marginBottom:"24px"}}>
+      <div style={{display:"flex",gap:"24px",alignItems:"flex-start",flexDirection:"column"}} className="md:flex-row md:items-start">
+        <div style={{flex:"3 1 0%",minWidth:"0",width:"100%"}} className="md:w-auto">
+          <div id="tab-content" className="bg-brand-card rounded-2xl p-4 sm:p-8 border border-[var(--c-hairline)]" style={{marginBottom:"24px"}}>
             <div style={{fontFamily:"monospace",fontSize:"1rem",lineHeight:"1.6"}}>{renderContent(content, showTablature, transpose, setActiveChord, theme)}</div>
             {showTablature && hasTab && !hasInlineTablature(content) && renderTablature(tablature)}
           </div>
           {usedChords.length > 0 && (
-            <section className="bg-brand-card rounded-2xl p-6 border border-[var(--c-hairline)] space-y-4" style={{marginBottom:"24px"}}>
+            <section className="bg-brand-card rounded-2xl p-4 sm:p-6 border border-[var(--c-hairline)] space-y-4" style={{marginBottom:"24px"}}>
               <h2 className="text-2xl font-bold">Chords used in this tab</h2>
               <p className="text-sm text-brand-muted">Hover over a chord in the tab to see its shape. Click to enlarge:</p>
               <div style={{display:"flex",flexWrap:"wrap",gap:"12px"}}>
@@ -202,7 +202,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
           />
           <div className="flex items-center gap-2 text-sm text-brand-muted"><AlertTriangle size={16} className="text-brand-gold" /><span>Found an error? </span><button className="text-brand-gold hover:underline">Report this tab</button></div>
         </div>
-        <div style={{flex:"1 0 320px",maxWidth:"360px"}}>
+        <div style={{flex:"1 0 320px",maxWidth:"360px",width:"100%"}} className="md:w-auto">
           <div style={{position:"sticky",top:"24px"}}>
             {youtubeId ? (
               <div className="bg-brand-card rounded-2xl p-4 border border-[var(--c-hairline)] space-y-3" style={{marginBottom:"16px"}}>
