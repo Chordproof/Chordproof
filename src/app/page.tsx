@@ -41,7 +41,7 @@ export default async function HomePage() {
     .from("tabs")
     .select("artist, slug_artist, views, artist_image_url");
 
-  const totalTabs = allTabs?.length ?? 0;
+  const totalTabs = (trendingTabs?.length ?? 0) > 0 ? allTabs?.length ?? 0 : 0;
   const totalViews = (allTabs || []).reduce((acc, t) => acc + (t.views || 0), 0);
 
   const artistMap = new Map<string, { name: string; slug: string; views: number; image: string | null }>();
@@ -104,7 +104,7 @@ export default async function HomePage() {
             <Link
               key={genre}
               href={`/genre/${encodeURIComponent(genre)}`}
-              className="px-4 py-1.5 bg-brand-card rounded-full border border-white/5 hover:border-brand-gold/30 hover:bg-white/5 transition text-sm"
+              className="px-4 py-1.5 bg-brand-card rounded-full border border-[var(--c-hairline)] hover:border-brand-gold/30 hover:bg-[var(--c-overlay-soft)] transition text-sm"
             >
               {genre}
             </Link>
@@ -115,8 +115,8 @@ export default async function HomePage() {
       {/* ===== TAB OF THE DAY ===== */}
       {featured && (
         <section className="py-6">
-          <div className="relative rounded-2xl overflow-hidden border border-white/5">
-            <div className="absolute inset-0 bg-gradient-to-r from-brand-gold/10 via-transparent to-transparent" />
+          <div className="relative rounded-2xl overflow-hidden border border-[var(--c-hairline)]">
+            <div className="absolute inset-0 bg-gradient-to-r from-[var(--c-gold-soft)] via-transparent to-transparent" />
             <div className="relative flex flex-col md:flex-row items-center gap-5 p-6 bg-brand-card/80">
               <ArtistAvatar name={featured.artist} slug={featured.slug_artist} imageUrl={featured.artist_image_url} size="md" />
               <div className="flex-1">
@@ -128,7 +128,7 @@ export default async function HomePage() {
               </div>
               <Link
                 href={`/tab/${featured.slug_artist}/${featured.slug_song}`}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-gold text-black rounded-full font-bold hover:scale-105 transition"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[var(--c-cta-bg)] text-[var(--c-cta-text)] rounded-full font-bold hover:scale-105 transition"
               >
                 View Tab <ArrowRight size={16} />
               </Link>
@@ -155,7 +155,7 @@ export default async function HomePage() {
           {trending.map((t) => (
             <div
               key={`${t.slug_artist}-${t.slug_song}`}
-              className="group bg-brand-card rounded-xl p-5 border border-white/5 hover:border-brand-gold/40 hover:-translate-y-0.5 transition-all"
+              className="group bg-brand-card rounded-xl p-5 border border-[var(--c-hairline)] hover:border-brand-gold/40 hover:-translate-y-0.5 transition-all"
             >
               <div className="flex items-center gap-3">
                 <ArtistAvatar name={t.artist} slug={t.slug_artist} imageUrl={t.artist_image_url} size="sm" />
@@ -176,12 +176,12 @@ export default async function HomePage() {
               {/* Tags com contraste reforçado */}
               <div className="flex gap-2 mt-3">
                 {t.key_sig && (
-                  <span className="text-xs px-2 py-1 rounded font-semibold bg-white/10 text-white/90 border border-white/10">
+                  <span className="text-xs px-2 py-1 rounded font-semibold bg-[var(--c-overlay)] text-[var(--c-text)]/90 border border-[var(--c-hairline)]">
                     Key: {t.key_sig}
                   </span>
                 )}
                 {t.difficulty && (
-                  <span className={`text-xs px-2 py-1 rounded font-bold ${difficultyColor[t.difficulty] || "bg-white/10 text-white/90"}`}>
+                  <span className={`text-xs px-2 py-1 rounded font-bold ${difficultyColor[t.difficulty] || "bg-[var(--c-overlay)] text-[var(--c-text)]/90"}`}>
                     {t.difficulty}
                   </span>
                 )}
@@ -189,7 +189,7 @@ export default async function HomePage() {
               {/* CTA sempre visível nos cards */}
               <Link
                 href={`/tab/${t.slug_artist}/${t.slug_song}`}
-                className="mt-4 w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-sm font-semibold text-white/90 hover:bg-brand-gold hover:text-black hover:border-brand-gold transition-colors"
+                className="mt-4 w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg border border-[var(--c-hairline)] bg-[var(--c-overlay-soft)] text-sm font-semibold text-[var(--c-text)]/90 hover:bg-brand-gold hover:text-black hover:border-brand-gold transition-colors"
               >
                 View Tab <ArrowRight size={14} />
               </Link>
@@ -198,7 +198,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ===== POPULAR ARTISTS ===== */}
+      {/* ===== ARTISTAS POPULARES ===== */}
       <section className="py-6">
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
           <Users size={18} className="text-brand-gold" /> Popular Artists
@@ -218,17 +218,17 @@ export default async function HomePage() {
       <section className="py-6">
         <h2 className="text-xl font-bold text-center mb-6">Why ChordProof?</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-brand-card rounded-2xl p-5 border border-white/5 text-center">
+          <div className="bg-brand-card rounded-2xl p-5 border border-[var(--c-hairline)] text-center">
             <Ban size={20} className="text-brand-gold mx-auto mb-2" />
             <h3 className="font-bold">No Paywalls</h3>
             <p className="text-sm text-brand-muted mt-1">Community content is and always will be free. No Pro plan needed to read tabs.</p>
           </div>
-          <div className="bg-brand-card rounded-2xl p-5 border border-white/5 text-center">
+          <div className="bg-brand-card rounded-2xl p-5 border border-[var(--c-hairline)] text-center">
             <ShieldCheck size={20} className="text-brand-gold mx-auto mb-2" />
             <h3 className="font-bold">No Popups</h3>
             <p className="text-sm text-brand-muted mt-1">Clean reading experience. No intrusive ads, no newsletter popups, no upsells.</p>
           </div>
-          <div className="bg-brand-card rounded-2xl p-5 border border-white/5 text-center">
+          <div className="bg-brand-card rounded-2xl p-5 border border-[var(--c-hairline)] text-center">
             <BadgeCheck size={20} className="text-brand-gold mx-auto mb-2" />
             <h3 className="font-bold">Verified Accuracy</h3>
             <p className="text-sm text-brand-muted mt-1">Every tab is checked by real musicians. If it's wrong, we fix it — not you.</p>

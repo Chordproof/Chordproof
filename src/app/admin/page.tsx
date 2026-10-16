@@ -28,7 +28,7 @@ export default function AdminDashboard() {
           <h1 className="text-3xl font-bold">Admin Dashboard</h1>
           <p className="text-brand-muted">Full control over your ChordProof platform.</p>
         </div>
-        <div className="flex gap-2 bg-white/5 rounded-xl p-1">
+        <div className="flex gap-2 bg-[var(--c-overlay-soft)] rounded-xl p-1">
           {[
             { key: "7d" as const, label: "7 days" },
             { key: "30d" as const, label: "30 days" },
@@ -38,7 +38,7 @@ export default function AdminDashboard() {
               key={p.key}
               onClick={() => setPeriod(p.key)}
               className={`px-4 py-2 rounded-lg text-sm font-bold transition ${
-                period === p.key ? "bg-brand-gold text-black" : "hover:bg-white/10"
+                period === p.key ? "bg-[var(--c-cta-bg)] text-[var(--c-cta-text)]" : "hover:bg-[var(--c-overlay)]"
               }`}
             >
               {p.label}
@@ -50,7 +50,7 @@ export default function AdminDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card) => (
-          <div key={card.label} className="bg-brand-card rounded-2xl p-6 border border-white/5 space-y-2">
+          <div key={card.label} className="bg-brand-card rounded-2xl p-6 border border-[var(--c-hairline)] space-y-2">
             <div className="flex justify-between items-start">
               <card.icon className={card.color} size={24} />
               <span className="text-green-400 text-sm font-bold">{card.change}</span>
@@ -63,10 +63,10 @@ export default function AdminDashboard() {
 
       {/* Charts Row */}
       <div className="grid lg:grid-cols-2 gap-6">
-        <div className="bg-brand-card rounded-2xl p-6 border border-white/5 space-y-4">
+        <div className="bg-brand-card rounded-2xl p-6 border border-[var(--c-hairline)] space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-bold flex items-center gap-2"><BarChart3 size={18} /> Daily Active Users</h2>
-            <Download size={16} className="text-brand-muted cursor-pointer hover:text-white" />
+            <Download size={16} className="text-brand-muted cursor-pointer hover:text-[var(--c-text)]" />
           </div>
           <div className="h-48 flex items-end gap-2">
             {[40, 65, 45, 80, 55, 90, 70, 85, 60, 95, 75, 88, 92, 78].map((h, i) => (
@@ -85,7 +85,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="bg-brand-card rounded-2xl p-6 border border-white/5 space-y-4">
+        <div className="bg-brand-card rounded-2xl p-6 border border-[var(--c-hairline)] space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-bold flex items-center gap-2"><TrendingUp size={18} /> Top Artists</h2>
           </div>
@@ -97,7 +97,7 @@ export default function AdminDashboard() {
               { rank: 4, name: "The Beatles", tabs: 76, growth: "+9%" },
               { rank: 5, name: "Ed Sheeran", tabs: 65, growth: "+5%" },
             ].map((artist) => (
-              <div key={artist.rank} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+              <div key={artist.rank} className="flex items-center justify-between py-2 border-b border-[var(--c-hairline)] last:border-0">
                 <div className="flex items-center gap-3">
                   <span className="text-brand-muted text-sm w-5">{artist.rank}</span>
                   <span className="font-bold">{artist.name}</span>
@@ -113,13 +113,13 @@ export default function AdminDashboard() {
       </div>
 
       {/* Recent Activity */}
-      <div className="bg-brand-card rounded-2xl border border-white/5 overflow-hidden">
-        <div className="p-6 border-b border-white/5">
+      <div className="bg-brand-card rounded-2xl border border-[var(--c-hairline)] overflow-hidden">
+        <div className="p-6 border-b border-[var(--c-hairline)]">
           <h2 className="font-bold flex items-center gap-2"><Shield size={18} /> Platform Activity</h2>
         </div>
-        <div className="divide-y divide-white/5">
+        <div className="divide-y divide-[var(--c-hairline)]">
           {recentActivity.map((item, i) => (
-            <div key={i} className="p-4 flex items-center justify-between hover:bg-white/5 transition">
+            <div key={i} className="p-4 flex items-center justify-between hover:bg-[var(--c-overlay-soft)] transition">
               <div className="flex items-center gap-3">
                 {item.alert && <AlertTriangle size={16} className="text-red-400" />}
                 <div>

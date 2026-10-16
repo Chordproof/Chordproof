@@ -9,9 +9,9 @@ export default function LegalPage() {
       </div>
 
       {/* ToS */}
-      <section className="bg-brand-card rounded-3xl p-8 border border-white/5 space-y-6">
+      <section className="bg-brand-card rounded-3xl p-8 border border-[var(--c-hairline)] space-y-6">
         <h2 className="text-2xl font-bold">Terms of Service</h2>
-        <p className="text-brand-muted text-sm">Last updated: October 13, 2026</p>
+        <p className="text-brand-muted text-sm">Last updated: July 28, 2026</p>
 
         <div className="space-y-4 text-sm leading-relaxed">
           <h3 className="font-bold text-base">1. Acceptance of Terms</h3>
@@ -30,14 +30,14 @@ export default function LegalPage() {
             that violates copyright or community guidelines.
           </p>
 
-          <h3 className="font-bold text-base">3. Free Access & Support</h3>
+          <h3 className="font-bold text-base">3. Support & Donations</h3>
           <p className="text-brand-muted">
             ChordProof is free for everyone. Community content has no paywalls and never will. 
             If we introduce optional support features in the future, they will be clearly labeled 
             and community tabs will remain free.
           </p>
           <p className="text-brand-muted">
-            <strong className="text-white">Our Promise:</strong> No paywalls on community content. No popups. No hidden fees.
+            <strong className="text-[var(--c-text)]">Our Promise:</strong> No paywalls on community content. No popups. No hidden fees.
           </p>
 
           <h3 className="font-bold text-base">4. Acceptable Use</h3>
@@ -47,21 +47,13 @@ export default function LegalPage() {
             Platform's operation.
           </p>
 
-          <h3 className="font-bold text-base">5. Copyright & Takedown</h3>
-          <p className="text-brand-muted">
-            ChordProof respects intellectual property rights. Tabs are original transcriptions created by our 
-            community for educational and personal use. If you believe content on the Platform infringes your 
-            copyright, contact us with details of the work and the allegedly infringing material, and we will 
-            review and remove it if appropriate.
-          </p>
-
-          <h3 className="font-bold text-base">6. Limitation of Liability</h3>
+          <h3 className="font-bold text-base">5. Limitation of Liability</h3>
           <p className="text-brand-muted">
             ChordProof is provided "as is" without warranties. We are not liable for damages arising from 
             your use of the Platform. Tabs are for educational and personal use only.
           </p>
 
-          <h3 className="font-bold text-base">7. Changes</h3>
+          <h3 className="font-bold text-base">6. Changes</h3>
           <p className="text-brand-muted">
             We may update these terms at any time. Continued use after changes constitutes acceptance.
           </p>
@@ -69,9 +61,9 @@ export default function LegalPage() {
       </section>
 
       {/* Privacy */}
-      <section className="bg-brand-card rounded-3xl p-8 border border-white/5 space-y-6">
+      <section className="bg-brand-card rounded-3xl p-8 border border-[var(--c-hairline)] space-y-6">
         <h2 className="text-2xl font-bold">Privacy Policy</h2>
-        <p className="text-brand-muted text-sm">Last updated: October 13, 2026</p>
+        <p className="text-brand-muted text-sm">Last updated: July 28, 2026</p>
 
         <div className="space-y-4 text-sm leading-relaxed">
           <h3 className="font-bold text-base">1. Data We Collect</h3>
@@ -82,13 +74,14 @@ export default function LegalPage() {
 
           <h3 className="font-bold text-base">2. How We Use Your Data</h3>
           <p className="text-brand-muted">
-            Your data is used to: provide and maintain the Platform, send occasional 
+            Your data is used to: provide and maintain the Platform, process subscriptions, send occasional 
             product updates (opt-out anytime), and improve our services.
           </p>
 
           <h3 className="font-bold text-base">3. Data Sharing</h3>
           <p className="text-brand-muted">
-            We do not sell your personal data. We may share anonymized analytics with partners.
+            We do not sell your personal data. We may share anonymized analytics with partners. 
+            Payment processing is handled securely by Stripe — we never store your full payment details.
           </p>
 
           <h3 className="font-bold text-base">4. Your Rights</h3>

@@ -70,7 +70,7 @@ export default async function BrowsePage({
               {filtered.map((tab, idx) => (
                 <div
                   key={`${tab.slug_artist}-${tab.slug_song}`}
-                  className="break-inside-avoid flex items-center gap-3 px-4 py-3 mb-3 bg-brand-card rounded-xl border border-white/5 hover:border-brand-gold/30 hover:bg-white/5 transition group"
+                  className="break-inside-avoid flex items-center gap-3 px-4 py-3 mb-3 bg-brand-card rounded-xl border border-[var(--c-hairline)] hover:border-brand-gold/30 hover:bg-[var(--c-overlay-soft)] transition group"
                 >
                   <span className={`text-xl font-bold w-8 text-center flex-shrink-0 ${idx < 3 ? "text-brand-gold" : "text-brand-muted"}`}>
                     {idx + 1}

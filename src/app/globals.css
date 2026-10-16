@@ -24,6 +24,8 @@
   --c-cta-text: #1d1d1f;
   --c-nav-bg: rgba(29, 29, 31, 0.72);
   --c-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  --c-overlay: rgba(255, 255, 255, 0.10);
+  --c-overlay-soft: rgba(255, 255, 255, 0.05);
 }
 
 /* ============ DESIGN TOKENS — LIGHT (apple.com) ============ */
@@ -47,6 +49,8 @@ html.light {
   --c-cta-text: #f5f5f7;
   --c-nav-bg: rgba(245, 245, 247, 0.8);
   --c-shadow: 0 12px 36px rgba(0, 0, 0, 0.10);
+  --c-overlay: rgba(0, 0, 0, 0.08);
+  --c-overlay-soft: rgba(0, 0, 0, 0.04);
 }
 
 body {

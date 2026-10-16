@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ListMusic, Loader2, Printer, Share2 } from "lucide-react";
 
 // Página pública de setlist compartilhada — /setlist/[slug]
+// Qualquer pessoa com o link vê a lista; a banda inteira no celular, sem conta.
 export default function SetlistShare({ params }: { params: { slug: string } }) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -30,7 +31,7 @@ export default function SetlistShare({ params }: { params: { slug: string } }) {
     <div className="text-center py-32 space-y-4">
       <h1 className="text-4xl font-bold">Setlist not found</h1>
       <p className="text-brand-muted">This link may have been removed.</p>
-      <Link href="/browse" className="inline-block bg-brand-gold text-black px-6 py-3 rounded-full font-bold hover:scale-105 transition">Browse tabs</Link>
+      <Link href="/browse" className="inline-block bg-[var(--c-cta-bg)] text-[var(--c-cta-text)] px-6 py-3 rounded-full font-bold hover:scale-105 transition">Browse tabs</Link>
     </div>
   );
 
@@ -45,10 +46,10 @@ export default function SetlistShare({ params }: { params: { slug: string } }) {
           <p className="text-brand-muted">{data.songs?.length ?? 0} songs</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={share} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-white/5 hover:bg-white/10 transition">
+          <button onClick={share} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)] transition">
             <Share2 size={16} /> {copied ? "Link copied!" : "Share"}
           </button>
-          <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-white/5 hover:bg-white/10 transition">
+          <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)] transition">
             <Printer size={16} /> Print
           </button>
         </div>
@@ -59,7 +60,7 @@ export default function SetlistShare({ params }: { params: { slug: string } }) {
           <Link
             key={s?.id ?? i}
             href={`/tab/${s?.slug_artist}/${s?.slug_song}`}
-            className="flex items-center gap-4 bg-[#1A1A1A] rounded-xl p-4 border border-white/[0.06] hover:bg-white/[0.04] transition"
+            className="flex items-center gap-4 bg-[var(--c-card)] rounded-xl p-4 border border-[var(--c-hairline)] hover:bg-[var(--c-overlay-soft)] transition"
           >
             <span className="w-8 h-8 rounded-full bg-brand-gold/10 text-brand-gold flex items-center justify-center font-bold text-sm shrink-0">{i + 1}</span>
             <div className="flex-1 min-w-0">
@@ -67,8 +68,8 @@ export default function SetlistShare({ params }: { params: { slug: string } }) {
               <p className="text-brand-muted text-sm truncate">{s?.artist}</p>
             </div>
             <div className="flex gap-2 text-xs text-brand-muted shrink-0">
-              {s?.key_sig && <span className="bg-white/5 px-2 py-1 rounded">Key: {s.key_sig}</span>}
-              {s?.capo && <span className="bg-white/5 px-2 py-1 rounded">Capo: {s.capo}</span>}
+              {s?.key_sig && <span className="bg-[var(--c-overlay-soft)] px-2 py-1 rounded">Key: {s.key_sig}</span>}
+              {s?.capo && <span className="bg-[var(--c-overlay-soft)] px-2 py-1 rounded">Capo: {s.capo}</span>}
             </div>
           </Link>
         ))}

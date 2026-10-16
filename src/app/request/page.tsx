@@ -39,7 +39,7 @@ export default function RequestPage() {
 
       <form
         onSubmit={(e) => { e.preventDefault(); setSubmitted(true); }}
-        className="bg-brand-card rounded-3xl p-8 border border-white/5 space-y-6"
+        className="bg-brand-card rounded-3xl p-8 border border-[var(--c-hairline)] space-y-6"
       >
         <div className="space-y-2">
           <label className="text-sm font-bold">Song Name *</label>
@@ -47,7 +47,7 @@ export default function RequestPage() {
             type="text"
             required
             placeholder="e.g. Wonderwall"
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3 focus:outline-none focus:border-brand-gold transition"
+            className="w-full bg-[var(--c-overlay-soft)] border border-[var(--c-hairline)] rounded-xl px-5 py-3 focus:outline-none focus:border-brand-gold transition"
           />
         </div>
 
@@ -57,14 +57,14 @@ export default function RequestPage() {
             type="text"
             required
             placeholder="e.g. Oasis"
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3 focus:outline-none focus:border-brand-gold transition"
+            className="w-full bg-[var(--c-overlay-soft)] border border-[var(--c-hairline)] rounded-xl px-5 py-3 focus:outline-none focus:border-brand-gold transition"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <label className="text-sm font-bold">Genre</label>
-            <select className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3 focus:outline-none focus:border-brand-gold transition">
+            <select className="w-full bg-[var(--c-overlay-soft)] border border-[var(--c-hairline)] rounded-xl px-5 py-3 focus:outline-none focus:border-brand-gold transition">
               <option>Rock</option>
               <option>Pop</option>
               <option>Blues</option>
@@ -77,7 +77,7 @@ export default function RequestPage() {
           </div>
           <div className="space-y-2">
             <label className="text-sm font-bold">Difficulty</label>
-            <select className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3 focus:outline-none focus:border-brand-gold transition">
+            <select className="w-full bg-[var(--c-overlay-soft)] border border-[var(--c-hairline)] rounded-xl px-5 py-3 focus:outline-none focus:border-brand-gold transition">
               <option>Any</option>
               <option>Beginner</option>
               <option>Intermediate</option>
@@ -91,13 +91,13 @@ export default function RequestPage() {
           <textarea
             rows={4}
             placeholder="Any specific details about the arrangement, tuning, or version..."
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3 focus:outline-none focus:border-brand-gold transition resize-none"
+            className="w-full bg-[var(--c-overlay-soft)] border border-[var(--c-hairline)] rounded-xl px-5 py-3 focus:outline-none focus:border-brand-gold transition resize-none"
           />
         </div>
 
         <button
           type="submit"
-          className="w-full flex items-center justify-center gap-2 bg-brand-gold text-black py-4 rounded-xl font-bold hover:scale-[1.02] transition"
+          className="w-full flex items-center justify-center gap-2 bg-[var(--c-cta-bg)] text-[var(--c-cta-text)] py-4 rounded-xl font-bold hover:scale-[1.02] transition"
         >
           <Send size={18} /> Submit Request
         </button>

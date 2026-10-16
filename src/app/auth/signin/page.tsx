@@ -9,7 +9,7 @@ export default function SignIn() {
 
   return (
     <div className="max-w-md mx-auto py-16">
-      <div className="bg-brand-card rounded-3xl p-8 border border-white/5 space-y-8">
+      <div className="bg-brand-card rounded-3xl p-8 border border-[var(--c-hairline)] space-y-8">
         {/* Header */}
         <div className="text-center space-y-3">
           <div className="w-16 h-16 bg-brand-gold/10 rounded-full flex items-center justify-center mx-auto">
@@ -28,7 +28,7 @@ export default function SignIn() {
             signIn("google", { callbackUrl: "/" });
           }}
           disabled={isGoogleLoading}
-          className="w-full flex items-center justify-center gap-3 bg-white text-black py-3.5 rounded-xl font-bold hover:bg-gray-100 transition disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-3 bg-white text-black py-3.5 rounded-xl font-bold hover:bg-[var(--c-overlay-soft)] transition disabled:opacity-50"
         >
           <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
             <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
@@ -48,7 +48,7 @@ export default function SignIn() {
             signIn("github", { callbackUrl: "/" });
           }}
           disabled={isGithubLoading}
-          className="w-full flex items-center justify-center gap-3 bg-gray-800 text-white py-3.5 rounded-xl font-bold hover:bg-gray-700 transition border border-gray-700 disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-3 bg-[var(--c-bg-elevated)] text-[var(--c-text)] py-3.5 rounded-xl font-bold hover:bg-[var(--c-overlay)] transition border border-gray-700 disabled:opacity-50"
         >
           <Github size={20} />
           {isGithubLoading ? "Redirecting..." : "Continue with GitHub"}
@@ -57,7 +57,7 @@ export default function SignIn() {
         {/* Divider */}
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-white/10" />
+            <div className="w-full border-t border-[var(--c-hairline)]" />
           </div>
           <div className="relative flex justify-center text-xs">
             <span className="bg-brand-card px-4 text-brand-muted">FREE FOREVER</span>
