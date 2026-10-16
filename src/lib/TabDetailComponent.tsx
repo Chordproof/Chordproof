@@ -15,12 +15,17 @@ import SmartKey from "@/components/SmartKey";
 import InstrumentPicker from "@/components/InstrumentPicker";
 import DrumMachine from "@/components/DrumMachine";
 import type { InstrumentKey } from "@/lib/instruments";
-import { BadgeCheck, AlertTriangle, Share2, Bookmark, Play, MousePointer2, Loader2, ChevronDown, Youtube, Zap } from "lucide-react";
+import { BadgeCheck, AlertTriangle, Share2, Bookmark, Play, MousePointer2, Loader2, ChevronDown, Youtube, Zap, MoreHorizontal } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { recordAction } from "@/lib/gamification";
 import { chordsUsed } from "@/lib/chordData";
 import { MiniFretboard, ChordDiagram, ThemePicker, THEMES, type ThemeKey } from "@/lib/fretboard";
 import { renderContent, renderTablature, hasInlineTablature } from "@/lib/tabRenderer";
+
+
+function Sep() {
+  return <div style={{ width: "1px", height: "24px", background: "var(--c-hairline)", margin: "0 4px" }} />;
+}
 
 export default function TabDetailComponent({ params }: { params: { artist: string; song: string } }) {
   const [tab, setTab] = useState<any>(null);
@@ -36,6 +41,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
   const [easyOverride, setEasyOverride] = useState<{ content: string; capo: number | null } | null>(null);
   const [trainerOpen, setTrainerOpen] = useState(false);
   const [drumOpen, setDrumOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [instrument, setInstrument] = useState<InstrumentKey>("guitar");
 
   useEffect(() => {
@@ -67,7 +73,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
 
   useEffect(() => {
     if (!tab) return;
-    // Injeta info da música para o StageMode (BPM automático + tom no rodapé)
+    // Injeta info da música para o StageMode buscar o BPM automaticamente
     (window as any).__stageTrackInfo = { artist: tab.artist || params.artist.replace(/-/g, " "), song: tab.song || params.song.replace(/-/g, " "), keySig: tab.key_sig || "" };
     const id = tab.youtube_id || tab.video_id || tab.youtube || tab.video_url || tab.yt_id || "";
     if (id) { setYoutubeId(id); return; }
@@ -82,7 +88,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
     <div className="text-center py-32 space-y-4">
       <h1 className="text-4xl font-bold">Tab not found</h1>
       <p className="text-brand-muted">This tab isn't in our database yet.</p>
-      <a href="/request" className="inline-block bg-brand-gold text-black px-6 py-3 rounded-full font-bold hover:scale-105 transition">Request this tab</a>
+      <a href="/request" className="inline-block bg-[var(--c-cta-bg)] text-[var(--c-cta-text)] px-6 py-3 rounded-full font-bold hover:scale-105 transition">Request this tab</a>
     </div>
   );
 
@@ -96,9 +102,9 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
   return (
     <div style={{maxWidth:"1400px",margin:"0 auto"}}>
       <nav className="text-sm text-brand-muted" style={{marginBottom:"24px"}}><ol className="flex gap-2">
-        <li><a href="/" className="hover:text-white">Home</a></li><li>/</li>
-        <li><a href="/browse" className="hover:text-white">Browse</a></li><li>/</li>
-        <li><a href={"/artist/"+params.artist} className="hover:text-white capitalize">{artistName}</a></li>
+        <li><a href="/" className="hover:text-[var(--c-text)]">Home</a></li><li>/</li>
+        <li><a href="/browse" className="hover:text-[var(--c-text)]">Browse</a></li><li>/</li>
+        <li><a href={"/artist/"+params.artist} className="hover:text-[var(--c-text)] capitalize">{artistName}</a></li>
       </ol></nav>
       <div className="flex flex-col md:flex-row justify-between items-start gap-6" style={{marginBottom:"24px"}}>
         <div className="space-y-2">
@@ -106,6 +112,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
             <h1 className="text-4xl font-bold">{songName}</h1>
             {tab.is_verified && <div className="flex items-center gap-1 bg-brand-gold/10 text-brand-gold px-3 py-1 rounded-full text-xs font-bold gold-seal-anim"><BadgeCheck size={14} /> VERIFIED</div>}
           </div>
+          {/* Nome do artista com foto ao lado */}
           <div className="flex items-center gap-2">
             <ArtistAvatar name={artistName} slug={params.artist} imageUrl={tab.artist_image_url} size="xs" />
             <Link href={`/artist/${params.artist}`} className="text-xl text-brand-muted hover:text-brand-gold hover:underline transition-colors inline-block">
@@ -113,26 +120,25 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
             </Link>
           </div>
           <div className="flex gap-4 pt-2 flex-wrap">
-            {tab.key_sig && <span className="bg-white/5 px-3 py-1 rounded text-sm">Key: <strong>{tab.key_sig}</strong></span>}
-            {tab.difficulty && <span className="bg-white/5 px-3 py-1 rounded text-sm">Difficulty: <strong className="text-green-400">{tab.difficulty}</strong></span>}
-            {tab.capo && <span className="bg-white/5 px-3 py-1 rounded text-sm">Capo: <strong>{tab.capo}</strong></span>}
+            {tab.key_sig && <span className="bg-[var(--c-overlay-soft)] px-3 py-1 rounded text-sm">Key: <strong>{tab.key_sig}</strong></span>}
+            {tab.difficulty && <span className="bg-[var(--c-overlay-soft)] px-3 py-1 rounded text-sm">Difficulty: <strong className="text-green-400">{tab.difficulty}</strong></span>}
+            {tab.capo && <span className="bg-[var(--c-overlay-soft)] px-3 py-1 rounded text-sm">Capo: <strong>{tab.capo}</strong></span>}
             {easyOverride?.capo && <span className="bg-brand-gold/10 text-brand-gold px-3 py-1 rounded text-sm font-bold">Easy capo: <strong>{easyOverride.capo}</strong></span>}
           </div>
         </div>
         <div className="flex gap-3">
-          <button onClick={() => { navigator.clipboard?.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 2000); }} className="p-3 bg-white/5 rounded-full hover:bg-white/10" title={copied ? "Link copied!" : "Share"}><Share2 size={20} className={copied ? "text-brand-gold" : ""} /></button>
+          <button onClick={() => { navigator.clipboard?.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 2000); }} className="p-3 bg-[var(--c-overlay-soft)] rounded-full hover:bg-[var(--c-overlay)]" title={copied ? "Link copied!" : "Share"}><Share2 size={20} className={copied ? "text-brand-gold" : ""} /></button>
           <SaveOfflineButton tab={tab} slugArtist={params.artist} slugSong={params.song} />
           <AddToSetlist tabId={tab.id} song={songName} artist={artistName} />
-          <button className="p-3 bg-white/5 rounded-full hover:bg-white/10" title="Bookmark"><Bookmark size={20} /></button>
-          <a href="#tab-content" className="flex items-center gap-2 px-6 py-3 bg-brand-gold text-black rounded-full font-bold hover:scale-105 transition"><Play size={18} /> Play</a>
+          <button className="p-3 bg-[var(--c-overlay-soft)] rounded-full hover:bg-[var(--c-overlay)]" title="Bookmark"><Bookmark size={20} /></button>
+          <a href="#tab-content" className="flex items-center gap-2 px-6 py-3 bg-[var(--c-cta-bg)] text-[var(--c-cta-text)] rounded-full font-bold hover:scale-105 transition"><Play size={18} /> Play</a>
         </div>
       </div>
-      {/* Toolbar sticky: acompanha a rolagem, logo abaixo da navbar (top 56px). Style inline à prova de poda do Tailwind. */}
-      <div className="flex flex-wrap items-center gap-4 bg-brand-card rounded-2xl p-4 border border-white/5" style={{marginBottom:"24px", boxShadow: "0 4px 16px rgba(0,0,0,0.35)", position: "sticky", top: "56px", zIndex: 40}}>
+      <div className="flex flex-wrap items-center gap-4 bg-brand-card rounded-2xl p-4 border border-[var(--c-hairline)]" style={{marginBottom:"24px", boxShadow: "var(--c-shadow)", position: "sticky", top: "56px", zIndex: 40}}>
         <TransposeControls transpose={transpose} onTranspose={setTranspose} />
-        <button onClick={() => setShowTablature(!showTablature)} className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (showTablature ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}><ChevronDown size={16} /> Tablature {showTablature ? "ON" : "OFF"}</button>
-        <button onClick={() => setTrainerOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition bg-white/5 hover:bg-white/10" title="Train chord transitions with a timer"><Zap size={16} className="text-brand-gold" /> Trainer</button>
-        <button onClick={() => setDrumOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition bg-white/5 hover:bg-white/10" title="Drum machine — groove by genre at the song BPM">🥁 Drums</button>
+        <button onClick={() => setShowTablature(!showTablature)} className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (showTablature ? "bg-[var(--c-cta-bg)] text-[var(--c-cta-text)]" : "bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)]")}><ChevronDown size={16} /> Tablature {showTablature ? "ON" : "OFF"}</button>
+        <button onClick={() => setTrainerOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)]" title="Train chord transitions with a timer"><Zap size={16} className="text-brand-gold" /> Trainer</button>
+        <button onClick={() => setDrumOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)]" title="Drum machine — groove by genre at the song BPM">🥁 Drums</button>
         <StageMode>
           {renderContent(content, showTablature, transpose, setActiveChord, theme)}
           {showTablature && hasTab && !hasInlineTablature(content) && renderTablature(tablature)}
@@ -142,33 +148,45 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
           transpose={transpose}
           onContentOverride={(easyContent, capo) => setEasyOverride(easyContent ? { content: easyContent, capo } : null)}
         />
-        <PdfButton
-          song={songName}
-          artist={artistName}
-          content={content}
-          transpose={transpose}
-          capo={tab.capo}
-          easyCapo={easyOverride?.capo ?? null}
-          keySig={tab.key_sig}
-        />
-        <PrintButton
-          tab={tab}
-          content={content}
-          transpose={transpose}
-          easyApplied={!!easyOverride}
-          easyCapo={easyOverride?.capo ?? null}
-        />
+        <Sep />
         <InstrumentPicker current={instrument} onChange={setInstrument} />
-        <div className="ml-auto"><ThemePicker current={themeKey} onChange={setThemeKey} /></div>
+        <div style={{position:"relative"}} className="ml-auto">
+          <button onClick={() => setMoreOpen(!moreOpen)} className="w-9 h-9 flex items-center justify-center rounded-full bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)] transition" title="More: PDF, Print, Theme">
+            <MoreHorizontal size={18} />
+          </button>
+          {moreOpen && (
+            <div style={{position:"absolute", top:"100%", right:0, marginTop:"8px", background:"var(--c-bg-elevated)", border:"1px solid var(--c-hairline)", borderRadius:"12px", padding:"6px", minWidth:"180px", zIndex:60, boxShadow:"var(--c-shadow)"}}>
+              <div style={{padding:"6px 12px 2px", fontSize:"10px", color:"var(--c-text-tertiary)", textTransform:"uppercase", letterSpacing:"0.5px"}}>Export</div>
+              <div style={{padding:"0 6px"}}><PdfButton
+                song={songName}
+                artist={artistName}
+                content={content}
+                transpose={transpose}
+                capo={tab.capo}
+                easyCapo={easyOverride?.capo ?? null}
+                keySig={tab.key_sig}
+              /></div>
+              <div style={{padding:"0 6px"}}><PrintButton
+                tab={tab}
+                content={content}
+                transpose={transpose}
+                easyApplied={!!easyOverride}
+                easyCapo={easyOverride?.capo ?? null}
+              /></div>
+              <div style={{padding:"6px 12px 2px", fontSize:"10px", color:"var(--c-text-tertiary)", textTransform:"uppercase", letterSpacing:"0.5px"}}>Appearance</div>
+              <div style={{padding:"0 6px 6px"}}><ThemePicker current={themeKey} onChange={setThemeKey} /></div>
+            </div>
+          )}
+        </div>
       </div>
       <div style={{display:"flex",gap:"24px",alignItems:"flex-start"}}>
         <div style={{flex:"3 1 0%",minWidth:"0"}}>
-          <div id="tab-content" className="bg-brand-card rounded-2xl p-8 border border-white/5" style={{marginBottom:"24px"}}>
+          <div id="tab-content" className="bg-brand-card rounded-2xl p-8 border border-[var(--c-hairline)]" style={{marginBottom:"24px"}}>
             <div style={{fontFamily:"monospace",fontSize:"1rem",lineHeight:"1.6"}}>{renderContent(content, showTablature, transpose, setActiveChord, theme)}</div>
             {showTablature && hasTab && !hasInlineTablature(content) && renderTablature(tablature)}
           </div>
           {usedChords.length > 0 && (
-            <section className="bg-brand-card rounded-2xl p-6 border border-white/5 space-y-4" style={{marginBottom:"24px"}}>
+            <section className="bg-brand-card rounded-2xl p-6 border border-[var(--c-hairline)] space-y-4" style={{marginBottom:"24px"}}>
               <h2 className="text-2xl font-bold">Chords used in this tab</h2>
               <p className="text-sm text-brand-muted">Hover over a chord in the tab to see its shape. Click to enlarge:</p>
               <div style={{display:"flex",flexWrap:"wrap",gap:"12px"}}>
@@ -187,27 +205,27 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
         <div style={{flex:"1 0 320px",maxWidth:"360px"}}>
           <div style={{position:"sticky",top:"24px"}}>
             {youtubeId ? (
-              <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-3" style={{marginBottom:"16px"}}>
+              <div className="bg-brand-card rounded-2xl p-4 border border-[var(--c-hairline)] space-y-3" style={{marginBottom:"16px"}}>
                 <h3 className="text-lg font-bold flex items-center gap-2"><Youtube size={20} className="text-red-500" /> Watch &amp; Play</h3>
-                <iframe className="w-full aspect-video rounded-xl border border-white/10" src={"https://www.youtube.com/embed/"+youtubeId} title={songName + " - " + artistName} allowFullScreen />
+                <iframe className="w-full aspect-video rounded-xl border border-[var(--c-hairline)]" src={"https://www.youtube.com/embed/"+youtubeId} title={songName + " - " + artistName} allowFullScreen />
                 <p className="text-xs text-brand-muted">Play along with the video while reading the tab.</p>
               </div>
             ) : youtubeLoading ? (
-              <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-3" style={{marginBottom:"16px"}}>
+              <div className="bg-brand-card rounded-2xl p-4 border border-[var(--c-hairline)] space-y-3" style={{marginBottom:"16px"}}>
                 <h3 className="text-lg font-bold flex items-center gap-2"><Youtube size={20} className="text-red-500" /> Searching video...</h3>
                 <div className="flex items-center justify-center py-8"><Loader2 className="animate-spin text-brand-muted" size={24} /></div>
               </div>
             ) : (
-              <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-2" style={{marginBottom:"16px"}}>
+              <div className="bg-brand-card rounded-2xl p-4 border border-[var(--c-hairline)] space-y-2" style={{marginBottom:"16px"}}>
                 <h3 className="text-lg font-bold flex items-center gap-2"><Youtube size={20} className="text-red-500" /> Video</h3>
                 <p className="text-sm text-brand-muted">No video found for this tab.</p>
               </div>
             )}
             {usedChords.length > 0 && (
-              <div className="bg-brand-card rounded-2xl p-4 border border-white/5 space-y-3">
+              <div className="bg-brand-card rounded-2xl p-4 border border-[var(--c-hairline)] space-y-3">
                 <h3 className="text-sm font-bold text-brand-muted uppercase tracking-wider">Quick Reference</h3>
                 <div className="flex flex-wrap gap-2">
-                  {usedChords.map((c) => (<button key={c} onClick={() => setActiveChord(c)} className="px-3 py-1.5 bg-white/5 rounded-lg text-sm hover:bg-brand-gold/10 transition-colors" style={{color:"#34d399",fontWeight:700}}>{c}</button>))}
+                  {usedChords.map((c) => (<button key={c} onClick={() => setActiveChord(c)} className="px-3 py-1.5 bg-[var(--c-overlay-soft)] rounded-lg text-sm hover:bg-brand-gold/10 transition-colors" style={{color:"#34d399",fontWeight:700}}>{c}</button>))}
                 </div>
               </div>
             )}

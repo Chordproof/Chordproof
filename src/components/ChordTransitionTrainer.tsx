@@ -136,7 +136,7 @@ export default function ChordTransitionTrainer({
 
   useEffect(() => () => stopTimer(), []);
 
-  const registerSwitch = () => { if (phase === "running") { setSwitches((s) => s + 1); beep(990, 0.05); setTargetChord((t) => t + 1); } };
+  const registerSwitch = () => { if (phase === "running") { setSwitches((s) => s + 1); beep(990, 0.05); } };
 
   const nextPair = () => { setPairIdx((i) => (i + 1) % Math.max(pairs.length, 1)); setPhase("idle"); };
   const prevPair = () => { setPairIdx((i) => (i - 1 + pairs.length) % Math.max(pairs.length, 1)); setPhase("idle"); };

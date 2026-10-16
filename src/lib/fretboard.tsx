@@ -4,7 +4,8 @@ import { BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, Palette, X } from "
 import { CHORD_SHAPES } from "./chordData";
 import { adaptShape, INSTRUMENTS, INSTRUMENT_VISUALS, type InstrumentKey } from "./instruments";
 import { generateVoicing, suggestFingers } from "./fourStringVoicings";
-import PianoDiagramLazy, { MiniPiano } from "@/components/PianoDiagram";
+import PianoDiagramLazy from "@/components/PianoDiagram";
+import { MiniPiano } from "@/components/PianoDiagram";
 
 export type ThemeKey = "amber" | "classic" | "emerald" | "crimson" | "ocean";
 export type Theme = {
@@ -315,7 +316,6 @@ export function MiniFretboard({ chord, theme, instrument = "guitar" }: { chord: 
 
 export function ChordDiagram({ chord, onClose, theme, instrument = "guitar" }: { chord: string; onClose: () => void; theme: typeof THEMES[ThemeKey]; instrument?: InstrumentKey }) {
   const C = theme;
-  // Piano: modal de teclado próprio
   if (instrument === "piano") {
     return <PianoDiagramLazy chord={chord} onClose={onClose} accentColor={theme.dot} />;
   }
@@ -329,11 +329,11 @@ export function ChordDiagram({ chord, onClose, theme, instrument = "guitar" }: {
         <div
           onClick={(e) => e.stopPropagation()}
           onMouseLeave={onClose}
-          style={{ background: "#1a1a2e", border: "1px solid #333", borderRadius: "16px", padding: "24px", boxShadow: "0 12px 40px rgba(0,0,0,0.7)", minWidth: "260px", textAlign: "center", cursor: "pointer" }}
+          style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-hairline)", borderRadius: "16px", padding: "24px", boxShadow: "0 12px 40px rgba(0,0,0,0.7)", minWidth: "260px", textAlign: "center", cursor: "pointer" }}
         >
           <div style={{ fontSize: "24px", fontWeight: 700, color: C.text }}>{chord}</div>
           <div style={{ fontSize: "13px", color: C.muted, marginTop: "8px" }}>Diagram under construction</div>
-          <div style={{ fontSize: "11px", color: "#888", marginTop: "12px" }}>Click anywhere to close</div>
+          <div style={{ fontSize: "11px", color: "var(--c-text-tertiary)", marginTop: "12px" }}>Click anywhere to close</div>
         </div>
       </div>
     );
@@ -346,7 +346,9 @@ export function ChordDiagram({ chord, onClose, theme, instrument = "guitar" }: {
   const minPos = posFrets.length > 0 ? Math.min(...posFrets) : 0;
   const baseFret = minPos > 3 ? minPos - 1 : 0;
   const frets = [baseFret + 1, baseFret + 2, baseFret + 3, baseFret + 4];
+  const stringW = [5, 4.5, 4, 3.5, 3, 2.5];
   const dotSize = 32;
+  const woodGrad = "linear-gradient(180deg," + C.wood1 + " 0%," + C.wood2 + " 18%," + C.wood3 + " 40%," + C.wood4 + " 65%," + C.wood5 + " 100%)";
   return (
     <div
       onClick={onClose}
@@ -355,11 +357,11 @@ export function ChordDiagram({ chord, onClose, theme, instrument = "guitar" }: {
       <div
         onClick={(e) => e.stopPropagation()}
         onMouseLeave={onClose}
-        style={{ background: "#1a1a2e", border: "1px solid #333", borderRadius: "16px", padding: "16px", boxShadow: "0 12px 40px rgba(0,0,0,0.7)", minWidth: "220px" }}
+        style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-hairline)", borderRadius: "16px", padding: "16px", boxShadow: "0 12px 40px rgba(0,0,0,0.7)", minWidth: "220px" }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
           <span style={{ fontSize: "20px", fontWeight: 700, color: C.text }}>{chord}</span>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#666" }}>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--c-text-tertiary)" }}>
             <X size={18} />
           </button>
         </div>
@@ -373,20 +375,20 @@ export function ChordDiagram({ chord, onClose, theme, instrument = "guitar" }: {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginTop: "8px" }}>
             <button
               onClick={(e) => { e.stopPropagation(); setVarIdx((varIdx - 1 + shapes.length) % shapes.length); }}
-              style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%", width: "32px", height: "32px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}
+              style={{ background: "var(--c-overlay)", border: "none", borderRadius: "50%", width: "32px", height: "32px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--c-text)" }}
             >
               <ChevronLeft size={16} />
             </button>
-            <span style={{ fontSize: "12px", color: "#aaa" }}>Variation {varIdx + 1} of {shapes.length}</span>
+            <span style={{ fontSize: "12px", color: "var(--c-text-secondary)" }}>Variation {varIdx + 1} of {shapes.length}</span>
             <button
               onClick={(e) => { e.stopPropagation(); setVarIdx((varIdx + 1) % shapes.length); }}
-              style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%", width: "32px", height: "32px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}
+              style={{ background: "var(--c-overlay)", border: "none", borderRadius: "50%", width: "32px", height: "32px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--c-text)" }}
             >
               <ChevronRight size={16} />
             </button>
           </div>
         )}
-        <div style={{ fontSize: "11px", color: "#666", textAlign: "center", marginTop: "12px" }}>
+        <div style={{ fontSize: "11px", color: "var(--c-text-tertiary)", textAlign: "center", marginTop: "12px" }}>
           Click anywhere to close
         </div>
       </div>
@@ -419,19 +421,19 @@ export function ThemePicker({ current, onChange }: { current: ThemeKey; onChange
     <div style={{ position: "relative" }}>
       <button
         onClick={() => setOpen(!open)}
-        className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (open ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}
+        className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (open ? "bg-[var(--c-cta-bg)] text-[var(--c-cta-text)]" : "bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)]")}
       >
         <Palette size={16} />
         Theme: {THEMES[current].label}
         <ChevronDown size={14} />
       </button>
       {open && (
-        <div style={{ position: "absolute", top: "100%", right: 0, marginTop: "8px", background: "#1a1a2e", border: "1px solid #333", borderRadius: "12px", padding: "8px", minWidth: "180px", zIndex: 20 }}>
+        <div style={{ position: "absolute", top: "100%", right: 0, marginTop: "8px", background: "var(--c-bg-elevated)", border: "1px solid var(--c-hairline)", borderRadius: "12px", padding: "8px", minWidth: "180px", zIndex: 20 }}>
           {THEME_KEYS.map((k) => (
             <button
               key={k}
               onClick={() => { onChange(k); setOpen(false); }}
-              style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "8px 12px", background: k === current ? "rgba(240,180,41,0.1)" : "transparent", border: "none", borderRadius: "8px", cursor: "pointer", color: k === current ? "#f0b429" : "#e0e0e0", fontSize: "13px", fontWeight: k === current ? 700 : 400 }}
+              style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "8px 12px", background: k === current ? "var(--c-gold-soft)" : "transparent", border: "none", borderRadius: "8px", cursor: "pointer", color: k === current ? "var(--c-gold)" : "var(--c-text)", fontSize: "13px", fontWeight: k === current ? 700 : 400 }}
             >
               <span style={{ width: "14px", height: "14px", borderRadius: "50%", background: THEMES[k].swatch }} />
               {THEMES[k].label}
