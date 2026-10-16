@@ -4,9 +4,9 @@ import { supabase } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
-// Registra a assinatura na tabela `subscriptions` (schema real do projeto:
-// user_id, stripe_customer_id, stripe_subscription_id, plan, status, current_period_end).
-// O user_id é resolvido pelo e-mail na tabela `users` (criada pelo adapter NextAuth).
+// Registra a assinatura na tabela `subscriptions` via RPC SECURITY DEFINER
+// (upsert_subscription_by_email): users/subscriptions têm RLS sem políticas e a
+// anon key não passa — a função resolve email → user_id internamente com privilégio do dono.
 async function upsertSubscription(
   email: string | null | undefined,
   customerId: string | null | undefined,
@@ -16,26 +16,17 @@ async function upsertSubscription(
   periodEnd: number | null
 ) {
   if (!email) return;
-  const { data: user } = await supabase
-    .from("users")
-    .select("id")
-    .eq("email", email)
-    .single();
-  if (!user) {
-    console.error("webhook: user not found for email", email);
-    return;
+  const { error } = await supabase.rpc("upsert_subscription_by_email", {
+    p_email: email,
+    p_customer_id: customerId ?? null,
+    p_subscription_id: subscriptionId ?? null,
+    p_plan: plan,
+    p_status: status,
+    p_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+  });
+  if (error) {
+    console.error("webhook: upsert_subscription_by_email error:", error.message);
   }
-  await supabase.from("subscriptions").upsert(
-    {
-      user_id: user.id,
-      stripe_customer_id: customerId ?? null,
-      stripe_subscription_id: subscriptionId ?? null,
-      plan,
-      status,
-      current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
-    },
-    { onConflict: "stripe_subscription_id" }
-  );
 }
 
 export async function POST(req: NextRequest) {

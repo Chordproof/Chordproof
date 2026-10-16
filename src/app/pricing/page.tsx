@@ -1,6 +1,7 @@
-import { Check, X, WifiOff, FileText, ListMusic, Wand2, Heart, ShieldCheck } from "lucide-react";
+import { Check, X, WifiOff, FileText, ListMusic, Wand2, Heart, ShieldCheck, Sparkles } from "lucide-react";
 import Link from "next/link";
 import CheckoutButton from "@/components/CheckoutButton";
+import TrialButton from "@/components/TrialButton";
 
 export const metadata = {
   title: "ChordProof+ — Support the community, get pro features",
@@ -25,8 +26,13 @@ export default function Pricing() {
           Every community tab stays free — no paywalls, no popups, no tricks.
           ChordProof+ is for musicians who want pro tools <em className="text-[var(--c-text)]">and</em> want to keep this place running.
         </p>
-        <div className="inline-block bg-amber-400/10 text-amber-400 px-4 py-1 rounded-full text-sm font-bold">
-          CANCEL ANYTIME IN 2 CLICKS
+        <div className="flex flex-wrap gap-3 justify-center">
+          <div className="inline-flex items-center gap-2 bg-[var(--c-gold-soft)] text-[var(--c-gold)] px-4 py-1.5 rounded-full text-sm font-bold">
+            <Sparkles size={14} /> 15 DAYS FREE — NO CARD REQUIRED
+          </div>
+          <div className="inline-block bg-[var(--c-overlay-soft)] text-[var(--c-text-secondary)] px-4 py-1.5 rounded-full text-sm font-bold">
+            CANCEL ANYTIME IN 2 CLICKS
+          </div>
         </div>
       </div>
 
@@ -46,11 +52,12 @@ export default function Pricing() {
             <li className="flex gap-3 text-[var(--c-text-tertiary)]"><X className="text-red-400" /> Print-ready PDFs</li>
             <li className="flex gap-3 text-[var(--c-text-tertiary)]"><X className="text-red-400" /> Setlists</li>
           </ul>
+          <TrialButton />
           <Link
             href="/browse"
-            className="w-full py-4 rounded-xl border border-gray-700 font-bold hover:bg-[var(--c-bg-elevated)] transition flex items-center justify-center"
+            className="text-sm text-[var(--c-text-secondary)] hover:text-[var(--c-text)] transition text-center block"
           >
-            Start Browsing — It&apos;s Free
+            or just browse tabs — always free
           </Link>
         </div>
 

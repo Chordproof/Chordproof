@@ -21,6 +21,7 @@ import { recordAction } from "@/lib/gamification";
 import { chordsUsed } from "@/lib/chordData";
 import { MiniFretboard, ChordDiagram, ThemePicker, THEMES, type ThemeKey } from "@/lib/fretboard";
 import { renderContent, renderTablature, hasInlineTablature } from "@/lib/tabRenderer";
+import { usePlusAccess } from "@/components/PlusGate";
 
 
 function Sep() {
@@ -43,6 +44,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
   const [drumOpen, setDrumOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [instrument, setInstrument] = useState<InstrumentKey>("guitar");
+  const plus = usePlusAccess();
 
   useEffect(() => {
     const saved = localStorage.getItem("chordproof-instrument") as InstrumentKey | null;
@@ -122,7 +124,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
           <div className="flex gap-4 pt-2 flex-wrap">
             {tab.key_sig && <span className="bg-[var(--c-overlay-soft)] px-3 py-1 rounded text-sm">Key: <strong>{tab.key_sig}</strong></span>}
             {tab.difficulty && <span className="bg-[var(--c-overlay-soft)] px-3 py-1 rounded text-sm">Difficulty: <strong className="text-green-400">{tab.difficulty}</strong></span>}
-            {tab.capo && <span className="bg-[var(--c-overlay-soft)] px-3 py-1 rounded text-sm font-bold">CAPO ON FRET {tab.capo}</span>}
+            {tab.capo && <span className="bg-[var(--c-gold-soft)] text-[var(--c-gold)] px-3 py-1 rounded text-sm font-bold tracking-wide">CAPO ON FRET {tab.capo}</span>}
             {easyOverride?.capo && <span className="bg-brand-gold/10 text-brand-gold px-3 py-1 rounded text-sm font-bold">Easy capo: <strong>{easyOverride.capo}</strong></span>}
           </div>
         </div>
@@ -137,8 +139,8 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
       <div className="flex flex-wrap items-center gap-2 sm:gap-4 bg-brand-card rounded-2xl p-2 sm:p-4 border border-[var(--c-hairline)]" style={{marginBottom:"24px", boxShadow: "var(--c-shadow)", position: "sticky", top: "56px", zIndex: 40}}>
         <TransposeControls transpose={transpose} onTranspose={setTranspose} />
         <button onClick={() => setShowTablature(!showTablature)} className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (showTablature ? "bg-[var(--c-cta-bg)] text-[var(--c-cta-text)]" : "bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)]")}><ChevronDown size={16} /> Tablature {showTablature ? "ON" : "OFF"}</button>
-        <button onClick={() => setTrainerOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)]" title="Train chord transitions with a timer"><Zap size={16} className="text-brand-gold" /> Trainer</button>
-        <button onClick={() => setDrumOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)]" title="Drum machine — groove by genre at the song BPM">🥁 Drums</button>
+        <button onClick={() => { if (plus.hasAccess) setTrainerOpen(true); else window.location.href = "/pricing?feature=Trainer"; }} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)]" title="Train chord transitions with a timer (ChordProof+)"><Zap size={16} className="text-brand-gold" /> Trainer{!plus.hasAccess && <span className="text-[10px] font-bold text-[var(--c-gold)]">+</span>}</button>
+        <button onClick={() => { if (plus.hasAccess) setDrumOpen(true); else window.location.href = "/pricing?feature=Drums"; }} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)]" title="Drum machine — groove by genre at the song BPM (ChordProof+)">🥁 Drums{!plus.hasAccess && <span className="text-[10px] font-bold text-[var(--c-gold)]">+</span>}</button>
         <StageMode>
           {renderContent(content, showTablature, transpose, setActiveChord, theme)}
           {showTablature && hasTab && !hasInlineTablature(content) && renderTablature(tablature)}
@@ -157,22 +159,28 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
           {moreOpen && (
             <div style={{position:"absolute", top:"100%", right:0, marginTop:"8px", background:"var(--c-bg-elevated)", border:"1px solid var(--c-hairline)", borderRadius:"12px", padding:"6px", minWidth:"180px", zIndex:60, boxShadow:"var(--c-shadow)"}}>
               <div style={{padding:"6px 12px 2px", fontSize:"10px", color:"var(--c-text-tertiary)", textTransform:"uppercase", letterSpacing:"0.5px"}}>Export</div>
-              <div style={{padding:"0 6px"}}><PdfButton
-                song={songName}
-                artist={artistName}
-                content={content}
-                transpose={transpose}
-                capo={tab.capo}
-                easyCapo={easyOverride?.capo ?? null}
-                keySig={tab.key_sig}
-              /></div>
-              <div style={{padding:"0 6px"}}><PrintButton
-                tab={tab}
-                content={content}
-                transpose={transpose}
-                easyApplied={!!easyOverride}
-                easyCapo={easyOverride?.capo ?? null}
-              /></div>
+              {plus.hasAccess ? (<>
+                <div style={{padding:"0 6px"}}><PdfButton
+                  song={songName}
+                  artist={artistName}
+                  content={content}
+                  transpose={transpose}
+                  capo={tab.capo}
+                  easyCapo={easyOverride?.capo ?? null}
+                  keySig={tab.key_sig}
+                /></div>
+                <div style={{padding:"0 6px"}}><PrintButton
+                  tab={tab}
+                  content={content}
+                  transpose={transpose}
+                  easyApplied={!!easyOverride}
+                  easyCapo={easyOverride?.capo ?? null}
+                /></div>
+              </>) : (
+                <div style={{padding:"0 6px 4px"}}>
+                  <a href="/pricing?feature=PDF" className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-[var(--c-gold-soft)] text-[var(--c-gold)] font-bold" title="PDF &amp; Print — ChordProof+">PDF &amp; Print <span className="text-[10px]">+</span></a>
+                </div>
+              )}
               <div style={{padding:"6px 12px 2px", fontSize:"10px", color:"var(--c-text-tertiary)", textTransform:"uppercase", letterSpacing:"0.5px"}}>Appearance</div>
               <div style={{padding:"0 6px 6px"}}><ThemePicker current={themeKey} onChange={setThemeKey} /></div>
             </div>
