@@ -15,12 +15,16 @@ import SmartKey from "@/components/SmartKey";
 import InstrumentPicker from "@/components/InstrumentPicker";
 import DrumMachine from "@/components/DrumMachine";
 import type { InstrumentKey } from "@/lib/instruments";
-import { BadgeCheck, AlertTriangle, Share2, Bookmark, Play, MousePointer2, Loader2, ChevronDown, Youtube, Zap } from "lucide-react";
+import { BadgeCheck, AlertTriangle, Share2, Bookmark, Play, MousePointer2, Loader2, ChevronDown, Youtube, Zap, MoreHorizontal } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { recordAction } from "@/lib/gamification";
 import { chordsUsed } from "@/lib/chordData";
 import { MiniFretboard, ChordDiagram, ThemePicker, THEMES, type ThemeKey } from "@/lib/fretboard";
 import { renderContent, renderTablature, hasInlineTablature } from "@/lib/tabRenderer";
+
+function Sep() {
+  return <div style={{ width: "1px", height: "24px", background: "rgba(255,255,255,0.12)", margin: "0 4px" }} />;
+}
 
 export default function TabDetailComponent({ params }: { params: { artist: string; song: string } }) {
   const [tab, setTab] = useState<any>(null);
@@ -36,6 +40,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
   const [easyOverride, setEasyOverride] = useState<{ content: string; capo: number | null } | null>(null);
   const [trainerOpen, setTrainerOpen] = useState(false);
   const [drumOpen, setDrumOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [instrument, setInstrument] = useState<InstrumentKey>("guitar");
 
   useEffect(() => {
@@ -127,12 +132,13 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
           <a href="#tab-content" className="flex items-center gap-2 px-6 py-3 bg-brand-gold text-black rounded-full font-bold hover:scale-105 transition"><Play size={18} /> Play</a>
         </div>
       </div>
-      {/* Toolbar sticky: acompanha a rolagem, logo abaixo da navbar (top 56px). Style inline à prova de poda do Tailwind. */}
-      <div className="flex flex-wrap items-center gap-4 bg-brand-card rounded-2xl p-4 border border-white/5" style={{marginBottom:"24px", boxShadow: "0 4px 16px rgba(0,0,0,0.35)", position: "sticky", top: "56px", zIndex: 40}}>
+      {/* MOCKUP Fase A: toolbar sticky com grupos + separadores + menu ⋯ + dropdown de instrumento */}
+      <div className="flex flex-wrap items-center gap-2 bg-brand-card rounded-2xl px-4 py-3 border border-white/5" style={{marginBottom:"24px", boxShadow: "0 4px 16px rgba(0,0,0,0.35)", position: "sticky", top: "56px", zIndex: 40}}>
+        {/* Grupo LEITURA */}
         <TransposeControls transpose={transpose} onTranspose={setTranspose} />
-        <button onClick={() => setShowTablature(!showTablature)} className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (showTablature ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}><ChevronDown size={16} /> Tablature {showTablature ? "ON" : "OFF"}</button>
-        <button onClick={() => setTrainerOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition bg-white/5 hover:bg-white/10" title="Train chord transitions with a timer"><Zap size={16} className="text-brand-gold" /> Trainer</button>
-        <button onClick={() => setDrumOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition bg-white/5 hover:bg-white/10" title="Drum machine — groove by genre at the song BPM">🥁 Drums</button>
+        <button onClick={() => setShowTablature(!showTablature)} className={"flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition " + (showTablature ? "bg-brand-gold text-black" : "bg-white/5 hover:bg-white/10")}><ChevronDown size={14} /> Tab</button>
+        <Sep />
+        {/* Grupo PRÁTICA */}
         <StageMode>
           {renderContent(content, showTablature, transpose, setActiveChord, theme)}
           {showTablature && hasTab && !hasInlineTablature(content) && renderTablature(tablature)}
@@ -142,24 +148,40 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
           transpose={transpose}
           onContentOverride={(easyContent, capo) => setEasyOverride(easyContent ? { content: easyContent, capo } : null)}
         />
-        <PdfButton
-          song={songName}
-          artist={artistName}
-          content={content}
-          transpose={transpose}
-          capo={tab.capo}
-          easyCapo={easyOverride?.capo ?? null}
-          keySig={tab.key_sig}
-        />
-        <PrintButton
-          tab={tab}
-          content={content}
-          transpose={transpose}
-          easyApplied={!!easyOverride}
-          easyCapo={easyOverride?.capo ?? null}
-        />
+        <button onClick={() => setTrainerOpen(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition bg-white/5 hover:bg-white/10" title="Train chord transitions with a timer"><Zap size={14} className="text-brand-gold" /> Trainer</button>
+        <button onClick={() => setDrumOpen(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition bg-white/5 hover:bg-white/10" title="Drum machine — groove by genre at the song BPM">🥁 Drums</button>
+        <Sep />
+        {/* Instrumento (dropdown compacto) */}
         <InstrumentPicker current={instrument} onChange={setInstrument} />
-        <div className="ml-auto"><ThemePicker current={themeKey} onChange={setThemeKey} /></div>
+        {/* Menu ⋯: exportação + tema */}
+        <div style={{position:"relative"}} className="ml-auto">
+          <button onClick={() => setMoreOpen(!moreOpen)} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition" title="More: PDF, Print, Theme">
+            <MoreHorizontal size={18} />
+          </button>
+          {moreOpen && (
+            <div style={{position:"absolute", top:"100%", right:0, marginTop:"8px", background:"#1a1a2e", border:"1px solid #333", borderRadius:"12px", padding:"6px", minWidth:"180px", zIndex:60, boxShadow:"0 8px 24px rgba(0,0,0,0.5)"}}>
+              <div style={{padding:"6px 12px 2px", fontSize:"10px", color:"#666", textTransform:"uppercase", letterSpacing:"0.5px"}}>Export</div>
+              <div style={{padding:"0 6px"}}><PdfButton
+                song={songName}
+                artist={artistName}
+                content={content}
+                transpose={transpose}
+                capo={tab.capo}
+                easyCapo={easyOverride?.capo ?? null}
+                keySig={tab.key_sig}
+              /></div>
+              <div style={{padding:"0 6px"}}><PrintButton
+                tab={tab}
+                content={content}
+                transpose={transpose}
+                easyApplied={!!easyOverride}
+                easyCapo={easyOverride?.capo ?? null}
+              /></div>
+              <div style={{padding:"6px 12px 2px", fontSize:"10px", color:"#666", textTransform:"uppercase", letterSpacing:"0.5px"}}>Appearance</div>
+              <div style={{padding:"0 6px 6px"}}><ThemePicker current={themeKey} onChange={setThemeKey} /></div>
+            </div>
+          )}
+        </div>
       </div>
       <div style={{display:"flex",gap:"24px",alignItems:"flex-start"}}>
         <div style={{flex:"3 1 0%",minWidth:"0"}}>
