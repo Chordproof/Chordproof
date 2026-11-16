@@ -1,17 +1,38 @@
 import { supabase } from "@/lib/supabase";
 import { SITE_URL } from "@/lib/seo";
 
-export default async function sitemap() {
-  const { data: tabs } = await supabase
-    .from("tabs")
-    .select("slug_artist, slug_song, updated_at");
+// O Supabase devolve no máximo 1000 linhas por request, e o catálogo já passou
+// de 1166 cifras: paginamos até esgotar. A tabela `tabs` NÃO tem updated_at
+// (a versão anterior selecionava essa coluna, a query falhava e o sitemap
+// saía com apenas as 2 URLs fixas).
+export const revalidate = 3600;
 
-  const tabUrls = (tabs || []).map((t) => ({
-    url: `${SITE_URL}/tab/${t.slug_artist}/${t.slug_song}`,
-    lastModified: t.updated_at,
-    changeFrequency: "weekly" as const,
-    priority: 0.8,
-  }));
+const PAGE = 1000;
+
+export default async function sitemap() {
+  type TabRow = { slug_artist: string; slug_song: string; created_at: string | null };
+  const tabs: TabRow[] = [];
+
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from("tabs")
+      .select("slug_artist, slug_song, created_at")
+      .order("slug_artist", { ascending: true })
+      .range(from, from + PAGE - 1);
+
+    if (error || !data || data.length === 0) break;
+    tabs.push(...(data as TabRow[]));
+    if (data.length < PAGE) break;
+  }
+
+  const tabUrls = tabs
+    .filter((t) => t.slug_artist && t.slug_song)
+    .map((t) => ({
+      url: `${SITE_URL}/tab/${t.slug_artist}/${t.slug_song}`,
+      ...(t.created_at ? { lastModified: new Date(t.created_at) } : {}),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }));
 
   return [
     { url: SITE_URL, changeFrequency: "daily" as const, priority: 1 },
