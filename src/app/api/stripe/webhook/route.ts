@@ -30,18 +30,27 @@ async function upsertSubscription(
 }
 
 export async function POST(req: NextRequest) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
-  const body = await req.text();
   const signature = req.headers.get("stripe-signature");
+
+  // SEGURANÇA: sem o segredo configurado o endpoint NÃO pode aceitar eventos —
+  // antes ele caía num JSON.parse sem verificação e qualquer um podia forjar um
+  // "checkout.session.completed" e ganhar assinatura. Melhor recusar tudo (500)
+  // e deixar o erro visível do que abrir a porta.
+  if (!secret) {
+    console.error("webhook: STRIPE_WEBHOOK_SECRET ausente — eventos recusados");
+    return NextResponse.json({ error: "Webhook not configured" }, { status: 500 });
+  }
+  if (!signature) {
+    return NextResponse.json({ error: "Missing signature" }, { status: 400 });
+  }
+
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+  const body = await req.text();
 
   let event: Stripe.Event;
   try {
-    if (secret && signature) {
-      event = stripe.webhooks.constructEvent(body, signature, secret);
-    } else {
-      event = JSON.parse(body) as Stripe.Event; // setup inicial sem verificação
-    }
+    event = stripe.webhooks.constructEvent(body, signature, secret);
   } catch (err: any) {
     console.error("webhook signature error:", err?.message);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
