@@ -1,5 +1,8 @@
 // src/lib/seo.ts
-export const SITE_URL = "https://chordproof.vercel.app"; // troque pelo domínio final
+// Domínio canônico: variável de ambiente com fallback para o domínio de produção.
+// Usar env evita ter de mexer no código quando o domínio mudar (preview/deploy branch).
+export const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://chordproof.com";
 export const SITE_NAME = "ChordProof";
 
 export function slugify(text: string): string {
