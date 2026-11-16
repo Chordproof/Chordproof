@@ -1,9 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="96" fill="#121212"/>
-  <circle cx="256" cy="256" r="150" fill="none" stroke="#F5B841" stroke-width="18"/>
-  <ellipse cx="215" cy="330" rx="34" ry="24" fill="#F5B841"/>
-  <rect x="242" y="180" width="14" height="155" fill="#F5B841"/>
-  <path d="M249 180 L330 240" stroke="#F5B841" stroke-width="14" stroke-linecap="round"/>
-  <circle cx="380" cy="380" r="62" fill="#10B981"/>
-  <path d="M352 380 l20 20 l38 -40" stroke="#ffffff" stroke-width="16" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="ChordProof">
+  <title>ChordProof</title>
+  <rect width="512" height="512" rx="104" fill="#121212"/>
+
+  <!-- nota musical (colcheia) no dourado da marca #F0B429 -->
+  <g fill="#F0B429">
+    <ellipse cx="198" cy="338" rx="64" ry="47" transform="rotate(24 198 338)"/>
+    <rect x="248" y="165" width="22" height="176" rx="11"/>
+    <path d="M270 170
+             C 342 192 358 234 338 302
+             C 350 252 332 216 270 198 Z"/>
+    <circle cx="259" cy="166" r="11"/>
+  </g>
+
+  <!-- selo de verificacao -->
+  <circle cx="356" cy="376" r="78" fill="#121212"/>
+  <circle cx="356" cy="376" r="64" fill="#10B981"/>
+  <path d="M326 376 l22 22 l40 -44"
+        stroke="#ffffff" stroke-width="17" fill="none"
+        stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
