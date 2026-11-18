@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import { Bookmark, BookmarkCheck, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { recordAction } from "@/lib/gamification";
 
 /**
- * Botão de salvar cifra. Grava no banco por usuário (user_bookmarks).
+ * Botão de salvar cifra. Grava no banco por usuário (user_bookmarks)
+ * e registra SAVE_TAB nas estatísticas da conta.
  * Sem login: leva para /auth/signin em vez de falhar em silêncio.
  */
 export default function SaveTabButton({
@@ -58,6 +60,7 @@ export default function SaveTabButton({
         return;
       }
       setSaved(!!d.saved);
+      if (d.saved) recordAction("SAVE_TAB");
       setHint(d.saved ? "Saved to My Tabs" : "Removed");
       setTimeout(() => setHint(null), 2000);
     } catch {
