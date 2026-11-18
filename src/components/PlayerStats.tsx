@@ -1,24 +1,59 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Flame, Trophy } from "lucide-react";
-import { getPlayer, levelFromXp, getAchievements, type PlayerState } from "@/lib/gamification";
+import { Flame, Trophy, Loader2 } from "lucide-react";
+import { useSession } from "next-auth/react";
+import Link from "next/link";
+import { levelFromXp, getAchievements, type PlayerState } from "@/lib/gamification";
+
+const EMPTY: PlayerState = {
+  xp: 0,
+  level: 1,
+  streak: 0,
+  lastActivity: null,
+  tabsViewed: 0,
+  tabsCompleted: 0,
+  transpositions: 0,
+  savedTabs: 0,
+};
 
 export default function PlayerStats() {
-  const [player, setPlayer] = useState<PlayerState>(getPlayer());
+  const { status } = useSession();
+  const [player, setPlayer] = useState<PlayerState | null>(null);
 
   useEffect(() => {
-    const refresh = () => setPlayer(getPlayer());
+    let alive = true;
+    const load = () =>
+      fetch("/api/stats")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (!alive) return;
+          setPlayer(d?.stats ? { ...EMPTY, ...d.stats } : EMPTY);
+        })
+        .catch(() => alive && setPlayer(EMPTY));
+
+    if (status === "authenticated") load();
+    else if (status === "unauthenticated") setPlayer(EMPTY);
+
+    const refresh = () => status === "authenticated" && load();
     window.addEventListener("chordproof:gamification", refresh);
-    window.addEventListener("storage", refresh);
     return () => {
+      alive = false;
       window.removeEventListener("chordproof:gamification", refresh);
-      window.removeEventListener("storage", refresh);
     };
-  }, []);
+  }, [status]);
+
+  if (player === null) {
+    return (
+      <div className="bg-[var(--c-card)] rounded-2xl p-10 border border-[var(--c-hairline)] flex justify-center">
+        <Loader2 className="animate-spin text-brand-gold" />
+      </div>
+    );
+  }
 
   const { level, title, nextXp, progress } = levelFromXp(player.xp);
   const achievements = getAchievements(player);
   const unlockedCount = achievements.filter((a) => a.unlocked).length;
+  const isEmpty = player.xp === 0 && player.tabsViewed === 0;
 
   return (
     <div className="space-y-6">
@@ -51,6 +86,12 @@ export default function PlayerStats() {
             />
           </div>
         </div>
+        {isEmpty && (
+          <p className="text-xs text-brand-muted pt-1">
+            Open a tab to start earning XP. Progress is saved to your account.{" "}
+            <Link href="/browse" className="text-brand-gold hover:underline">Browse tabs</Link>
+          </p>
+        )}
       </div>
 
       {/* Stats */}
