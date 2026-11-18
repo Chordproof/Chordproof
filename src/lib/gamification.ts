@@ -31,7 +31,6 @@ const LEVELS = [
   { level: 8, xp: 2800, title: "Legendary" },
 ];
 
-const STORAGE_KEY = "chordproof_player";
 const EVENT_NAME = "chordproof:gamification";
 
 const DEFAULT_PLAYER: PlayerState = {
@@ -45,25 +44,10 @@ const DEFAULT_PLAYER: PlayerState = {
   savedTabs: 0,
 };
 
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function yesterdayISO(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().slice(0, 10);
-}
-
 export function getPlayer(): PlayerState {
-  if (typeof window === "undefined") return DEFAULT_PLAYER;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_PLAYER;
-    return { ...DEFAULT_PLAYER, ...JSON.parse(raw) };
-  } catch {
-    return DEFAULT_PLAYER;
-  }
+  // Fonte da verdade é o banco (/api/stats). Não lemos mais localStorage:
+  // ele é do navegador e misturava contas diferentes.
+  return DEFAULT_PLAYER;
 }
 
 export function levelFromXp(xp: number) {
@@ -97,42 +81,20 @@ export function getAchievements(p: PlayerState) {
 }
 
 export function recordAction(action: GameAction) {
-  const before = getPlayer();
-  const today = todayISO();
-
-  let streak = before.streak;
-  if (before.lastActivity === today) {
-    // já registrou hoje
-  } else if (before.lastActivity === yesterdayISO()) {
-    streak = before.streak + 1;
-  } else {
-    streak = 1;
-  }
-
-  const player: PlayerState = {
-    ...before,
-    streak,
-    lastActivity: today,
-    xp: before.xp + XP_VALUES[action],
-    tabsViewed: before.tabsViewed + (action === "OPEN_TAB" ? 1 : 0),
-    tabsCompleted: before.tabsCompleted + (action === "COMPLETE_TAB" ? 1 : 0),
-    transpositions: before.transpositions + (action === "TRANSPOSE" ? 1 : 0),
-    savedTabs: before.savedTabs + (action === "SAVE_TAB" ? 1 : 0),
-  };
-  player.level = levelFromXp(player.xp).level;
-
-  const beforeAch = getAchievements(before);
-  const afterAch = getAchievements(player);
-  const unlocked = afterAch.filter(
-    (a) => a.unlocked && !beforeAch.some((b) => b.code === a.code && b.unlocked)
-  );
-
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(player));
-    window.dispatchEvent(new Event(EVENT_NAME));
-  } catch {
-    // storage indisponível
-  }
-
-  return { player, unlocked };
+  // Estatísticas são POR CONTA, no banco (/api/stats) — antes ficavam em
+  // localStorage, que é do navegador: duas contas no mesmo navegador viam
+  // os mesmos números. Sem login, a chamada simplesmente devolve 401 e
+  // nada é gravado.
+  if (typeof window === "undefined") return;
+  const xp = XP_VALUES[action] ?? 0;
+  fetch("/api/stats", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ action, xp }),
+  })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((d) => {
+      if (d?.ok) window.dispatchEvent(new Event(EVENT_NAME));
+    })
+    .catch(() => {});
 }

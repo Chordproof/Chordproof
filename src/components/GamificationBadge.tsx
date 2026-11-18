@@ -2,30 +2,39 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Flame } from "lucide-react";
-import { getPlayer, type PlayerState } from "@/lib/gamification";
+import { useSession } from "next-auth/react";
+import { levelFromXp, type PlayerState } from "@/lib/gamification";
 
 // Widget de streak na navbar: fogo + dias consecutivos + nível.
-// Clique leva ao perfil com o progresso completo (XP, conquistas).
+// Lê de /api/stats (por conta), não de localStorage.
 export default function GamificationBadge() {
+  const { status } = useSession();
   const [player, setPlayer] = useState<PlayerState | null>(null);
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    setPlayer(getPlayer());
-    const refresh = () => setPlayer(getPlayer());
-    window.addEventListener("chordproof:gamification", refresh);
-    window.addEventListener("storage", refresh);
-    return () => {
-      window.removeEventListener("chordproof:gamification", refresh);
-      window.removeEventListener("storage", refresh);
-    };
-  }, []);
+    let alive = true;
+    const load = () =>
+      fetch("/api/stats")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => alive && setPlayer(d?.stats ?? null))
+        .catch(() => alive && setPlayer(null));
 
-  if (!mounted || !player) return null;
+    if (status === "authenticated") load();
+    else if (status === "unauthenticated") setPlayer(null);
+
+    const refresh = () => status === "authenticated" && load();
+    window.addEventListener("chordproof:gamification", refresh);
+    return () => {
+      alive = false;
+      window.removeEventListener("chordproof:gamification", refresh);
+    };
+  }, [status]);
+
+  // Sem login não há streak para mostrar
+  if (status !== "authenticated" || !player) return null;
 
   const streak = player.streak || 0;
-  const level = player.level || 1;
+  const level = levelFromXp(player.xp || 0).level;
   const days = streak === 1 ? "day" : "days";
 
   return (
