@@ -53,6 +53,14 @@ export async function POST(req: NextRequest) {
       branding_settings: {
         display_name: "ChordProof",
       },
+      // Sem isto, cartão brasileiro recebia "Seu cartão não aceita essa moeda":
+      // o preço é em USD e o cartão não transaciona em dólar. Com Adaptive
+      // Pricing, a Stripe apresenta em BRL (a moeda local do cliente) e converte
+      // internamente; recebemos em USD do mesmo jeito. Sobrescreve a
+      // configuração do painel por sessão.
+      adaptive_pricing: {
+        enabled: true,
+      },
       subscription_data: {
         metadata: { user_email: session.user.email },
       },
