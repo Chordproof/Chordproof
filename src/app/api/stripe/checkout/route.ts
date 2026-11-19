@@ -48,6 +48,11 @@ export async function POST(req: NextRequest) {
       success_url: `${origin}/profile?checkout=success`,
       cancel_url: `${origin}/pricing?checkout=cancelled`,
       allow_promotion_codes: true,
+      // O "Business name" da conta Stripe herdada de outro projeto aparecia
+      // como "MoodFlx" no checkout. Isto força a marca certa na página.
+      branding_settings: {
+        display_name: "ChordProof",
+      },
       subscription_data: {
         metadata: { user_email: session.user.email },
       },
