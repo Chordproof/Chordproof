@@ -41,30 +41,30 @@ export async function POST(req: NextRequest) {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const origin = req.headers.get("origin") || process.env.NEXTAUTH_URL || "https://chordproof.com";
 
-    const checkoutSession = await stripe.checkout.sessions.create({
+    const params: Stripe.Checkout.SessionCreateParams = {
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
       customer_email: session.user.email,
       success_url: `${origin}/profile?checkout=success`,
       cancel_url: `${origin}/pricing?checkout=cancelled`,
       allow_promotion_codes: true,
-      // O "Business name" da conta Stripe herdada de outro projeto aparecia
-      // como "MoodFlx" no checkout. Isto força a marca certa na página.
-      branding_settings: {
-        display_name: "ChordProof",
-      },
-      // Sem isto, cartão brasileiro recebia "Seu cartão não aceita essa moeda":
-      // o preço é em USD e o cartão não transaciona em dólar. Com Adaptive
-      // Pricing, a Stripe apresenta em BRL (a moeda local do cliente) e converte
-      // internamente; recebemos em USD do mesmo jeito. Sobrescreve a
-      // configuração do painel por sessão.
-      adaptive_pricing: {
-        enabled: true,
-      },
       subscription_data: {
         metadata: { user_email: session.user.email },
       },
-    });
+    };
+
+    // Sem isto, cartão brasileiro recebia "Seu cartão não aceita essa moeda":
+    // o preço é em USD e o cartão não transaciona em dólar. Com Adaptive
+    // Pricing, a Stripe apresenta em BRL (moeda local do cliente) e converte
+    // internamente; recebemos em USD do mesmo jeito. Sobrescreve o painel.
+    // Obs.: só é enviado se o SDK desta versão conhecer o parâmetro.
+    (params as any).adaptive_pricing = { enabled: true };
+
+    // OBS: branding_settings (nome exibido no checkout) NÃO existe no SDK
+    // stripe 17.7 — incluí-lo quebrou o build. O nome da marca se ajusta no
+    // Dashboard do Stripe (Settings > Business > Public business name).
+
+    const checkoutSession = await stripe.checkout.sessions.create(params);
 
     return NextResponse.json({ url: checkoutSession.url });
   } catch (err: any) {
