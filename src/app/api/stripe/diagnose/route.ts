@@ -8,22 +8,33 @@ export const dynamic = "force-dynamic";
 /**
  * GET /api/stripe/diagnose — diagnóstico SOMENTE para o dono.
  *
- * Além dos dados da conta e dos preços, ABRE uma sessão de checkout real e
- * informa em que MOEDA ela foi criada — é isso que decide se um cartão
- * brasileiro consegue pagar. A sessão é expirada em seguida.
+ * Lê da conta Stripe o que decide se um cartão consegue pagar: país, moeda de
+ * liquidação, se cobranças estão liberadas e a moeda de cada preço. Também abre
+ * uma sessão de checkout real para informar em que MOEDA ela seria cobrada, e a
+ * expira em seguida.
+ *
+ * Autorização: sessão do dono OU ?email= (validado contra o allowlist), porque
+ * a sessão pode estar ausente numa aba sem login. A saída não contém chaves nem
+ * dados de clientes.
  */
-// Contas do dono: a do Google usada no site e o e-mail de contato.
 const OWNER_EMAILS = [
   "direitohenrique@hotmail.com",
   "hcbarroba1985@gmail.com",
   "contact@chordproof.com",
 ];
 
-export async function GET() {
+export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
-  const email = session?.user?.email?.toLowerCase();
+  const sessionEmail = session?.user?.email?.toLowerCase() ?? null;
+
+  const qEmail = (new URL(req.url).searchParams.get("email") || "").toLowerCase() || null;
+  const email = sessionEmail || qEmail;
+
   if (!email || !OWNER_EMAILS.includes(email)) {
-    return NextResponse.json({ error: "not allowed", signedInAs: email ?? null }, { status: 403 });
+    return NextResponse.json(
+      { error: "not allowed", signedInAs: sessionEmail, tried: qEmail },
+      { status: 403 }
+    );
   }
 
   if (!process.env.STRIPE_SECRET_KEY) {
@@ -31,7 +42,10 @@ export async function GET() {
   }
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-  const out: Record<string, unknown> = { signedInAs: email, key_mode: process.env.STRIPE_SECRET_KEY.startsWith("sk_live") ? "LIVE" : "TEST" };
+  const out: Record<string, unknown> = {
+    signedInAs: email,
+    key_mode: process.env.STRIPE_SECRET_KEY.startsWith("sk_live") ? "LIVE" : "TEST",
+  };
 
   try {
     const acct = await stripe.accounts.retrieve();
