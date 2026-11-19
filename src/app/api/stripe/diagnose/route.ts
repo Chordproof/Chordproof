@@ -12,13 +12,18 @@ export const dynamic = "force-dynamic";
  * informa em que MOEDA ela foi criada — é isso que decide se um cartão
  * brasileiro consegue pagar. A sessão é expirada em seguida.
  */
-const OWNER_EMAILS = ["direitohenrique@hotmail.com"];
+// Contas do dono: a do Google usada no site e o e-mail de contato.
+const OWNER_EMAILS = [
+  "direitohenrique@hotmail.com",
+  "hcbarroba1985@gmail.com",
+  "contact@chordproof.com",
+];
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   const email = session?.user?.email?.toLowerCase();
   if (!email || !OWNER_EMAILS.includes(email)) {
-    return NextResponse.json({ error: "not allowed" }, { status: 403 });
+    return NextResponse.json({ error: "not allowed", signedInAs: email ?? null }, { status: 403 });
   }
 
   if (!process.env.STRIPE_SECRET_KEY) {
@@ -26,7 +31,7 @@ export async function GET() {
   }
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-  const out: Record<string, unknown> = {};
+  const out: Record<string, unknown> = { signedInAs: email, key_mode: process.env.STRIPE_SECRET_KEY.startsWith("sk_live") ? "LIVE" : "TEST" };
 
   try {
     const acct = await stripe.accounts.retrieve();
@@ -105,8 +110,6 @@ export async function GET() {
   } catch (e: any) {
     out.test_session = { error: e?.message, code: e?.code, type: e?.type };
   }
-
-  out.key_mode = process.env.STRIPE_SECRET_KEY.startsWith("sk_live") ? "LIVE" : "TEST";
 
   return NextResponse.json(out);
 }
