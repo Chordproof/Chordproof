@@ -8,10 +8,9 @@ export const dynamic = "force-dynamic";
 /**
  * GET /api/stripe/diagnose — diagnóstico SOMENTE para o dono.
  *
- * Lê da conta Stripe o que decide se um cartão do Brasil consegue pagar:
- * país da conta, moeda padrão de liquidação, se cobranças estão liberadas,
- * e a moeda/valor de cada preço configurado. Não expõe chaves nem dados de
- * clientes.
+ * Além dos dados da conta e dos preços, ABRE uma sessão de checkout real e
+ * informa em que MOEDA ela foi criada — é isso que decide se um cartão
+ * brasileiro consegue pagar. A sessão é expirada em seguida.
  */
 const OWNER_EMAILS = ["direitohenrique@hotmail.com"];
 
@@ -38,7 +37,7 @@ export async function GET() {
       business_type: acct.business_type,
       charges_enabled: acct.charges_enabled,
       payouts_enabled: acct.payouts_enabled,
-      business_name: (acct.settings as any)?.dashboard?.display_name ?? null,
+      public_business_name: (acct.settings as any)?.dashboard?.display_name ?? null,
       currently_due: acct.requirements?.currently_due ?? [],
       disabled_reason: acct.requirements?.disabled_reason ?? null,
     };
@@ -73,8 +72,6 @@ export async function GET() {
         unit_amount: p.unit_amount,
         active: p.active,
         type: p.type,
-        interval: p.recurring?.interval ?? null,
-        product: typeof p.product === "string" ? p.product : p.product?.id,
         livemode: p.livemode,
       };
     } catch (e: any) {
@@ -82,6 +79,32 @@ export async function GET() {
     }
   }
   out.prices = prices;
+
+  // Sessão de teste: em que moeda a Stripe REALMENTE cobraria?
+  try {
+    const priceId = process.env.STRIPE_PRICE_MONTHLY!;
+    const s = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url: "https://chordproof.com/profile?checkout=success",
+      cancel_url: "https://chordproof.com/pricing?checkout=cancelled",
+      ...({ adaptive_pricing: { enabled: true } } as any),
+    });
+    out.test_session = {
+      currency: s.currency,
+      amount: s.amount_total,
+      adaptive_applied: s.currency !== "usd",
+      url: s.url,
+    };
+    try {
+      await stripe.checkout.sessions.expire(s.id);
+      (out.test_session as any).expired = true;
+    } catch {
+      (out.test_session as any).expired = false;
+    }
+  } catch (e: any) {
+    out.test_session = { error: e?.message, code: e?.code, type: e?.type };
+  }
 
   out.key_mode = process.env.STRIPE_SECRET_KEY.startsWith("sk_live") ? "LIVE" : "TEST";
 
