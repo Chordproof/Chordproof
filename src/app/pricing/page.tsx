@@ -114,6 +114,23 @@ export default function Pricing() {
       </div>
 
       {/* FAQ */}
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold text-center">Questions</h2>
+        <div className="space-y-4 max-w-3xl mx-auto">
+          <div className="bg-[var(--c-bg-elevated)] border border-gray-800 rounded-2xl p-5">
+            <h3 className="font-bold">Are tabs really free?</h3>
+            <p className="text-[var(--c-text-secondary)] text-sm mt-1">Yes — every community tab, forever. The free tier is the whole catalog. ChordProof+ adds tools around the tabs, never in front of them.</p>
+          </div>
+          <div className="bg-[var(--c-bg-elevated)] border border-gray-800 rounded-2xl p-5">
+            <h3 className="font-bold">Why charge for extras?</h3>
+            <p className="text-[var(--c-text-secondary)] text-sm mt-1">Servers, verification and development cost money. Plus members cover them so the community stays free and ad-free.</p>
+          </div>
+          <div className="bg-[var(--c-bg-elevated)] border border-gray-800 rounded-2xl p-5">
+            <h3 className="font-bold">Can I cancel?</h3>
+            <p className="text-[var(--c-text-secondary)] text-sm mt-1">In 2 clicks, from your profile. Your access continues until the end of the period. No retention calls.</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
