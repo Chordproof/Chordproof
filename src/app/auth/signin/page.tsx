@@ -1,11 +1,14 @@
 "use client";
 import { signIn } from "next-auth/react";
 import { useState } from "react";
-import { Music, Github } from "lucide-react";
+import { Music } from "lucide-react";
 
+/**
+ * Login com Google. O botão do GitHub saiu: não há OAuth App configurado, então
+ * ele só produzia erro. Volta quando GITHUB_CLIENT_ID/SECRET forem criados.
+ */
 export default function SignIn() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [isGithubLoading, setIsGithubLoading] = useState(false);
 
   return (
     <div className="max-w-md mx-auto py-16">
@@ -39,19 +42,6 @@ export default function SignIn() {
             </g>
           </svg>
           {isGoogleLoading ? "Redirecting..." : "Continue with Google"}
-        </button>
-
-        {/* GitHub Button */}
-        <button
-          onClick={() => {
-            setIsGithubLoading(true);
-            signIn("github", { callbackUrl: "/" });
-          }}
-          disabled={isGithubLoading}
-          className="w-full flex items-center justify-center gap-3 bg-[var(--c-bg-elevated)] text-[var(--c-text)] py-3.5 rounded-xl font-bold hover:bg-[var(--c-overlay)] transition border border-gray-700 disabled:opacity-50"
-        >
-          <Github size={20} />
-          {isGithubLoading ? "Redirecting..." : "Continue with GitHub"}
         </button>
 
         {/* Divider */}
