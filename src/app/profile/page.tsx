@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import PlayerStats from "@/components/PlayerStats";
 import OfflineLibrary from "@/components/OfflineLibrary";
+import ManageBillingButton from "@/components/ManageBillingButton";
 
 type Profile = {
   email: string;
@@ -185,9 +186,16 @@ function Profile() {
               </span>
             </div>
           </div>
-          <Link href="/pricing" className="bg-brand-accent text-black px-6 py-3 rounded-xl font-bold hover:brightness-110 transition shrink-0">
-            {data!.plus.hasAccess ? "Manage plan" : "Upgrade to Plus"}
-          </Link>
+          {data!.plus.hasAccess ? (
+            <ManageBillingButton
+              label="Manage plan"
+              className="bg-brand-accent text-black px-6 py-3 rounded-xl font-bold hover:brightness-110 transition shrink-0 flex items-center gap-2"
+            />
+          ) : (
+            <Link href="/pricing" className="bg-brand-accent text-black px-6 py-3 rounded-xl font-bold hover:brightness-110 transition shrink-0">
+              Upgrade to Plus
+            </Link>
+          )}
         </div>
       </div>
 
@@ -347,13 +355,20 @@ function Profile() {
                   <p className="text-sm text-brand-muted">{planLabel}</p>
                 </div>
               </div>
-              <Link href="/pricing" className="flex items-center gap-1.5 text-sm font-bold text-brand-gold">
-                {data!.plus.hasAccess ? "Manage" : "See plans"} <ExternalLink size={13} />
-              </Link>
+              {data!.plus.hasAccess ? (
+                <ManageBillingButton
+                  label="Manage"
+                  className="flex items-center gap-1.5 text-sm font-bold text-brand-gold hover:brightness-110"
+                />
+              ) : (
+                <Link href="/pricing" className="flex items-center gap-1.5 text-sm font-bold text-brand-gold">
+                  See plans <ExternalLink size={13} />
+                </Link>
+              )}
             </div>
             {data!.plus.hasAccess && (
               <p className="text-xs text-brand-muted mt-3 pl-7">
-                Manage or cancel anytime through your Stripe receipt email.
+                Cancel, change your card or download invoices below — no need to email support.
               </p>
             )}
           </div>
