@@ -50,6 +50,10 @@ export async function POST(req: NextRequest) {
     const portal = await stripe.billingPortal.sessions.create({
       customer: customerId,
       return_url: `${origin}/profile?tab=settings`,
+      // "auto" = idioma NATIVO do cliente: o portal usa o preferred_locales da
+      // conta Stripe e, na falta dele, o idioma do navegador. Um americano vê em
+      // inglês, um brasileiro em português — sem configuração por usuário.
+      locale: "auto",
     });
     return NextResponse.json({ url: portal.url });
   } catch (err: any) {
