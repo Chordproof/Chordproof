@@ -52,12 +52,11 @@ export default function Pricing() {
             <li className="flex gap-3 text-[var(--c-text-tertiary)]"><X className="text-red-400" /> Print-ready PDFs</li>
             <li className="flex gap-3 text-[var(--c-text-tertiary)]"><X className="text-red-400" /> Setlists</li>
           </ul>
-          <TrialButton />
           <Link
             href="/browse"
-            className="text-sm text-[var(--c-text-secondary)] hover:text-[var(--c-text)] transition text-center block"
+            className="text-sm text-[var(--c-text-secondary)] hover:text-[var(--c-text)] transition text-center block pt-2"
           >
-            or just browse tabs — always free
+            Start using ChordProof free — every tab, no account needed
           </Link>
         </div>
 
@@ -80,10 +79,27 @@ export default function Pricing() {
             ))}
           </ul>
           <div className="space-y-3">
+            {/* O trial era um botao discreto na coluna Free. E a alavanca de
+                conversao mais barata (sem cartao), entao vira o CTA principal do
+                Plus; o checkout passa a ser a acao secundaria. */}
+            <TrialButton className="!bg-amber-400 !text-black !border-amber-400 shadow-lg shadow-amber-400/20 hover:scale-105 !py-4" />
+            <p className="text-xs text-center text-[var(--c-text-tertiary)]">
+              No card required. Full access for 15 days.
+            </p>
+            <div className="relative py-1">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-[var(--c-hairline)]" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-[var(--c-bg-elevated)] px-3 text-[var(--c-text-tertiary)]">
+                  or subscribe now
+                </span>
+              </div>
+            </div>
             <CheckoutButton
               plan="monthly"
               label="Get ChordProof+ — $3.99/mo"
-              className="w-full py-4 rounded-xl bg-amber-400 text-black font-bold hover:scale-105 transition shadow-lg shadow-amber-400/20"
+              className="w-full py-3 rounded-xl border border-amber-400/40 text-amber-400 font-bold hover:bg-amber-400/10 transition"
             />
             <CheckoutButton
               plan="annual"
@@ -98,23 +114,6 @@ export default function Pricing() {
       </div>
 
       {/* FAQ */}
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-center">Questions</h2>
-        <div className="space-y-4 max-w-3xl mx-auto">
-          <div className="bg-[var(--c-bg-elevated)] border border-gray-800 rounded-2xl p-5">
-            <h3 className="font-bold">Are tabs really free?</h3>
-            <p className="text-[var(--c-text-secondary)] text-sm mt-1">Yes — every community tab, forever. The free tier is the whole catalog. ChordProof+ adds tools around the tabs, never in front of them.</p>
-          </div>
-          <div className="bg-[var(--c-bg-elevated)] border border-gray-800 rounded-2xl p-5">
-            <h3 className="font-bold">Why charge for extras?</h3>
-            <p className="text-[var(--c-text-secondary)] text-sm mt-1">Servers, verification and development cost money. Plus members cover them so the community stays free and ad-free.</p>
-          </div>
-          <div className="bg-[var(--c-bg-elevated)] border border-gray-800 rounded-2xl p-5">
-            <h3 className="font-bold">Can I cancel?</h3>
-            <p className="text-[var(--c-text-secondary)] text-sm mt-1">In 2 clicks, from your profile. Your access continues until the end of the period. No retention calls.</p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

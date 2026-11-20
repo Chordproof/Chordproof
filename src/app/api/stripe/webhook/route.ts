@@ -29,6 +29,27 @@ async function upsertSubscription(
   }
 }
 
+/**
+ * Data do fim do período pago.
+ *
+ * Na API nova do Stripe esse campo saiu do topo da Subscription e passou a viver
+ * em cada item (subscription.items.data[].current_period_end). Ler só
+ * `sub.current_period_end` devolvia undefined e a coluna ficava nula — foi por
+ * isso que as assinaturas do banco estavam sem data de renovação.
+ */
+function periodEndOf(sub: Stripe.Subscription): number | null {
+  const top = (sub as unknown as { current_period_end?: number }).current_period_end;
+  if (typeof top === "number" && top > 0) return top;
+
+  const itemEnds = (sub.items?.data ?? [])
+    .map((i) => (i as unknown as { current_period_end?: number }).current_period_end)
+    .filter((n): n is number => typeof n === "number" && n > 0);
+
+  if (itemEnds.length === 0) return null;
+  // O período da assinatura termina no maior fim de período entre os itens.
+  return Math.max(...itemEnds);
+}
+
 export async function POST(req: NextRequest) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   const signature = req.headers.get("stripe-signature");
@@ -59,15 +80,24 @@ export async function POST(req: NextRequest) {
   if (event.type === "checkout.session.completed") {
     const cs = event.data.object as Stripe.Checkout.Session;
     const email = cs.customer_email || cs.metadata?.user_email;
+    const customerId = typeof cs.customer === "string" ? cs.customer : cs.customer?.id ?? null;
     const subId = typeof cs.subscription === "string" ? cs.subscription : cs.subscription?.id ?? null;
-    await upsertSubscription(
-      email,
-      typeof cs.customer === "string" ? cs.customer : cs.customer?.id ?? null,
-      subId,
-      "plus",
-      "active",
-      null
-    );
+
+    // Busca a assinatura para gravar a data de renovação já na primeira cobrança
+    // (antes gravava null e a data só aparecia num "updated" posterior).
+    let periodEnd: number | null = null;
+    let status = "active";
+    if (subId) {
+      try {
+        const sub = await stripe.subscriptions.retrieve(subId);
+        periodEnd = periodEndOf(sub);
+        status = sub.status || "active";
+      } catch (e: any) {
+        console.error("webhook: retrieve subscription error:", e?.message);
+      }
+    }
+
+    await upsertSubscription(email, customerId, subId, "plus", status, periodEnd);
   }
 
   if (event.type === "customer.subscription.updated") {
@@ -81,7 +111,7 @@ export async function POST(req: NextRequest) {
         sub.id,
         active ? "plus" : "free",
         sub.status,
-        sub.current_period_end ?? null
+        periodEndOf(sub)
       );
     }
   }
