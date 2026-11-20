@@ -26,12 +26,23 @@ import { usePlusAccess } from "@/components/PlusGate";
 
 
 function Sep() {
-  return <div style={{ width: "1px", height: "24px", background: "var(--c-hairline)", margin: "0 4px" }} />;
+  return <div style={{ width: "1px", height: "24px", background: "rgba(255,255,255,0.12)", margin: "0 4px" }} />;
 }
 
-export default function TabDetailComponent({ params }: { params: { artist: string; song: string } }) {
-  const [tab, setTab] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+/**
+ * Recebe `initialTab` do Server Component: com ela, o HTML já sai com a cifra
+ * renderizada (o Google lê o conteúdo) e não há busca no Supabase ao carregar.
+ * Sem ela, o comportamento antigo (fetch no cliente) continua valendo.
+ */
+export default function TabDetailComponent({
+  params,
+  initialTab = null,
+}: {
+  params: { artist: string; song: string };
+  initialTab?: any | null;
+}) {
+  const [tab, setTab] = useState<any>(initialTab);
+  const [loading, setLoading] = useState(!initialTab);
   const [notFound, setNotFound] = useState(false);
   const [transpose, setTranspose] = useState(0);
   const [showTablature, setShowTablature] = useState(true);
@@ -63,6 +74,8 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
   const theme = THEMES[themeKey];
 
   useEffect(() => {
+    // Se o servidor já mandou a cifra, o HTML veio completo: nada a buscar.
+    if (initialTab) { recordAction("OPEN_TAB"); return; }
     let active = true;
     (async () => {
       setLoading(true);
@@ -72,7 +85,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
       setLoading(false);
     })();
     return () => { active = false; };
-  }, [params.artist, params.song]);
+  }, [params.artist, params.song, initialTab]);
 
   useEffect(() => {
     if (!tab) return;
@@ -158,7 +171,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
             <MoreHorizontal size={18} />
           </button>
           {moreOpen && (
-            <div style={{position:"absolute", top:"100%", right:0, marginTop:"8px", background:"var(--c-bg-elevated)", border:"1px solid var(--c-hairline)", borderRadius:"12px", padding:"6px", minWidth:"180px", zIndex:60, boxShadow:"var(--c-shadow)"}}>
+            <div style={{position:"absolute", top:"100%", right:0, marginTop:"8px", background:"#1a1a2e", border:"1px solid #333", borderRadius:"12px", padding:"6px", minWidth:"180px", zIndex:60, boxShadow:"0 8px 24px rgba(0,0,0,0.5)"}}>
               <div style={{padding:"6px 12px 2px", fontSize:"10px", color:"var(--c-text-tertiary)", textTransform:"uppercase", letterSpacing:"0.5px"}}>Export</div>
               {plus.hasAccess ? (<>
                 <div style={{padding:"0 6px"}}><PdfButton
@@ -182,7 +195,7 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
                   <a href="/pricing?feature=PDF" className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-[var(--c-gold-soft)] text-[var(--c-gold)] font-bold" title="PDF &amp; Print — ChordProof+">PDF &amp; Print <span className="text-[10px]">+</span></a>
                 </div>
               )}
-              <div style={{padding:"6px 12px 2px", fontSize:"10px", color:"var(--c-text-tertiary)", textTransform:"uppercase", letterSpacing:"0.5px"}}>Appearance</div>
+              <div style={{padding:"6px 12px 2px", fontSize:"10px", color:"#666", textTransform:"uppercase", letterSpacing:"0.5px"}}>Appearance</div>
               <div style={{padding:"0 6px 6px"}}><ThemePicker current={themeKey} onChange={setThemeKey} /></div>
             </div>
           )}
@@ -190,12 +203,12 @@ export default function TabDetailComponent({ params }: { params: { artist: strin
       </div>
       <div style={{display:"flex",gap:"24px",alignItems:"flex-start",flexDirection:"column"}} className="md:flex-row md:items-start">
         <div style={{flex:"3 1 0%",minWidth:"0",width:"100%"}} className="md:w-auto">
-          <div id="tab-content" className="bg-brand-card rounded-2xl p-4 sm:p-8 border border-[var(--c-hairline)]" style={{marginBottom:"24px"}}>
+          <div id="tab-content" className="bg-brand-card rounded-2xl p-8 border border-[var(--c-hairline)]" style={{marginBottom:"24px"}}>
             <div style={{fontFamily:"monospace",fontSize:"1rem",lineHeight:"1.6"}}>{renderContent(content, showTablature, transpose, setActiveChord, theme)}</div>
             {showTablature && hasTab && !hasInlineTablature(content) && renderTablature(tablature)}
           </div>
           {usedChords.length > 0 && (
-            <section className="bg-brand-card rounded-2xl p-4 sm:p-6 border border-[var(--c-hairline)] space-y-4" style={{marginBottom:"24px"}}>
+            <section className="bg-brand-card rounded-2xl p-6 border border-[var(--c-hairline)] space-y-4" style={{marginBottom:"24px"}}>
               <h2 className="text-2xl font-bold">Chords used in this tab</h2>
               <p className="text-sm text-brand-muted">Hover over a chord in the tab to see its shape. Click to enlarge:</p>
               <div style={{display:"flex",flexWrap:"wrap",gap:"12px"}}>
