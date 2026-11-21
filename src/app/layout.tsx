@@ -15,6 +15,9 @@ export const metadata: Metadata = {
   title: "ChordProof - Verified Guitar Tabs",
   description: "The world's first verified guitar tab platform. No paywalls on community content. Accurate chords for real musicians.",
   alternates: { canonical: SITE_URL },
+  // robots explicito: sem <meta name="robots"> o Google assume index, mas
+  // declarar evita que qualquer override futuro bloqueie o site inteiro.
+  robots: { index: true, follow: true },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -49,11 +52,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         {/* Anti-flash: aplica o tema salvo ANTES do primeiro paint */}
         <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('chordproof-theme-mode');if(t==='light'){document.documentElement.classList.add('light')}}catch(e){}})()` }} />
-        {/* Google tag (gtag.js) — troque G-XXXXXXXXXX pelo seu ID real */}
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX" />
+        {/* Google tag (gtag.js) — GA4 do ChordProof */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-96HFNQPLEB" />
         <script
           dangerouslySetInnerHTML={{
-            __html: `window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-XXXXXXXXXX');`,
+            __html: `window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-96HFNQPLEB');`,
           }}
         />
       </head>
