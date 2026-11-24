@@ -6,27 +6,43 @@ interface ArtistAvatarProps {
   slug?: string;
   imageUrl?: string | null;
   size?: "xs" | "sm" | "md" | "lg";
+  /**
+   * Grupo a que o artista pertence (a letra da inicial). Passar isso casa a
+   * cor do fallback com o restante do site; sem isso a inicial ganha um tom
+   * derivado do nome, que é estável mas não é da paleta.
+   */
+  hue?: number;
 }
 
 const sizeClasses = {
-  xs: "w-10 h-10 text-lg",
-  sm: "w-14 h-14 text-xl",
+  xs: "w-10 h-10 text-sm",
+  sm: "w-14 h-14 text-lg",
   md: "w-20 h-20 text-2xl",
-  lg: "w-32 h-32 md:w-40 md:h-40 text-5xl md:text-6xl",
+  lg: "w-32 h-32 md:w-40 md:h-40 text-4xl md:text-5xl",
 };
 
-// Tamanho pedido ao iTunes conforme o tamanho do avatar
 const itunesSize = (size: "xs" | "sm" | "md" | "lg") =>
   size === "lg" ? "1000x1000bb" : size === "md" ? "600x600bb" : "300x300bb";
 
-const initialsUrl = (name: string) =>
-  `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(
-    name
-  )}&backgroundColor=1ED760,22c55e,059669&textColor=000000`;
-
 const cacheKey = (name: string) => `cp-avatar-${name.toLowerCase()}`;
 
-export default function ArtistAvatar({ name, slug, imageUrl, size = "sm" }: ArtistAvatarProps) {
+/**
+ * Cor determinística a partir do nome. Serve só para o fallback de inicial:
+ * a mesma banda tem sempre o mesmo tom, e bandas próximas na lista não
+ * repetem o mesmo círculo verde.
+ */
+function hueFor(name: string): number {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
+  return h;
+}
+
+export default function ArtistAvatar({
+  name,
+  imageUrl,
+  size = "sm",
+  hue,
+}: ArtistAvatarProps) {
   const [src, setSrc] = useState<string>(() => {
     // 1) Foto fixa no banco tem prioridade
     if (imageUrl) return imageUrl;
@@ -37,6 +53,7 @@ export default function ArtistAvatar({ name, slug, imageUrl, size = "sm" }: Arti
     } catch {}
     return "";
   });
+  const [failed, setFailed] = useState(false);
   const tried = useRef({ wiki: false, itunes: false });
 
   const saveCache = (url: string) => {
@@ -45,14 +62,15 @@ export default function ArtistAvatar({ name, slug, imageUrl, size = "sm" }: Arti
     } catch {}
   };
 
-  // Fonte 2: Wikipedia (API pública, sem chave)
   const loadWiki = () => {
     tried.current.wiki = true;
     const title = name.trim().replace(/ /g, "_");
-    fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`)
+    fetch(
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`
+    )
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("nf"))))
       .then((d) => {
-        const thumb = d?.thumbnail?.source;
+        const thumb: string | undefined = d?.thumbnail?.source;
         if (thumb) {
           setSrc(thumb);
           saveCache(thumb);
@@ -63,25 +81,27 @@ export default function ArtistAvatar({ name, slug, imageUrl, size = "sm" }: Arti
       .catch(() => loadItunes());
   };
 
-  // Fonte 3: iTunes / Apple Music (foto maior para avatares grandes)
   const loadItunes = () => {
     tried.current.itunes = true;
-    fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(name)}&entity=musicArtist&limit=1`)
+    fetch(
+      `https://itunes.apple.com/search?term=${encodeURIComponent(
+        name
+      )}&entity=musicArtist&limit=1`
+    )
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("nf"))))
       .then((d) => {
-        const art = d?.results?.[0]?.artworkUrl100;
+        const art: string | undefined = d?.results?.[0]?.artworkUrl100;
         if (art) {
           const big = art.replace(/100x100bb\.(jpg|png)$/, `${itunesSize(size)}.$1`);
           setSrc(big);
           saveCache(big);
         } else {
-          setSrc(initialsUrl(name));
+          setFailed(true);
         }
       })
-      .catch(() => setSrc(initialsUrl(name)));
+      .catch(() => setFailed(true));
   };
 
-  // Sem image_url nem cache: busca na Wikipedia no primeiro render
   useEffect(() => {
     if (!src && !imageUrl && !tried.current.wiki) loadWiki();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -94,22 +114,52 @@ export default function ArtistAvatar({ name, slug, imageUrl, size = "sm" }: Arti
       loadWiki();
     } else if (!tried.current.itunes) {
       loadItunes();
-    } else if (src !== initialsUrl(name)) {
-      setSrc(initialsUrl(name));
     } else {
-      setSrc("");
+      setFailed(true);
     }
   };
 
+  // Fallback: inicial sobre gradiente da paleta (dourado → verde), nunca um
+  // avatar de terceiros genérico. É o mesmo desenho em qualquer tamanho.
+  if (failed || !src) {
+    const h = hue ?? hueFor(name);
+    const initial = name.trim().charAt(0).toUpperCase();
+    return (
+      <div
+        className={`${sizeClasses[size]} relative rounded-full shrink-0 overflow-hidden flex items-center justify-center font-black select-none`}
+        style={{
+          background: `linear-gradient(135deg, hsl(${h} 55% 42%), hsl(${
+            (h + 40) % 360
+          } 60% 26%))`,
+          color: "rgba(255,255,255,.92)",
+        }}
+        aria-label={name}
+        role="img"
+      >
+        <span className="relative z-10">{initial}</span>
+        {/* argola dourada sutil: amarra o fallback à marca */}
+        <span
+          aria-hidden
+          className="absolute inset-0 rounded-full"
+          style={{ boxShadow: "inset 0 0 0 1px rgba(240,180,41,.35)" }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div
-      className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-brand-accent to-emerald-700 flex items-center justify-center font-black shrink-0 overflow-hidden`}
+      className={`${sizeClasses[size]} rounded-full shrink-0 overflow-hidden bg-[var(--c-overlay-soft)]`}
+      style={{ boxShadow: "inset 0 0 0 1px var(--c-hairline)" }}
     >
-      {src ? (
-        <img src={src} alt={name} className="w-full h-full object-cover" onError={handleError} />
-      ) : (
-        <span>{name.charAt(0)}</span>
-      )}
+      <img
+        src={src}
+        alt={name}
+        loading="lazy"
+        decoding="async"
+        className="w-full h-full object-cover"
+        onError={handleError}
+      />
     </div>
   );
 }
