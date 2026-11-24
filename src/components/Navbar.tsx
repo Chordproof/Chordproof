@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Music, User as UserIcon, LogOut, Bookmark, Settings } from "lucide-react";
+import { Music, User as UserIcon, LogOut, Bookmark, Settings, ListMusic } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 import SearchBar from "@/components/SearchBar";
@@ -83,6 +83,9 @@ export default function Navbar() {
                     </Link>
                     <Link href="/profile?tab=tabs" role="menuitem" className="flex items-center gap-2" style={{ padding: "9px 12px", borderRadius: 8, fontSize: 13 }}>
                       <Bookmark size={15} /> My Tabs
+                    </Link>
+                    <Link href="/setlists" role="menuitem" className="flex items-center gap-2" style={{ padding: "9px 12px", borderRadius: 8, fontSize: 13 }}>
+                      <ListMusic size={15} /> My Setlists
                     </Link>
                     <Link href="/profile?tab=settings" role="menuitem" className="flex items-center gap-2" style={{ padding: "9px 12px", borderRadius: 8, fontSize: 13 }}>
                       <Settings size={15} /> Settings
