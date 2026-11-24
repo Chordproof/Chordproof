@@ -7,6 +7,10 @@
  *
  * Componente de servidor (sem estado): o movimento é 100% CSS
  * (.chord-in em globals.css), o que evita hidratação e custa quase nada.
+ *
+ * CUIDADO: .chord-in aplica display:inline-block. Nas linhas da tablatura isso
+ * empilhava as seis cordas lado a lado numa faixa de 13px — por isso cada linha
+ * força display:block no style.
  */
 
 const RIFF = [
@@ -90,7 +94,7 @@ export default function TabMockup() {
               <div
                 key={row.s}
                 className="chord-in"
-                style={{ "--i": i + 7 } as React.CSSProperties}
+                style={{ "--i": i + 7, display: "block" } as React.CSSProperties}
               >
                 <span style={{ color: "var(--c-gold)" }}>{row.s}</span>
                 {row.v}
