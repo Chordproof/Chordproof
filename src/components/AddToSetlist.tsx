@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ListMusic, Plus, X, Loader2, Link2, Check } from "lucide-react";
+import { ListMusic, Plus, X, Loader2, Check } from "lucide-react";
 import { useSession } from "next-auth/react";
 
-// AddToSetlist — botão na cifra para adicionar a uma setlist do usuário (ChordProof+ feat 5).
+// AddToSetlist — botão na cifra para adicionar a uma setlist do usuário.
 // Cria setlist inline se não houver nenhuma.
+// O dono vem da sessão no servidor: o email não vai mais no corpo nem na URL.
 export default function AddToSetlist({
   tabId,
   song,
@@ -23,9 +24,9 @@ export default function AddToSetlist({
   const [added, setAdded] = useState<string | null>(null);
 
   async function load() {
-    if (!session?.user?.email) return;
     setLoading(true);
-    const res = await fetch(`/api/setlists?email=${encodeURIComponent(session.user.email)}`);
+    // O servidor identifica o dono pela sessão — o email não vai na URL.
+    const res = await fetch("/api/setlists");
     const data = await res.json();
     setSetlists(data.setlists ?? []);
     setLoading(false);
@@ -41,12 +42,12 @@ export default function AddToSetlist({
   }
 
   async function createAndAdd() {
-    if (!newTitle.trim() || !session?.user?.email) return;
+    if (!newTitle.trim()) return;
     setLoading(true);
     const res = await fetch("/api/setlists", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: newTitle.trim(), email: session.user.email, tabId }),
+      body: JSON.stringify({ title: newTitle.trim(), tabId }),
     });
     const data = await res.json();
     if (data.share_slug) {
