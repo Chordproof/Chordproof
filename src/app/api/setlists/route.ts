@@ -1,12 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
 import { supabase } from "@/lib/supabase";
+import { authOptions } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/setlists?email=... — lista as setlists do usuário (com contagem de itens)
-export async function GET(req: NextRequest) {
-  const email = req.nextUrl.searchParams.get("email");
-  if (!email) return NextResponse.json({ setlists: [] });
+/**
+ * Setlists — recurso GRATUITO por enquanto.
+ * O gate Plus entra quando a página /setlists existir: hoje o usuário não tem
+ * onde ver a setlist que criou, então cobrar por ela venderia algo inacessível.
+ *
+ * SEGURANÇA: o email NUNCA vem do cliente. Antes o GET aceitava ?email=, então
+ * qualquer pessoa lia as setlists de outra pessoa. Agora usa sempre a sessão.
+ */
+
+async function sessionEmail(): Promise<string | null> {
+  const session = await getServerSession(authOptions);
+  return session?.user?.email ?? null;
+}
+
+// GET /api/setlists — lista as setlists do usuário logado (com contagem de itens)
+export async function GET() {
+  const email = await sessionEmail();
+  if (!email) {
+    return NextResponse.json({ error: "signin_required", setlists: [] }, { status: 401 });
+  }
 
   const { data, error } = await supabase
     .from("setlists")
@@ -14,7 +32,10 @@ export async function GET(req: NextRequest) {
     .eq("owner_email", email)
     .order("updated_at", { ascending: false });
 
-  if (error) return NextResponse.json({ setlists: [] }, { status: 500 });
+  if (error) {
+    console.error("setlist list failed", error.message);
+    return NextResponse.json({ setlists: [] }, { status: 500 });
+  }
 
   const setlists = (data ?? []).map((s: any) => ({
     id: s.id,
@@ -29,9 +50,14 @@ export async function GET(req: NextRequest) {
 
 // POST /api/setlists — cria setlist e, se tabId vier, já adiciona a cifra
 export async function POST(req: NextRequest) {
-  const { title, email, tabId } = await req.json();
-  if (!title || !email) {
-    return NextResponse.json({ error: "title and email required" }, { status: 400 });
+  const email = await sessionEmail();
+  if (!email) {
+    return NextResponse.json({ error: "signin_required" }, { status: 401 });
+  }
+
+  const { title, tabId } = await req.json();
+  if (!title) {
+    return NextResponse.json({ error: "title required" }, { status: 400 });
   }
 
   const { data, error } = await supabase
