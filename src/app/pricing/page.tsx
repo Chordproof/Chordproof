@@ -1,20 +1,23 @@
-import { Check, X, WifiOff, FileText, ListMusic, Wand2, Heart, ShieldCheck, Sparkles } from "lucide-react";
+import { Check, X, WifiOff, FileText, Wand2, Zap, Drum, Sparkles } from "lucide-react";
 import Link from "next/link";
 import CheckoutButton from "@/components/CheckoutButton";
 import TrialButton from "@/components/TrialButton";
 
 export const metadata = {
   title: "ChordProof+ — Support the community, get pro features",
-  description: "Community tabs are free forever. ChordProof+ adds offline mode, clean PDFs, setlists and smart transposition — $3.99/mo or $29/year.",
+  description: "Community tabs are free forever. ChordProof+ adds offline mode, print-ready PDFs, Smart Key, a chord trainer and a drum machine — $3.99/mo or $29/year.",
 };
 
+// Cada item aqui é uma feature BLOQUEADA de verdade para quem não tem Plus.
+// Supporter Badge e Early Access saíram: nunca existiram no código.
+// Setlists saiu: hoje é grátis (não há página para o usuário ver a própria setlist,
+// então vendê-la seria cobrar por algo inacessível).
 const PLUS_FEATURES = [
   { icon: WifiOff, title: "Offline Mode (PWA)", desc: "Save tabs to your device and practice anywhere — rehearsal rooms, cabins, planes. Syncs when you're back online." },
-  { icon: FileText, title: "Beautiful PDF & Print", desc: "Print-ready sheets with proper page breaks, chord diagrams and your font preferences. Perfect for lessons and gigs." },
-  { icon: ListMusic, title: "Unlimited Setlists", desc: "Organize songs into setlists for your band, church or open mic — synced across all your devices." },
-  { icon: Wand2, title: "Smart Transposition", desc: "One click suggests easy chord shapes and the best capo position for any key." },
-  { icon: Heart, title: "Supporter Badge", desc: "A badge on your profile and requests. You keep the community running." },
-  { icon: ShieldCheck, title: "Early Access", desc: "New features land for Plus members first." },
+  { icon: FileText, title: "Print-ready PDF", desc: "Clean PDF export with smart page breaks — a chord and lyric pair never splits across two pages. Perfect for lessons and gigs." },
+  { icon: Wand2, title: "Smart Key", desc: "One click suggests easier chord shapes and the best capo position for any key." },
+  { icon: Zap, title: "Chord Trainer", desc: "Practice chord changes against a timer and watch your transitions get faster." },
+  { icon: Drum, title: "Drum Machine", desc: "A groove for any genre at the song's own BPM, so you can play in time from day one." },
 ];
 
 export default function Pricing() {
@@ -48,9 +51,9 @@ export default function Pricing() {
             <li className="flex gap-3"><Check className="text-green-400" /> Chord diagrams & hover tooltips</li>
             <li className="flex gap-3"><Check className="text-green-400" /> Dark mode & reading themes</li>
             <li className="flex gap-3"><Check className="text-green-400" /> Request songs</li>
+            <li className="flex gap-3"><Check className="text-green-400" /> Setlists for your band, church or gig</li>
             <li className="flex gap-3 text-[var(--c-text-tertiary)]"><X className="text-red-400" /> Offline mode</li>
             <li className="flex gap-3 text-[var(--c-text-tertiary)]"><X className="text-red-400" /> Print-ready PDFs</li>
-            <li className="flex gap-3 text-[var(--c-text-tertiary)]"><X className="text-red-400" /> Setlists</li>
           </ul>
           <Link
             href="/browse"
