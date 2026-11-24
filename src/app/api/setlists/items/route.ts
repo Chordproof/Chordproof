@@ -1,19 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { supabase } from "@/lib/supabase";
-import { authOptions } from "@/lib/auth";
+import { getPlusStatus } from "@/lib/plusAccess";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Itens de setlist — recurso gratuito por enquanto (o gate Plus entra quando
- * esta página estiver completa). Exige sessão e confere que a setlist é do
- * usuário: saber o id da setlist não dá acesso a ela.
+ * Itens de setlist — recurso ChordProof+. Exige sessão, confere o acesso Plus
+ * e confere que a setlist é do usuário: saber o id não dá acesso a ela.
  */
 
-async function sessionEmail(): Promise<string | null> {
-  const session = await getServerSession(authOptions);
-  return session?.user?.email ?? null;
+/** Resposta padrão de acesso negado: 401 sem sessão, 403 sem Plus. */
+async function gate() {
+  const plus = await getPlusStatus();
+  if (!plus.signedIn) return { error: NextResponse.json({ error: "signin_required" }, { status: 401 }) };
+  if (!plus.hasAccess) return { error: NextResponse.json({ error: "plus_required" }, { status: 403 }) };
+  return { email: plus.email! };
 }
 
 /** Confirma que a setlist existe e é do usuário da sessão. */
@@ -29,8 +30,9 @@ async function ownsSetlist(setlistId: string, email: string | null) {
 
 // POST /api/setlists/items — adiciona uma cifra a uma setlist (na última posição)
 export async function POST(req: NextRequest) {
-  const email = await sessionEmail();
-  if (!email) return NextResponse.json({ error: "signin_required" }, { status: 401 });
+  const g = await gate();
+  if ("error" in g) return g.error;
+  const email = g.email;
 
   const { setlistId, tabId } = await req.json();
   if (!setlistId || !tabId) {
@@ -69,8 +71,9 @@ export async function POST(req: NextRequest) {
 
 // DELETE /api/setlists/items?itemId=... — remove uma cifra da setlist pelo id DO ITEM
 export async function DELETE(req: NextRequest) {
-  const email = await sessionEmail();
-  if (!email) return NextResponse.json({ error: "signin_required" }, { status: 401 });
+  const g = await gate();
+  if ("error" in g) return g.error;
+  const email = g.email;
 
   const itemId = req.nextUrl.searchParams.get("itemId");
   if (!itemId) return NextResponse.json({ error: "itemId required" }, { status: 400 });
@@ -103,8 +106,9 @@ export async function DELETE(req: NextRequest) {
 
 // PUT /api/setlists/items — reordena: body { setlistId, order: [tabId, tabId, ...] }
 export async function PUT(req: NextRequest) {
-  const email = await sessionEmail();
-  if (!email) return NextResponse.json({ error: "signin_required" }, { status: 401 });
+  const g = await gate();
+  if ("error" in g) return g.error;
+  const email = g.email;
 
   const { setlistId, order } = await req.json();
   if (!setlistId || !Array.isArray(order)) {
