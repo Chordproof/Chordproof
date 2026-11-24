@@ -13,6 +13,9 @@ import {
  *
  * A lista, a criação e a edição passam por /api/setlists, que identifica o
  * dono pela sessão. Nada aqui manda email no corpo ou na URL.
+ *
+ * Setlists é recurso ChordProof+: 403 da API vira o convite ao trial, não
+ * uma mensagem de erro.
  */
 
 type Setlist = {
@@ -41,6 +44,7 @@ export default function SetlistsPage() {
 
   const [setlists, setSetlists] = useState<Setlist[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [needsPlus, setNeedsPlus] = useState(false);
 
   const [openId, setOpenId] = useState<string | null>(null);
   const [songs, setSongs] = useState<Song[] | null>(null);
@@ -60,6 +64,12 @@ export default function SetlistsPage() {
       const res = await fetch("/api/setlists");
       if (res.status === 401) {
         window.location.href = "/auth/signin";
+        return;
+      }
+      if (res.status === 403) {
+        // Setlists é recurso ChordProof+: mostra o convite, não um erro.
+        setNeedsPlus(true);
+        setSetlists([]);
         return;
       }
       const data = await res.json();
@@ -211,6 +221,34 @@ export default function SetlistsPage() {
         >
           Sign in
         </Link>
+      </div>
+    );
+  }
+
+  if (needsPlus) {
+    return (
+      <div className="max-w-xl mx-auto text-center py-24 space-y-5">
+        <ListMusic size={40} className="mx-auto text-brand-gold" />
+        <h1 className="text-3xl font-bold">Setlists is a ChordProof+ feature</h1>
+        <p className="text-brand-muted">
+          Build setlists for your band, church or gig and share one link the whole
+          band can open — no account needed on their side.
+        </p>
+        <div className="flex flex-wrap gap-3 justify-center pt-2">
+          <Link
+            href="/pricing?feature=Setlists"
+            className="bg-[var(--c-cta-bg)] text-[var(--c-cta-text)] px-6 py-3 rounded-full font-bold hover:scale-105 transition"
+          >
+            Try 15 days free
+          </Link>
+          <Link
+            href="/pricing"
+            className="border border-[var(--c-hairline)] px-6 py-3 rounded-full font-bold hover:bg-[var(--c-overlay-soft)] transition"
+          >
+            See plans
+          </Link>
+        </div>
+        <p className="text-xs text-brand-muted">No card required for the trial.</p>
       </div>
     );
   }
