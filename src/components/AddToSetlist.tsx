@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react";
 import { ListMusic, Plus, X, Loader2, Check } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { usePlusAccess } from "@/components/PlusGate";
 
 // AddToSetlist — botão na cifra para adicionar a uma setlist do usuário.
 // Cria setlist inline se não houver nenhuma.
 // O dono vem da sessão no servidor: o email não vai mais no corpo nem na URL.
+// Setlists é recurso ChordProof+: sem acesso, o botão leva ao pricing.
 export default function AddToSetlist({
   tabId,
   song,
@@ -17,6 +19,7 @@ export default function AddToSetlist({
   artist: string;
 }) {
   const { data: session } = useSession();
+  const plus = usePlusAccess();
   const [open, setOpen] = useState(false);
   const [setlists, setSetlists] = useState<any[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -35,6 +38,11 @@ export default function AddToSetlist({
   function openModal() {
     if (!session?.user) {
       window.location.href = "/auth/signin";
+      return;
+    }
+    // Setlists é recurso ChordProof+.
+    if (!plus.hasAccess) {
+      window.location.href = "/pricing?feature=Setlists";
       return;
     }
     setOpen(true);
@@ -81,10 +89,18 @@ export default function AddToSetlist({
     <>
       <button
         onClick={openModal}
-        title="Add to setlist"
-        className="p-3 bg-[var(--c-overlay-soft)] rounded-full hover:bg-[var(--c-overlay)] transition"
+        title={plus.hasAccess ? "Add to setlist" : "Setlists — ChordProof+"}
+        className="relative p-3 bg-[var(--c-overlay-soft)] rounded-full hover:bg-[var(--c-overlay)] transition"
       >
         <ListMusic size={20} />
+        {!plus.hasAccess && !plus.loading && (
+          <span
+            style={{ position: "absolute", top: -2, right: -2 }}
+            className="text-[10px] font-bold leading-none px-1 py-0.5 rounded-full bg-[var(--c-gold-soft)] text-[var(--c-gold)]"
+          >
+            +
+          </span>
+        )}
       </button>
       {open && (
         <div className="fixed inset-0 z-[10000] bg-black/70 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
