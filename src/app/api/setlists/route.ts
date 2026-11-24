@@ -1,30 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { supabase } from "@/lib/supabase";
-import { authOptions } from "@/lib/auth";
+import { getPlusStatus } from "@/lib/plusAccess";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Setlists — recurso GRATUITO por enquanto.
- * O gate Plus entra quando a página /setlists existir: hoje o usuário não tem
- * onde ver a setlist que criou, então cobrar por ela venderia algo inacessível.
+ * Setlists — recurso ChordProof+ (a página /setlists existe e é usável).
  *
  * SEGURANÇA: o email NUNCA vem do cliente. Antes o GET aceitava ?email=, então
- * qualquer pessoa lia as setlists de outra pessoa. Agora usa sempre a sessão.
+ * qualquer pessoa lia as setlists de outra pessoa. Agora usa sempre a sessão,
+ * e o acesso Plus é confirmado no servidor por getPlusStatus.
  */
-
-async function sessionEmail(): Promise<string | null> {
-  const session = await getServerSession(authOptions);
-  return session?.user?.email ?? null;
-}
 
 // GET /api/setlists — lista as setlists do usuário logado (com contagem de itens)
 export async function GET() {
-  const email = await sessionEmail();
-  if (!email) {
+  const plus = await getPlusStatus();
+  if (!plus.signedIn) {
     return NextResponse.json({ error: "signin_required", setlists: [] }, { status: 401 });
   }
+  if (!plus.hasAccess) {
+    return NextResponse.json({ error: "plus_required", setlists: [] }, { status: 403 });
+  }
+  const email = plus.email!;
 
   const { data, error } = await supabase
     .from("setlists")
@@ -50,10 +47,14 @@ export async function GET() {
 
 // POST /api/setlists — cria setlist e, se tabId vier, já adiciona a cifra
 export async function POST(req: NextRequest) {
-  const email = await sessionEmail();
-  if (!email) {
+  const plus = await getPlusStatus();
+  if (!plus.signedIn) {
     return NextResponse.json({ error: "signin_required" }, { status: 401 });
   }
+  if (!plus.hasAccess) {
+    return NextResponse.json({ error: "plus_required" }, { status: 403 });
+  }
+  const email = plus.email!;
 
   const { title, tabId } = await req.json();
   if (!title) {
