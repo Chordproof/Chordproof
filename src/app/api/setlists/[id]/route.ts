@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { supabase } from "@/lib/supabase";
-import { authOptions } from "@/lib/auth";
+import { getPlusStatus } from "@/lib/plusAccess";
 
 export const dynamic = "force-dynamic";
 
@@ -16,9 +15,12 @@ export const dynamic = "force-dynamic";
  * owner_email antes de qualquer coisa — saber o id não dá acesso.
  */
 
-async function sessionEmail(): Promise<string | null> {
-  const session = await getServerSession(authOptions);
-  return session?.user?.email ?? null;
+/** Resposta padrão de acesso negado: 401 sem sessão, 403 sem Plus. */
+async function gate() {
+  const plus = await getPlusStatus();
+  if (!plus.signedIn) return { error: NextResponse.json({ error: "signin_required" }, { status: 401 }) };
+  if (!plus.hasAccess) return { error: NextResponse.json({ error: "plus_required" }, { status: 403 }) };
+  return { email: plus.email! };
 }
 
 /** Carrega a setlist só se ela for do usuário. Devolve null em qualquer outro caso. */
@@ -34,8 +36,9 @@ async function ownedSetlist(id: string, email: string | null) {
 }
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  const email = await sessionEmail();
-  if (!email) return NextResponse.json({ error: "signin_required" }, { status: 401 });
+  const g = await gate();
+  if ("error" in g) return g.error;
+  const email = g.email;
 
   const setlist = await ownedSetlist(params.id, email);
   if (!setlist) return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -64,8 +67,9 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const email = await sessionEmail();
-  if (!email) return NextResponse.json({ error: "signin_required" }, { status: 401 });
+  const g = await gate();
+  if ("error" in g) return g.error;
+  const email = g.email;
 
   const setlist = await ownedSetlist(params.id, email);
   if (!setlist) return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -102,8 +106,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
-  const email = await sessionEmail();
-  if (!email) return NextResponse.json({ error: "signin_required" }, { status: 401 });
+  const g = await gate();
+  if ("error" in g) return g.error;
+  const email = g.email;
 
   const setlist = await ownedSetlist(params.id, email);
   if (!setlist) return NextResponse.json({ error: "not_found" }, { status: 404 });
