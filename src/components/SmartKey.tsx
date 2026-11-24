@@ -1,13 +1,17 @@
 "use client";
 import { useMemo, useState } from "react";
-import { KeyRound, Lightbulb, ChevronDown, ChevronUp } from "lucide-react";
+import { KeyRound, Lightbulb, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import { parseKey, playabilityScore, suggestEasierKey, relatedKeys, transposeKey } from "@/lib/smartKey";
 import { transposeChord } from "@/lib/chordData";
+import { usePlusAccess } from "@/components/PlusGate";
 
 /**
  * SmartKey — ChordProof+ feature 6 (sem API paga)
  * Mostra o tom da cifra, avalia a dificuldade dos acordes e sugere
  * transposição + capo para facilitar. Tudo com teoria musical local.
+ *
+ * Sem Plus: resumo grátis (tom + dificuldade) e convite ao trial.
+ * Com Plus: sugestão de capo, "Try it" e os detalhes.
  */
 export default function SmartKey({
   keySig,
@@ -21,6 +25,7 @@ export default function SmartKey({
   currentTranspose: number;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const plus = usePlusAccess();
 
   const info = useMemo(() => (keySig ? parseKey(keySig) : null), [keySig]);
   const playability = useMemo(() => playabilityScore(chords), [chords]);
@@ -43,6 +48,34 @@ export default function SmartKey({
 
   const scoreColor = playability.score >= 70 ? "#34d399" : playability.score >= 40 ? "#f0b429" : "#e74c3c";
   const scoreLabel = playability.score >= 70 ? "Easy to play" : playability.score >= 40 ? "Moderate" : "Challenging";
+
+  // ---- Sem Plus: resumo grátis + convite ao trial ----
+  if (!plus.hasAccess) {
+    return (
+      <section className="bg-brand-card rounded-2xl p-6 border border-white/5" style={{ marginBottom: "24px" }}>
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <KeyRound size={22} className="text-brand-gold" /> Smart Key
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--c-gold-soft)] text-[var(--c-gold)]">+</span>
+          </h2>
+        </div>
+        <p className="text-sm text-brand-muted mt-3">
+          Original key: <strong className="text-white">{keySig}</strong> · Chord difficulty:{" "}
+          <strong style={{ color: scoreColor }}>{scoreLabel}</strong>{" "}
+          <span className="text-xs">({playability.score}/100)</span>
+        </p>
+        <p className="text-sm text-brand-muted mt-1">
+          Smart Key suggests easier chord shapes and the best capo position for any key.
+        </p>
+        <a
+          href="/pricing?feature=SmartKey"
+          className="mt-4 inline-flex items-center gap-2 bg-[var(--c-cta-bg)] text-[var(--c-cta-text)] px-5 py-2.5 rounded-full font-bold text-sm hover:scale-105 transition"
+        >
+          <Sparkles size={15} /> Unlock with ChordProof+
+        </a>
+      </section>
+    );
+  }
 
   return (
     <section className="bg-brand-card rounded-2xl p-6 border border-white/5" style={{ marginBottom: "24px" }}>
