@@ -201,7 +201,10 @@ export default function FluidBackground({
     <canvas
       ref={canvasRef}
       aria-hidden
-      className={`pointer-events-none absolute inset-0 h-full w-full ${className}`}
+      // -z-10 é obrigatório: sem ele, um elemento posicionado (absolute) pinta
+      // ACIMA do texto estático do hero e o fundo cobriria o conteúdo.
+      // O isolamento do contexto vem do "isolate" na section do hero.
+      className={`pointer-events-none absolute inset-0 -z-10 h-full w-full ${className}`}
       style={{
         // desvanece no rodapé do hero: o fundo encontra o conteúdo sem linha dura
         WebkitMaskImage:
