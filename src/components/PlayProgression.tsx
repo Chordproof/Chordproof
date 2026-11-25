@@ -9,6 +9,7 @@ import {
   bassMidiForChord,
 } from "@/lib/audio";
 import { CHORD_SHAPES } from "@/lib/chordData";
+import { isChordToken, TAB_LINE_RE } from "@/lib/tabRenderer";
 
 /**
  * PlayProgression — "Ouvir a progressão".
@@ -40,17 +41,33 @@ export default function PlayProgression({
   const [chordList, setChordList] = useState<string[]>([]);
   const timersRef = useRef<number[]>([]);
 
+  /**
+   * Extrai os acordes na MESMA REGRA do renderizador do site.
+   *
+   * A primeira versão só aceitava [Am] entre colchetes — e as cifras reais
+   * usam linha de acorde solta ("Em    C    G    D"). Resultado: lista vazia
+   * e o bloco "Hear the progression" nunca aparecia. Bug pego no Billie Jean,
+   * que tem acordes na cifra e devolvia zero.
+   */
   useEffect(() => {
     if (!content) {
       setChordList([]);
       return;
     }
     const found: string[] = [];
-    const re = /\[([A-G][#b]?(?:m|maj|dim|aug|sus|add|M)?\d*(?:\/[A-G][#b]?)?)\]/g;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(content))) {
-      const c = m[1];
-      if (found[found.length - 1] !== c) found.push(c);
+    for (const raw of content.split("\n")) {
+      const line = raw.trim();
+      if (!line) continue;
+      if (TAB_LINE_RE.test(line)) continue;
+
+      for (const token of line.split(/\s+/)) {
+        // aceita tanto [Am] quanto Am
+        const clean = token.replace(/^\[|\]$/g, "").replace(/[,;]$/, "");
+        if (!clean) continue;
+        if (isChordToken(clean) && found[found.length - 1] !== clean) {
+          found.push(clean);
+        }
+      }
       if (found.length >= MAX_CHORDS) break;
     }
     setChordList(found);
