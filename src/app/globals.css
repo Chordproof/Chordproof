@@ -8,17 +8,20 @@
   --background-start-rgb: 8, 8, 8;
   --background-end-rgb: 5, 5, 5;
 
-  /* Tokens Apple dark refinado */
   --c-bg: #1d1d1f;
-  --c-bg-elevated: #2c2c2e;
-  --c-bg-secondary: #161617;
+  --c-bg-elevated: rgba(44, 44, 46, 0.78);
+  --c-bg-secondary: rgba(22, 22, 23, 0.62);
   --c-text: #f5f5f7;
   --c-text-secondary: #a1a1a6;
   --c-text-tertiary: #6e6e73;
   --c-gold: #f0b429;
   --c-gold-soft: rgba(240, 180, 41, 0.14);
   --c-hairline: rgba(255, 255, 255, 0.08);
-  --c-card: #2c2c2e;
+  /* Cards FLUTUANDO: translucidos sobre o fundo fluido. 72% mantem o
+     contraste do texto monoespaçado alto; o blur faz o vidro. */
+  --c-card: rgba(44, 44, 46, 0.72);
+  --c-glass-blur: 14px;
+  --c-float-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
   --c-muted: #a1a1a6;
   --c-cta-bg: #f0b429;
   --c-cta-text: #1d1d1f;
@@ -137,6 +140,14 @@ body {
   animation: chord-in 520ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
   animation-delay: calc(var(--i, 0) * 70ms + 260ms);
 }
+/* Linha de tablatura: PRECISA ser block. Com inline-block (herdado de
+   .chord-in) as seis linhas do riff ficavam lado a lado numa faixa de 13px. */
+.tab-line-in {
+  display: block;
+  opacity: 0;
+  animation: chord-in 520ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: calc(var(--i, 0) * 70ms + 260ms);
+}
 
 /* Faixa de artistas: deslizamento contínuo (duas cópias lado a lado). */
 @keyframes marquee {
@@ -188,10 +199,8 @@ body {
 
 /* ==================================================================
    RITMO DE TOM ENTRE SEÇÕES
-   O site é preto/dourado uniforme e as seções se achatavam umas nas
-   outras. Em vez de tingir cada bloco de uma cor (virava carnaval),
-   os blocos BAIXOS ganham uma micro-variação de luminosidade. Tudo
-   por token: claro e escuro respondem sozinhos.
+   Os blocos BAIXOS ganham micro-variação de luminosidade em vez de
+   tingir cada seção (que virava carnaval). Tudo por token.
    ================================================================== */
 .section-alt {
   background: var(--c-bg-secondary);
@@ -206,10 +215,36 @@ body {
   padding-bottom: 10px;
 }
 
+/* ==================================================================
+   CARDS FLUTUANDO (vidro sobre o fundo fluido)
+   O VIDRO fica na moldura, nunca atras do texto da cifra: a superficie
+   mantem 72% de opacidade, garantindo contraste para o monoespaçado.
+   ================================================================== */
+.glass-card {
+  background: var(--c-card);
+  -webkit-backdrop-filter: blur(var(--c-glass-blur, 14px)) saturate(1.15);
+          backdrop-filter: blur(var(--c-glass-blur, 14px)) saturate(1.15);
+  border: 1px solid var(--c-hairline);
+  box-shadow: var(--c-float-shadow, 0 18px 50px rgba(0, 0, 0, 0.45));
+}
+
+/* Elevacao no hover: so transform, nunca layout. */
+.glass-lift {
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 320ms cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 320ms ease;
+}
+.glass-lift:hover {
+  transform: translate3d(0, -3px, 0);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  border-color: rgba(240, 180, 41, 0.28);
+}
+
 /* Respeito absoluto a quem pediu menos movimento. */
 @media (prefers-reduced-motion: reduce) {
   .reveal,
-  .chord-in {
+  .chord-in,
+  .tab-line-in {
     opacity: 1 !important;
     transform: none !important;
     transition: none !important;
@@ -221,5 +256,8 @@ body {
   }
   .gold-seal-anim {
     animation: none !important;
+  }
+  .glass-lift:hover {
+    transform: none;
   }
 }
