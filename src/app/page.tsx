@@ -166,7 +166,9 @@ export default async function HomePage() {
   const statCards = [
     { icon: Music, value: formatNumber(totalTabs), label: "Verified tabs" },
     { icon: Users, value: formatNumber(totalArtists), label: "Artists" },
-    { icon: BadgeCheck, value: `${verifiedPct}%`, label: "Checked by hand" },
+    // "Checked by hand" não cabia em 390px: virava "CHECKED BY H", cortado.
+    // O rótulo curto cabe em qualquer tela e diz a mesma coisa.
+    { icon: BadgeCheck, value: `${verifiedPct}%`, label: "Verified" },
   ];
 
   return (
@@ -238,7 +240,7 @@ export default async function HomePage() {
                   <div key={label} className="min-w-0">
                     <dt className="flex items-center gap-1.5 text-[10px] sm:text-[11px] uppercase tracking-wide text-[var(--c-text-tertiary)] leading-tight">
                       <Icon size={12} className="text-brand-gold shrink-0" />
-                      <span className="truncate">{label}</span>
+                      <span className="leading-tight">{label}</span>
                     </dt>
                     <dd className="text-xl sm:text-2xl font-bold mt-1 tabular-nums">
                       {value}
