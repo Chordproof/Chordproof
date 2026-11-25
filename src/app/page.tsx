@@ -25,12 +25,16 @@ export const dynamic = "force-dynamic";
  *
  * Regras que esta página segue:
  *  - Nenhum número fixo no código: tabs, artistas, gêneros e atividade são
- *    contados a partir dos registros lidos (não de RPC, que chegou a servir
- *    corpo antigo por cache do PostgREST).
+ *    contados a partir dos registros lidos.
  *  - `tabs.views` serve só como ORDEM. É dado de seed (quase toda linha marca
  *    450.000), então nunca é exibido como número.
  *  - Artista sem foto real NÃO entra na faixa.
  *  - Prova social é atividade medida (created_at), não depoimento inventado.
+ *
+ * CILADA QUE JÁ CUSTOU UM DEPLOY ERRADO: o PostgREST devolve no máximo 1000
+ * linhas por requisição. Uma leitura única trazia 1000 de 1.166 e a home
+ * anunciava "1,000 tabs" e "Rock 368" — número errado com cara de verdade.
+ * Por isso a leitura é paginada com .range() até o fim.
  */
 
 const difficultyColor: Record<string, string> = {
@@ -66,15 +70,34 @@ type TabRow = {
   key_sig: string | null;
 };
 
+type Row = {
+  artist: string;
+  slug_artist: string;
+  artist_image_url: string | null;
+  views: number | null;
+  genre: string | null;
+  created_at: string | null;
+  is_verified: boolean;
+};
+
 type GenreStat = { name: string; count: number };
 
 export default async function HomePage() {
-  // Uma leitura só, com os campos que a página precisa.
-  const { data: allRows } = await supabase
-    .from("tabs")
-    .select("artist, slug_artist, artist_image_url, views, genre, created_at, is_verified");
+  const PAGE = 1000;
+  let rows: Row[] = [];
 
-  const rows = allRows ?? [];
+  for (let from = 0; from < 100000; from += PAGE) {
+    const { data } = await supabase
+      .from("tabs")
+      .select("artist, slug_artist, artist_image_url, views, genre, created_at, is_verified")
+      .order("id", { ascending: true })
+      .range(from, from + PAGE - 1);
+
+    if (!data || data.length === 0) break;
+    rows = rows.concat(data as Row[]);
+    if (data.length < PAGE) break;
+  }
+
   const totalTabs = rows.length;
   const totalVerified = rows.filter((r) => r.is_verified).length;
 
@@ -135,7 +158,6 @@ export default async function HomePage() {
 
   const totalArtists = map.size;
   const allArtists = Array.from(map.values()).sort((a, b) => b.views - a.views);
-  // Curadoria: quem tem foto real entra na faixa; sem foto, só preenche se faltar.
   const withPhoto = allArtists.filter((a) => a.image);
   const marqueeArtists = (
     withPhoto.length >= 8 ? withPhoto : [...withPhoto, ...allArtists.filter((a) => !a.image)]
