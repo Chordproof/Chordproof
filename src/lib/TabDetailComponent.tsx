@@ -201,7 +201,12 @@ export default function TabDetailComponent({
           )}
         </div>
       </div>
-      <div style={{display:"flex",gap:"24px",alignItems:"flex-start",flexDirection:"column"}} className="md:flex-row md:items-start">
+      {/* flexDirection="column" no style INLINE vencia a classe md:flex-row do
+          Tailwind (inline > classe): o layout ficava em UMA coluna em qualquer
+          largura e o bloco do video caia depois da cifra inteira, ate no
+          desktop. Agora a direcao vem das classes: coluna no mobile, duas
+          colunas a partir de md. */}
+      <div style={{display:"flex",gap:"24px",alignItems:"flex-start"}} className="flex-col md:flex-row md:items-start">
         <div style={{flex:"3 1 0%",minWidth:"0",width:"100%"}} className="order-2 md:order-1 md:w-auto">
           <div id="tab-content" className="bg-brand-card rounded-2xl p-8 border border-[var(--c-hairline)]" style={{marginBottom:"24px"}}>
             <div style={{fontFamily:"monospace",fontSize:"1rem",lineHeight:"1.6"}}>{renderContent(content, showTablature, transpose, setActiveChord, theme)}</div>
