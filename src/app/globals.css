@@ -186,6 +186,26 @@ body {
   pointer-events: none;
 }
 
+/* ==================================================================
+   RITMO DE TOM ENTRE SEÇÕES
+   O site é preto/dourado uniforme e as seções se achatavam umas nas
+   outras. Em vez de tingir cada bloco de uma cor (virava carnaval),
+   os blocos BAIXOS ganham uma micro-variação de luminosidade. Tudo
+   por token: claro e escuro respondem sozinhos.
+   ================================================================== */
+.section-alt {
+  background: var(--c-bg-secondary);
+}
+
+/* Fio dourado curto sob um título, para marcar o começo de um bloco. */
+.gold-underline {
+  background-image: linear-gradient(90deg, var(--c-gold), transparent 70%);
+  background-repeat: no-repeat;
+  background-size: 56px 2px;
+  background-position: 0 100%;
+  padding-bottom: 10px;
+}
+
 /* Respeito absoluto a quem pediu menos movimento. */
 @media (prefers-reduced-motion: reduce) {
   .reveal,
