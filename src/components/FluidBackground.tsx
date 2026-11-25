@@ -8,25 +8,27 @@ import { FLUID_VERT, FLUID_FRAG } from "@/shaders/fluid";
  *
  * POR QUE SEM THREE
  * O efeito é UM quad de tela cheia com um fragment shader. Para isso o three
- * custa ~127 KB gzip; escrevendo o WebGL direto, são ~4 KB. Menos bytes, menos
- * superfície para quebrar, nenhuma dependência nova no package.json.
+ * custa ~127 KB gzip; escrevendo o WebGL direto, são ~4 KB.
  *
- * PERFORMANCE (as regras que importam):
+ * PERFORMANCE:
  *  - Renderiza em ESCALA REDUZIDA (55% dos pixels CSS) e o CSS estica. Um
- *    gradiente suave não precisa de 1 pixel por pixel — corta ~4x o fill-rate
- *    sem diferença perceptível. DPR não entra na conta: não acrescenta nada.
- *  - Loop para quando a aba está oculta (document.hidden) e quando o canvas
- *    sai da viewport (IntersectionObserver).
- *  - Não monta de jeito nenhum em: telas < 768px, prefers-reduced-motion, ou
- *    sem WebGL2 — nesses casos a página fica exatamente como estava.
+ *    gradiente suave não precisa de 1 pixel por pixel — corta ~4x o fill-rate.
+ *  - Loop para quando a aba está oculta e quando o canvas sai da viewport.
+ *  - Não monta em: telas < 768px, prefers-reduced-motion, ou sem WebGL2.
  *
  * ACESSIBILIDADE: o canvas é aria-hidden e pointer-events: none.
  */
 
 export default function FluidBackground({
   className = "",
+  fixed = false,
+  masked = false,
 }: {
   className?: string;
+  /** fixed: fundo global de página inteira. false: preenche o elemento pai. */
+  fixed?: boolean;
+  /** masked: desvanece no rodapé (só faz sentido dentro de um bloco). */
+  masked?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [enabled, setEnabled] = useState(false);
@@ -72,13 +74,11 @@ export default function FluidBackground({
     });
     if (!gl) return;
 
-    // ---------------------------------------------------------------- shader
     const compile = (type: number, src: string) => {
       const sh = gl.createShader(type)!;
       gl.shaderSource(sh, src);
       gl.compileShader(sh);
       if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
-        // não estoura a página: só desiste do fundo
         console.warn("[fluid] shader", gl.getShaderInfoLog(sh));
         gl.deleteShader(sh);
         return null;
@@ -100,7 +100,6 @@ export default function FluidBackground({
     }
     gl.useProgram(prog);
 
-    // ------------------------------------------------------- quad fullscreen
     const buf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
     gl.bufferData(
@@ -118,7 +117,6 @@ export default function FluidBackground({
     const uAudio = gl.getUniformLocation(prog, "uAudioFrequency");
     const uRes = gl.getUniformLocation(prog, "uResolution");
 
-    // ------------------------------------------------------------- estado
     const RENDER_SCALE = 0.55;
 
     const resize = () => {
@@ -132,7 +130,6 @@ export default function FluidBackground({
       }
     };
 
-    // mouse suavizado (lerp): ondulação sem solavanco
     const mouse = { x: 0.5, y: 0.5 };
     const mouseTarget = { x: 0.5, y: 0.5 };
     const onMove = (e: PointerEvent) => {
@@ -142,7 +139,6 @@ export default function FluidBackground({
       mouseTarget.y = 1 - (e.clientY - r.top) / r.height;
     };
 
-    // rolagem: velocidade normalizada, com decaimento
     let scrollVel = 0;
     let lastScroll = window.scrollY;
     const onScroll = () => {
@@ -163,7 +159,6 @@ export default function FluidBackground({
 
     const frame = (t: number) => {
       raf = requestAnimationFrame(frame);
-      // pausa real: fora da viewport ou aba oculta, não desenha
       if (!visible || document.hidden) return;
 
       resize();
@@ -201,17 +196,22 @@ export default function FluidBackground({
     <canvas
       ref={canvasRef}
       aria-hidden
-      // -z-10 é obrigatório: sem ele, um elemento posicionado (absolute) pinta
-      // ACIMA do texto estático do hero e o fundo cobriria o conteúdo.
-      // O isolamento do contexto vem do "isolate" na section do hero.
-      className={`pointer-events-none absolute inset-0 -z-10 h-full w-full ${className}`}
-      style={{
-        // desvanece no rodapé do hero: o fundo encontra o conteúdo sem linha dura
-        WebkitMaskImage:
-          "linear-gradient(180deg, rgba(0,0,0,.95) 0%, rgba(0,0,0,.85) 55%, transparent 100%)",
-        maskImage:
-          "linear-gradient(180deg, rgba(0,0,0,.95) 0%, rgba(0,0,0,.85) 55%, transparent 100%)",
-      }}
+      // -z-10 é obrigatório: sem ele, um elemento posicionado pinta ACIMA do
+      // texto estático e o fundo cobriria o conteúdo.
+      className={`pointer-events-none ${fixed ? "fixed" : "absolute"} inset-0 -z-10 h-full w-full ${className}`}
+      style={
+        {
+          ...(masked
+            ? {
+                WebkitMaskImage:
+                  "linear-gradient(180deg, rgba(0,0,0,.95) 0%, rgba(0,0,0,.85) 55%, transparent 100%)",
+                maskImage:
+                  "linear-gradient(180deg, rgba(0,0,0,.95) 0%, rgba(0,0,0,.85) 55%, transparent 100%)",
+              }
+            : {}),
+          opacity: fixed ? 0.55 : 1,
+        } as React.CSSProperties
+      }
     />
   );
 }
