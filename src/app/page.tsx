@@ -24,14 +24,13 @@ export const dynamic = "force-dynamic";
  * HOME — tudo o que aparece aqui sai do banco.
  *
  * Regras que esta página segue:
- *  - Nenhum número fixo no código: tabs, artistas, gêneros e atividade vêm da
- *    RPC get_home_stats.
- *  - `tabs.views` serve só como ORDEM. Ele é dado de seed (quase toda linha
- *    marca 450.000), então nunca é exibido como número.
- *  - Artista sem foto real NÃO entra na faixa: antes o componente buscava no
- *    iTunes/Wikipedia no navegador e caía em avatares genéricos de terceiros.
- *  - Prova social é atividade medida (cifras novas em created_at), não
- *    depoimento inventado.
+ *  - Nenhum número fixo no código: tabs, artistas, gêneros e atividade são
+ *    contados a partir dos registros lidos (não de RPC, que chegou a servir
+ *    corpo antigo por cache do PostgREST).
+ *  - `tabs.views` serve só como ORDEM. É dado de seed (quase toda linha marca
+ *    450.000), então nunca é exibido como número.
+ *  - Artista sem foto real NÃO entra na faixa.
+ *  - Prova social é atividade medida (created_at), não depoimento inventado.
  */
 
 const difficultyColor: Record<string, string> = {
@@ -70,13 +69,33 @@ type TabRow = {
 type GenreStat = { name: string; count: number };
 
 export default async function HomePage() {
-  const { data: statsRaw } = await supabase.rpc("get_home_stats");
-  const stats = (typeof statsRaw === "string" ? JSON.parse(statsRaw) : statsRaw) ?? {};
-  const totalTabs: number = stats.tabs ?? 0;
-  const totalArtists: number = stats.artists ?? 0;
-  const totalVerified: number = stats.verified ?? 0;
-  const addedThisMonth: number = stats.added_this_month ?? 0;
-  const genres: GenreStat[] = Array.isArray(stats.genres) ? stats.genres : [];
+  // Uma leitura só, com os campos que a página precisa.
+  const { data: allRows } = await supabase
+    .from("tabs")
+    .select("artist, slug_artist, artist_image_url, views, genre, created_at, is_verified");
+
+  const rows = allRows ?? [];
+  const totalTabs = rows.length;
+  const totalVerified = rows.filter((r) => r.is_verified).length;
+
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const addedThisMonth = rows.filter(
+    (r) => r.created_at && new Date(r.created_at) >= monthStart
+  ).length;
+
+  // Gêneros: contagem real, do mais cheio para o mais vazio.
+  const genreMap = new Map<string, number>();
+  for (const r of rows) {
+    const g = (r.genre || "").trim();
+    if (g) genreMap.set(g, (genreMap.get(g) ?? 0) + 1);
+  }
+  const genres: GenreStat[] = Array.from(genreMap.entries())
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
+
   const verifiedPct = totalTabs > 0 ? Math.round((totalVerified / totalTabs) * 100) : 0;
   const monthName = MONTHS[new Date().getMonth()];
 
@@ -92,15 +111,11 @@ export default async function HomePage() {
   const trending = list.filter((t) => t !== ofTheDay).slice(0, 6);
 
   // Artistas: contagem real de cifras e SÓ com foto no banco.
-  const { data: artistRows } = await supabase
-    .from("tabs")
-    .select("artist, slug_artist, artist_image_url, views");
-
   const map = new Map<
     string,
     { name: string; slug: string; image: string | null; count: number; views: number }
   >();
-  for (const t of artistRows ?? []) {
+  for (const t of rows) {
     const cur = map.get(t.slug_artist);
     const img = t.artist_image_url || null;
     if (cur) {
@@ -118,6 +133,7 @@ export default async function HomePage() {
     }
   }
 
+  const totalArtists = map.size;
   const allArtists = Array.from(map.values()).sort((a, b) => b.views - a.views);
   // Curadoria: quem tem foto real entra na faixa; sem foto, só preenche se faltar.
   const withPhoto = allArtists.filter((a) => a.image);
