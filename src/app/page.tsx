@@ -282,10 +282,13 @@ export default async function HomePage() {
                 >
                   <Flame size={11} /> Tab of the day
                 </span>
-                <h2 className="text-2xl md:text-3xl font-bold mt-2 truncate">
+                {/* Sem truncate: no card em destaque, cortar o nome da música
+                    esconde justamente o que o card existe para mostrar.
+                    Em até duas linhas ele cabe inteiro no mobile. */}
+                <h2 className="text-2xl md:text-3xl font-bold mt-2 leading-tight line-clamp-2">
                   {ofTheDay.song}
                 </h2>
-                <p className="text-[var(--c-text-secondary)] truncate">
+                <p className="text-[var(--c-text-secondary)] line-clamp-1">
                   {ofTheDay.artist}
                 </p>
                 <div className="flex flex-wrap gap-2 mt-3">
