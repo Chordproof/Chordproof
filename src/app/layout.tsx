@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import JsonLd from "@/components/JsonLd";
 import RegisterSW from "@/components/RegisterSW";
+import FluidBackground from "@/components/FluidBackground";
 import { SITE_URL } from "@/lib/seo";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -63,7 +64,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={inter.className}>
         <RegisterSW />
         <Providers>
-          <div className="flex flex-col min-h-screen">
+          <div className="relative isolate flex flex-col min-h-screen">
+            {/* Fundo fluido GLOBAL: cobre a pagina toda, atras de todo o
+                conteudo. Nao monta em mobile, com prefers-reduced-motion ou
+                sem WebGL2 — nesses casos o gradiente do body continua. */}
+            <FluidBackground fixed />
             <Navbar />
             <main className="flex-grow w-full max-w-6xl mx-auto px-4 py-8">
               {children}
