@@ -14,27 +14,26 @@ import { Zap, Drum, MoreHorizontal } from "lucide-react";
 /**
  * TabActionBar — a barra de ações da cifra.
  *
- * POR QUE EXISTE: antes essa barra vivia dentro do TabDetailComponent e, medida
- * em produção a 1280px, gastava 122px de altura em DUAS linhas — o seletor de
- * instrumento caía sozinho na segunda linha e nove controles tinham o mesmo
- * peso visual (Trainer, que é recurso Plus, igual a Tablature, que é o mais
- * usado na leitura).
- *
- * DESENHO NOVO: uma linha, com hierarquia.
- *   esquerda  → Transpose (âncora), depois os controles de leitura
- *   direita   → instrumento e o menu "More"
- *   Aviso do Easy Mode ganha faixa própria embaixo, em vez de empurrar nada.
+ * DESENHO: uma linha, com hierarquia. Transpose ancora à esquerda, os
+ * controles de leitura no meio, instrumento e menu "More" à direita. O aviso
+ * do Easy Mode ganha faixa própria embaixo, em vez de empurrar controles.
  *
  * CELULAR (≤767px): os nove controles continuam TODOS visíveis, em ícone
  * (medido: 375px de conteúdo em 386px úteis). O rótulo escrito fica no
  * `title`/`aria-label`, então continua acessível e com tooltip.
  *
  * Nota de cor: só `Tablature ON` e `Easy ON` recebem dourado, porque são os
- * únicos com estado. O resto é neutro — antes o CTA escuro do Tablature
- * competia com cinco botões cinza idênticos.
+ * únicos com estado. O resto é neutro.
  *
  * O CSS vive aqui dentro (styled-jsx global) porque esta barra é a única
  * consumidora; assim não é preciso republicar o globals.css inteiro.
+ *
+ * ARMADILHA QUE CUSTOU UM BUG EM PRODUÇÃO: `.tbar-in` tinha `overflow-x: auto`
+ * para "caber" no celular. Como os menus do instrumento e do "⋯" são
+ * `position: absolute` DENTRO da barra, o overflow RECORTAVA o dropdown: ele
+ * abria, mas invisível. O usuário via os dois botões "não fazer nada", e
+ * "Download PDF"/"Print" nunca apareciam porque moram dentro do menu.
+ * REGRA: nunca ponha `overflow` num container que abriga menu absoluto.
  */
 export default function TabActionBar({
   transpose,
@@ -97,7 +96,7 @@ export default function TabActionBar({
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement | null>(null);
 
-  // fecha o menu com Esc ou clique fora (antes ele só fechava clicando no botão)
+  // fecha o menu com Esc ou clique fora
   useEffect(() => {
     if (!moreOpen) return;
     const onDown = (e: MouseEvent) => {
@@ -118,8 +117,7 @@ export default function TabActionBar({
 /* ==================================================================
    ACTION BAR DA CIFRA (tbar)
    Uma linha no desktop; no celular todos os controles continuam
-   visiveis, em icone. Antes a barra quebrava em 2 linhas (122px) e o
-   seletor de instrumento caia sozinho na segunda linha.
+   visiveis, em icone.
    ================================================================== */
 .tbar {
   background: var(--c-card);
@@ -128,6 +126,8 @@ export default function TabActionBar({
   border: 1px solid var(--c-hairline);
   border-radius: 14px;
   box-shadow: var(--c-shadow);
+  /* os menus dropdown escapam para fora da barra */
+  overflow: visible;
 }
 .tbar-in {
   display: flex;
@@ -135,10 +135,12 @@ export default function TabActionBar({
   gap: 3px;
   padding: 8px 9px;
   flex-wrap: nowrap;
-  overflow-x: auto;
-  scrollbar-width: none;
+  /* VISIVEL: os dropdowns de instrumento e de menu sao position:absolute
+     dentro daqui. Com overflow (auto/hidden) o navegador RECORTA o menu —
+     ele abre e nao aparece. Se faltar espaco em tela estreita, o aperto vem
+     do @media abaixo, nunca de rolagem. */
+  overflow: visible;
 }
-.tbar-in::-webkit-scrollbar { display: none; }
 
 .tgroup {
   display: flex;
@@ -242,6 +244,18 @@ export default function TabActionBar({
   .tbar-in .ticon { width: 30px; flex: 0 0 30px; }
   .tbar-in .tinst { padding: 0 5px; }
   .tbar-msg { padding: 0 11px 9px; }
+}
+
+/* TELAS MUITO ESTREITAS (<=400px): aperta mais um pouco em vez de rolar.
+   Com 390px medidos os 9 controles cabem; aqui sobra folga para navegadores
+   que descontam barra de rolagem ou usam fonte maior. */
+@media (max-width: 400px) {
+  .tbar-in { gap: 1px; padding: 7px 5px; }
+  .tbar-in .tbtn { padding: 0 6px; }
+  .tbar-in .tstep { width: 23px; height: 23px; flex: 0 0 23px; }
+  .tbar-in .tval { min-width: 20px; }
+  .tbar-in .tinst { padding: 0 3px; }
+  .tbar-in .ticon { width: 28px; flex: 0 0 28px; }
 }
       `}</style>
 
