@@ -1,25 +1,25 @@
 /**
- * audio.ts — síntese de violão com Web Audio, sem arquivo de som.
+ * audio.ts — sintese de violao com Web Audio, sem arquivo de som.
  *
- * POR QUE SÍNTESE E NÃO MP3/OGG
- *  - Zero download: 1.166 páginas × arquivo de acorde = peso de CDN e licença
+ * POR QUE SINTESE E NAO MP3/OGG
+ *  - Zero download: 1.166 paginas x arquivo de acorde = peso de CDN e licenca
  *  - Qualquer acorde, de qualquer tom, inclusive transposto (+7, -3...)
- *  - Sem direito autoral: o som é gerado, não é gravação
+ *  - Sem direito autoral: o som e gerado, nao e gravacao
  *
- * TÉCNICA: Karplus-Strong (1983), o método clássico de corda dedilhada.
- * Um buffer curto de ruído realimentado por um filtro passa-baixa com atraso
- * de 1 período: o ruído vira "corda" e decai como corda de verdade.
+ * TECNICA: Karplus-Strong (1983), o metodo classico de corda dedilhada.
+ * Um buffer curto de ruido realimentado por um filtro passa-baixa com atraso
+ * de 1 periodo: o ruido vira "corda" e decai como corda de verdade.
  *
  * CUSTO: ~2ms para gerar um acorde de 6 cordas.
  */
 
-// MIDI das cordas soltas em afinação padrão, da 6ª (grave) à 1ª (aguda):
+// MIDI das cordas soltas em afinacao padrao, da 6a (grave) a 1a (aguda):
 // E2 A2 D3 G3 B3 E4 -> 40, 45, 50, 55, 59, 64
 const OPEN_STRINGS_MIDI = [40, 45, 50, 55, 59, 64];
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-/** MIDI -> frequência em Hz (A4 = 440) */
+/** MIDI -> frequencia em Hz (A4 = 440) */
 export function midiToFreq(midi: number): number {
   return 440 * Math.pow(2, (midi - 69) / 12);
 }
@@ -40,8 +40,8 @@ export function chordMidiFromShape(shape: number[]): number[] {
 
 /**
  * Nome de acorde -> MIDI, sem precisar de shape.
- * Basta a fundamental e a qualidade; o que o parser não entender cai em
- * tríade maior (é melhor soar do que não soar).
+ * Basta a fundamental e a qualidade; o que o parser nao entender cai em
+ * triade maior (e melhor soar do que nao soar).
  */
 export function chordMidiFromName(name: string, bassMidi?: number): number[] {
   const clean = name.trim();
@@ -83,7 +83,7 @@ export function chordMidiFromName(name: string, bassMidi?: number): number[] {
     intervals = [0, 4, 7];
   }
 
-  // região do violão: fundamental C3..B3, sem "guincho" nem "lama"
+  // regiao do violao: fundamental C3..B3, sem "guincho" nem "lama"
   let base = 48 + root;
   if (base < 45) base += 12;
 
@@ -94,8 +94,8 @@ export function chordMidiFromName(name: string, bassMidi?: number): number[] {
     all = [bassMidi, ...notes];
   }
 
-  // Completa para 5 cordas como um violão: cada nota UMA OITAVA ACIMA.
-  // Repetir a mesma oitava gera nota dobrada — soa flauta, não corda.
+  // Completa para 5 cordas como um violao: cada nota UMA OITAVA ACIMA.
+  // Repetir a mesma oitava gera nota dobrada — soa flauta, nao corda.
   const copy = [...all];
   let k = 0;
   while (all.length < 5 && k < copy.length) {
@@ -117,7 +117,7 @@ function pluckString(
   const total = Math.floor(sampleRate * duration);
   const buf = new Float32Array(total);
 
-  // excitação: ruído curto (a palheta/dedo tocando a corda)
+  // excitacao: ruido curto (a palheta/dedo tocando a corda)
   const delay = new Float32Array(N);
   for (let i = 0; i < N; i++) delay[i] = Math.random() * 2 - 1;
   let prev = 0;
@@ -132,7 +132,7 @@ function pluckString(
   for (let i = 0; i < total; i++) {
     const cur = delay[idx];
     buf[i] = cur;
-    // passa-baixa: harmônicos agudos morrem antes (corda de verdade)
+    // passa-baixa: harmonicos agudos morrem antes (corda de verdade)
     const filtered = (cur + last) * 0.5 * damping;
     last = cur;
     delay[idx] = filtered;
@@ -143,27 +143,43 @@ function pluckString(
 
 /**
  * Buffer de um acorde inteiro.
- * As cordas não entram juntas: ~11ms entre elas é o que faz soar dedilhado
- * em vez de órgão eletrônico.
+ * As cordas nao entram juntas: ~11ms entre elas e o que faz soar dedilhado
+ * em vez de orgao eletronico.
  */
 export function renderChordBuffer(
   ctx: BaseAudioContext,
   midis: number[],
-  opts: { duration?: number; strumMs?: number; volume?: number } = {}
+  opts: {
+    duration?: number;
+    strumMs?: number;
+    volume?: number;
+    /**
+     * Sentido da palhetada. Muda o som, e nao e cosmetico:
+     *  - "down" (para baixo) pega da 6a para a 1a corda, grave -> agudo,
+     *    e e a palhetada FORTE;
+     *  - "up" (para cima) pega da 1a para a 6a, agudo -> grave, e e a FRACA.
+     * Sem essa diferenca o padrao vira metronomo: "D-U-D-U" soa identico.
+     */
+    direction?: "down" | "up";
+  } = {}
 ): AudioBuffer {
   const duration = opts.duration ?? 2.6;
   const strumMs = opts.strumMs ?? 11;
-  const volume = opts.volume ?? 0.55;
+  const up = opts.direction === "up";
+  const volume = (opts.volume ?? 0.55) * (up ? 0.62 : 1);
   const sr = ctx.sampleRate;
   const total = Math.floor(sr * duration);
   const buffer = ctx.createBuffer(1, total, sr);
   const out = buffer.getChannelData(0);
 
-  midis.forEach((midi, i) => {
+  // para cima, a palheta atravessa as cordas na ordem inversa
+  const order = up ? [...midis].reverse() : midis;
+
+  order.forEach((midi, i) => {
     const freq = midiToFreq(midi);
     if (freq < 40 || freq > 4000) return;
 
-    const weight = 1 - i / (midis.length + 2); // graves soam mais
+    const weight = 1 - i / (order.length + 2); // graves soam mais
     const offset = Math.floor((sr * strumMs * i) / 1000);
     const s = pluckString(freq, sr, duration, 0.9955 - i * 0.0004);
     const gain = volume * weight * 0.5;
@@ -185,7 +201,7 @@ export function renderChordBuffer(
 
 /**
  * AudioEngine — um AudioContext para o site inteiro.
- * O contexto nasce "suspended": só um gesto do usuário libera o áudio.
+ * O contexto nasce "suspended": so um gesto do usuario libera o audio.
  */
 class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -240,13 +256,19 @@ class AudioEngine {
     if (this.master) this.master.gain.value = this.volume;
   }
 
-  playChord(midis: number[], key?: string): boolean {
+  playChord(
+    midis: number[],
+    key?: string,
+    opts?: { direction?: "down" | "up"; volume?: number }
+  ): boolean {
     if (!this.enabled || !this.ctx || !this.master || midis.length === 0) return false;
 
-    const cacheKey = key || midis.join(",");
+    const dir = opts?.direction ?? "down";
+    // a direcao entra na chave: para cima e outro buffer, nao o mesmo
+    const cacheKey = `${key || midis.join(",")}|${dir}`;
     let buf = this.cache.get(cacheKey);
     if (!buf) {
-      buf = renderChordBuffer(this.ctx, midis);
+      buf = renderChordBuffer(this.ctx, midis, { direction: dir, volume: opts?.volume });
       if (this.cache.size > 120) {
         const first = this.cache.keys().next().value;
         if (first) this.cache.delete(first);

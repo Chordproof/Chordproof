@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Play, Square, Music2 } from "lucide-react";
+import { Play, Square, Music2, ChevronDown } from "lucide-react";
 import {
   audioEngine,
   chordMidiFromName,
@@ -10,19 +10,30 @@ import {
 } from "@/lib/audio";
 import { CHORD_SHAPES } from "@/lib/chordData";
 import { isChordToken, TAB_LINE_RE } from "@/lib/tabRenderer";
+import {
+  STRUM_PATTERNS,
+  patternDisplay,
+  strumPatternForGenre,
+  type StrumPattern,
+} from "@/lib/strumPatterns";
 
 /**
- * PlayProgression — "Ouvir a progressão".
+ * PlayProgression — "Hear the progression", agora com BATIDA.
  *
- * Toca os acordes NA ORDEM EM QUE APARECEM na cifra, no andamento escolhido,
- * e destaca visualmente qual está soando (o destaque é o que liga o som ao
- * texto: a pessoa vê de onde vem).
+ * Antes: uma palhetada por acorde, um acorde por compasso. Mostrava os acordes,
+ * mas nao a musica — quem quer aprender precisa ouvir o ritmo da mao direita.
  *
- * Decisões:
- *  - Teto de 16 acordes: uma cifra de 60 acordes tocada inteira é um álbum.
- *  - Usa o desenho real de violão quando existe (vozes de verdade); senão
- *    calcula por nome (tríade).
- *  - `unlock()` roda no clique — é o gesto que libera o áudio no navegador.
+ * Agora: um acorde por compasso, tocado com o PADRAO DE BATIDA do genero da
+ * musica (lib/strumPatterns.ts), no BPM real da faixa (API do Deezer, com o BPM
+ * de referencia do padrao como reserva).
+ *
+ * Decisoes:
+ *  - Teto de 16 acordes: uma cifra de 60 acordes tocada inteira e um album.
+ *  - Palhetada para baixo e para cima soam DIFERENTE (ordem das cordas e
+ *    volume): sem isso "D-U-D-U" viraria metronomo.
+ *  - Reflexo visual: o acorde aceso e o que esta soando, e a regua de 16 pontos
+ *    mostra onde a mao esta dentro do compasso.
+ *  - unlock() roda no clique — e o gesto que libera o audio no navegador.
  */
 
 const MAX_CHORDS = 16;
@@ -31,22 +42,35 @@ const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", 
 export default function PlayProgression({
   content,
   transpose = 0,
+  genre = null,
+  artist = "",
+  song = "",
 }: {
   content: string;
   transpose?: number;
+  genre?: string | null;
+  artist?: string;
+  song?: string;
 }) {
   const [playing, setPlaying] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(-1);
+  const [currentStep, setCurrentStep] = useState(-1);
   const [bpm, setBpm] = useState(90);
+  const [bpmAuto, setBpmAuto] = useState(false);
   const [chordList, setChordList] = useState<string[]>([]);
+  const [patternId, setPatternId] = useState<string>(() => strumPatternForGenre(genre).id);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const timersRef = useRef<number[]>([]);
+
+  const pattern: StrumPattern =
+    STRUM_PATTERNS.find((p) => p.id === patternId) || STRUM_PATTERNS[0];
 
   /**
    * Extrai os acordes na MESMA REGRA do renderizador do site.
    *
-   * A primeira versão só aceitava [Am] entre colchetes — e as cifras reais
-   * usam linha de acorde solta ("Em    C    G    D"). Resultado: lista vazia
-   * e o bloco "Hear the progression" nunca aparecia. Bug pego no Billie Jean,
+   * A primeira versao so aceitava [Am] entre colchetes — e as cifras reais
+   * usam linha de acorde solta ("Em    C    G    D"). Resultado: lista vazia e
+   * o bloco "Hear the progression" nunca aparecia. Bug pego no Billie Jean,
    * que tem acordes na cifra e devolvia zero.
    */
   useEffect(() => {
@@ -61,7 +85,6 @@ export default function PlayProgression({
       if (TAB_LINE_RE.test(line)) continue;
 
       for (const token of line.split(/\s+/)) {
-        // aceita tanto [Am] quanto Am
         const clean = token.replace(/^\[|\]$/g, "").replace(/[,;]$/, "");
         if (!clean) continue;
         if (isChordToken(clean) && found[found.length - 1] !== clean) {
@@ -72,6 +95,37 @@ export default function PlayProgression({
     }
     setChordList(found);
   }, [content]);
+
+  // padrao e BPM acompanham a musica
+  useEffect(() => {
+    const p = strumPatternForGenre(genre);
+    setPatternId(p.id);
+    setBpm(p.typicalBpm);
+    setBpmAuto(false);
+  }, [genre]);
+
+  // BPM real da gravacao (mesma fonte que o Drum Machine usa)
+  useEffect(() => {
+    if (!artist || !song) return;
+    let active = true;
+    (async () => {
+      try {
+        const r = await fetch(
+          `/api/bpm?artist=${encodeURIComponent(artist)}&song=${encodeURIComponent(song)}`
+        );
+        const d = await r.json();
+        if (active && d?.bpm) {
+          setBpm(d.bpm);
+          setBpmAuto(true);
+        }
+      } catch {
+        /* fica o BPM de referencia do padrao */
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [artist, song]);
 
   const transposeChord = useCallback(
     (name: string) => {
@@ -105,6 +159,7 @@ export default function PlayProgression({
     timersRef.current = [];
     setPlaying(false);
     setCurrentIdx(-1);
+    setCurrentStep(-1);
   }, []);
 
   useEffect(() => () => stop(), [stop]);
@@ -120,24 +175,44 @@ export default function PlayProgression({
     if (!ctx) return;
 
     setPlaying(true);
-    const step = (60000 / bpm) * 4; // 1 compasso por acorde
+
+    // 1 compasso = 4 tempos; 1 compasso por acorde
+    const beatMs = 60000 / bpm;
+    const barMs = beatMs * 4;
+    const stepMs = barMs / 16; // 16 semicolcheias
 
     chordList.forEach((name, i) => {
-      timersRef.current.push(
-        window.setTimeout(() => audioEngine.playChord(midisFor(name), name), i * step)
-      );
-      timersRef.current.push(
-        window.setTimeout(() => setCurrentIdx(i), i * step)
-      );
+      const midis = midisFor(name);
+      const barStart = i * barMs;
+
+      // agenda cada palhetada do padrao
+      pattern.steps.forEach((s, step) => {
+        if (!s) return;
+        const at = barStart + step * stepMs;
+        timersRef.current.push(
+          window.setTimeout(() => {
+            audioEngine.playChord(midis, name, { direction: s === "U" ? "up" : "down" });
+          }, at)
+        );
+      });
+
+      // o acorde acende no comeco do compasso; a regua anda com o passo
+      timersRef.current.push(window.setTimeout(() => setCurrentIdx(i), barStart));
+      for (let step = 0; step < 16; step++) {
+        timersRef.current.push(
+          window.setTimeout(() => setCurrentStep(step), barStart + step * stepMs)
+        );
+      }
     });
 
     timersRef.current.push(
       window.setTimeout(() => {
         setPlaying(false);
         setCurrentIdx(-1);
-      }, chordList.length * step)
+        setCurrentStep(-1);
+      }, chordList.length * barMs)
     );
-  }, [playing, chordList, bpm, midisFor, stop]);
+  }, [playing, chordList, bpm, midisFor, pattern, stop]);
 
   if (chordList.length === 0) return null;
 
@@ -168,15 +243,98 @@ export default function PlayProgression({
           <input
             type="range"
             min={50}
-            max={160}
+            max={180}
             step={5}
             value={bpm}
-            onChange={(e) => setBpm(Number(e.target.value))}
+            onChange={(e) => {
+              setBpm(Number(e.target.value));
+              setBpmAuto(false);
+            }}
             className="w-16 accent-[var(--c-gold)]"
             aria-label="Tempo in BPM"
           />
-          <span className="tabular-nums w-8">{bpm}</span>
+          <span className="tabular-nums w-10" title={bpmAuto ? "Tempo read from the recording" : "Tempo estimated from the style"}>
+            {bpm}
+            {bpmAuto ? " ·" : ""}
+          </span>
         </label>
+      </div>
+
+      {/* seletor de ritmo: mostra o padrao e deixa trocar */}
+      <div style={{ position: "relative" }}>
+        <button
+          onClick={() => setPickerOpen((v) => !v)}
+          aria-expanded={pickerOpen}
+          className="w-full inline-flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs"
+          style={{
+            background: "var(--c-overlay-soft)",
+            border: "1px solid var(--c-hairline)",
+            color: "var(--c-text)",
+          }}
+        >
+          <span className="flex items-center gap-1.5 min-w-0">
+            <span
+              className="font-bold uppercase tracking-wider text-[9px]"
+              style={{ color: "var(--c-text-tertiary)" }}
+            >
+              Rhythm
+            </span>
+            <span className="font-bold truncate">{pattern.label}</span>
+          </span>
+          <span className="flex items-center gap-1.5 shrink-0">
+            <span className="tabular-nums tracking-widest" style={{ color: "var(--c-gold)", fontSize: 11 }}>
+              {patternDisplay(pattern)}
+            </span>
+            <ChevronDown size={12} style={{ opacity: 0.6 }} />
+          </span>
+        </button>
+
+        {pickerOpen && (
+          <div
+            style={{
+              position: "absolute",
+              top: "100%",
+              left: 0,
+              right: 0,
+              marginTop: 6,
+              background: "var(--c-bg-elevated)",
+              border: "1px solid var(--c-hairline)",
+              borderRadius: 12,
+              padding: 5,
+              zIndex: 60,
+              boxShadow: "var(--c-shadow)",
+              maxHeight: "min(60vh, 300px)",
+              overflowY: "auto",
+            }}
+          >
+            {STRUM_PATTERNS.map((p) => {
+              const active = p.id === patternId;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    setPatternId(p.id);
+                    setPickerOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-left"
+                  style={{
+                    background: active ? "var(--c-gold-soft)" : "transparent",
+                    color: active ? "var(--c-gold)" : "var(--c-text)",
+                    fontSize: 12,
+                    fontWeight: active ? 700 : 500,
+                    border: 0,
+                    cursor: "pointer",
+                  }}
+                >
+                  <span>{p.label}</span>
+                  <span className="tabular-nums tracking-widest" style={{ fontSize: 10, opacity: 0.75 }}>
+                    {patternDisplay(p)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-1.5">
@@ -204,8 +362,37 @@ export default function PlayProgression({
         })}
       </div>
 
+      {/* regua do compasso: 16 pontos, os altos sao palhetada */}
+      <div className="flex items-center gap-[3px]" aria-hidden>
+        {Array.from({ length: 16 }).map((_, step) => {
+          const isStroke = Boolean(pattern.steps[step]);
+          const isNow = playing && step === currentStep;
+          const done = playing && step < currentStep;
+          return (
+            <span
+              key={step}
+              style={{
+                flex: 1,
+                height: isStroke ? 6 : 3,
+                borderRadius: 3,
+                background: isNow
+                  ? "var(--c-gold)"
+                  : isStroke
+                  ? done
+                    ? "var(--c-gold-soft)"
+                    : "var(--c-overlay)"
+                  : "var(--c-hairline)",
+                opacity: isNow ? 1 : isStroke ? 0.9 : 0.5,
+                transition: "background 90ms linear",
+              }}
+            />
+          );
+        })}
+      </div>
+
       <p className="text-[11px] text-[var(--c-text-tertiary)]">
-        Tap any chord to hear it. Sound comes from your browser — nothing to download.
+        One bar per chord, played with the {pattern.label.toLowerCase()} strumming
+        pattern. Tap any chord to hear it. Sound comes from your browser — nothing to download.
       </p>
     </div>
   );
