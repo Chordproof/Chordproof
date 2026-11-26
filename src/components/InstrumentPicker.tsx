@@ -3,9 +3,12 @@ import { useEffect, useRef, useState } from "react";
 import { INSTRUMENTS, INSTRUMENT_ORDER, type InstrumentKey } from "@/lib/instruments";
 
 /**
- * InstrumentPicker — mockup Fase A: dropdown compacto.
+ * InstrumentPicker — dropdown compacto na action bar.
  * Um botão único mostra o instrumento atual; o menu abre a lista completa
  * com mini-descrição. Reduz ~40% da largura da toolbar.
+ *
+ * No celular o rótulo escrito some (classe .tlbl) e fica o ícone + seta;
+ * o nome continua no `title` e o rótulo no aria-label do botão.
  */
 export default function InstrumentPicker({
   current,
@@ -22,8 +25,13 @@ export default function InstrumentPicker({
     const onDoc = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
     document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      window.removeEventListener("keydown", onKey);
+    };
   }, [open]);
 
   const inst = INSTRUMENTS[current];
@@ -32,19 +40,21 @@ export default function InstrumentPicker({
     <div ref={ref} style={{ position: "relative" }}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)]"
+        className="tbtn tinst"
         title={inst.description}
+        aria-label={`Instrument: ${inst.label}`}
+        aria-expanded={open}
       >
-        <span>{inst.icon}</span>
-        <span>{inst.label}</span>
-        <span style={{ fontSize: "10px", opacity: 0.6 }}>▾</span>
+        <span aria-hidden>{inst.icon}</span>
+        <span className="tlbl">{inst.label}</span>
+        <span className="chev" aria-hidden>▾</span>
       </button>
       {open && (
         <div
           style={{
-            position: "absolute", top: "100%", left: 0, marginTop: "8px",
+            position: "absolute", top: "100%", right: 0, marginTop: "8px",
             background: "var(--c-bg-elevated)", border: "1px solid var(--c-hairline)", borderRadius: "12px",
-            padding: "6px", minWidth: "190px", zIndex: 60, boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+            padding: "6px", minWidth: "210px", zIndex: 60, boxShadow: "var(--c-shadow)",
           }}
         >
           {INSTRUMENT_ORDER.map((k) => {
