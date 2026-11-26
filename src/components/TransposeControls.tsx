@@ -7,35 +7,37 @@ interface TransposeControlsProps {
   onTranspose: (value: number) => void;
 }
 
+/**
+ * TransposeControls — grupo segmentado da action bar.
+ *
+ * Desenho: "−  0  +" dentro de uma pastilha, com o rótulo pequeno em cima do
+ * número (antes era "Transpose 0" numa linha longa, que empurrava os outros
+ * controles e fazia a barra quebrar em duas linhas).
+ */
 export default function TransposeControls({ transpose, onTranspose }: TransposeControlsProps) {
   const handle = (value: number) => {
     onTranspose(value);
     if (value !== 0) recordAction("TRANSPOSE");
   };
   return (
-    <div className="flex items-center gap-2">
-      <button
-        onClick={() => handle(transpose - 1)}
-        className="w-8 h-8 flex items-center justify-center bg-[var(--c-overlay-soft)] rounded-full hover:bg-[var(--c-overlay)] text-sm font-bold"
-        aria-label="Transpose down"
-      >
-        -
+    <div className="tgroup">
+      <button onClick={() => handle(transpose - 1)} className="tstep" aria-label="Transpose down" title="Transpose down">
+        −
       </button>
-      <span className="text-sm font-semibold min-w-[80px] text-center">
-        Transpose {transpose > 0 ? "+" : ""}{transpose}
-      </span>
-      <button
-        onClick={() => handle(transpose + 1)}
-        className="w-8 h-8 flex items-center justify-center bg-[var(--c-overlay-soft)] rounded-full hover:bg-[var(--c-overlay)] text-sm font-bold"
-        aria-label="Transpose up"
-      >
+      <div className="tval">
+        <span className="lb">Transpose</span>
+        <span className="nm">{transpose > 0 ? "+" : ""}{transpose}</span>
+      </div>
+      <button onClick={() => handle(transpose + 1)} className="tstep" aria-label="Transpose up" title="Transpose up">
         +
       </button>
       {transpose !== 0 && (
         <button
           onClick={() => onTranspose(0)}
-          className="ml-1 px-2 py-1 text-xs bg-[var(--c-overlay-soft)] rounded hover:bg-[var(--c-overlay)] text-brand-muted"
+          className="tstep"
+          style={{ width: "auto", flex: "0 0 auto", padding: "0 7px", fontSize: 11, fontWeight: 800 }}
           aria-label="Reset transpose"
+          title="Reset transpose"
         >
           Reset
         </button>
