@@ -6,9 +6,29 @@
  * next.config para isso é risco de build (já quebrei deploy por config antes).
  * Manter as strings num .ts evita duplicação e drift: um arquivo só é a fonte.
  *
- * CUSTO: o fragment roda 2 oitavas de ruído e 5 chamadas de fbm (domain
- * warping em dois níveis). Foi dimensionado para caber em GPU integrada
- * porque o canvas é desenhado em escala reduzida (ver FluidBackground).
+ * ---------------------------------------------------------------------------
+ * A PALETA — a decisão de design que mudou tudo
+ * ---------------------------------------------------------------------------
+ * A v1 usava grafite -> ÍNDIGO (azul) com um traço de âmbar. O azul é a cor
+ * COMPLEMENTAR do dourado da marca: lado a lado eles brigam, e o resultado é
+ * um fundo que parece de outro site. Era exatamente o "não está harmônico".
+ *
+ * A v2 (esta) usa MONOCROMIA QUENTE: papel -> creme -> areia -> âmbar.
+ * Tudo sai do mesmo matiz (laranja/amarelo, ~35-45°), variando só em
+ * luminosidade e saturação. É como luz atravessando papel — e é o que faz o
+ * fundo pertencer ao site em vez de competir com ele.
+ *
+ * DOIS MODOS num shader só (uniform uMode):
+ *   uMode = 0  -> PAPEL (tema claro): fundo luminoso, texto escuro por cima
+ *   uMode = 1  -> ESPRESSO (tema escuro): fundo quente profundo
+ * O escuro também deixou de ser azulado: agora é café/âmbar, casando com o
+ * dourado da marca.
+ *
+ * POR QUE O CONTRASTE DO FUNDO É LIMITADO DE PROPÓSITO
+ * O fundo fica ATRÁS de cifra monoespaçada. Medido: no pior pixel do modo
+ * claro a luminância não desce de ~0.87, o que mantém o texto em #17150f
+ * em ~16:1 — muito além do AAA. Um fundo "bonito" que reduz contraste
+ * de leitura é um bug, não um recurso.
  */
 
 export const FLUID_VERT = `#version 300 es
@@ -32,6 +52,7 @@ uniform vec2  uMouse;
 uniform float uScrollVelocity;
 uniform float uAudioFrequency;
 uniform vec2  uResolution;
+uniform float uMode;   // 0 = papel (claro), 1 = espresso (escuro)
 
 /* ---------- simplex noise 3D (Ashima Arts / Stefan Gustavson) ---------- */
 vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -89,14 +110,16 @@ float snoise(vec3 v) {
   vec3 p3 = vec3(a1.zw, h.w);
 
   vec4 norm = taylorInvSqrt(vec4(dot(p0, p0), dot(p1, p1), dot(p2, p2), dot(p3, p3)));
-  p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+  p0 *= norm.x;
+  p1 *= norm.y;
+  p2 *= norm.z;
+  p3 *= norm.w;
 
   vec4 m = max(0.6 - vec4(dot(x0, x0), dot(x1, x1), dot(x2, x2), dot(x3, x3)), 0.0);
   m = m * m;
   return 42.0 * dot(m * m, vec4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
 }
 
-/* 2 oitavas: grão orgânico sem o custo de 4-5. */
 float fbm(vec3 p) {
   float v = 0.0;
   float a = 0.5;
@@ -108,28 +131,49 @@ float fbm(vec3 p) {
   return v;
 }
 
-/* Paleta CONTIDA de propósito: grafite -> índigo, com âmbar só como traço.
-   Fundo atrás de cifra não pode competir com o texto. */
-vec3 palette(float t) {
-  vec3 c0 = vec3(0.063, 0.067, 0.086); // grafite (base do site)
-  vec3 c1 = vec3(0.075, 0.086, 0.140); // grafite-índigo
-  vec3 c2 = vec3(0.098, 0.130, 0.220); // índigo
-  vec3 c3 = vec3(0.150, 0.215, 0.320); // índigo claro
-  vec3 c4 = vec3(0.400, 0.310, 0.130); // âmbar apagado
+/* (o grão foi REMOVIDO: era calculado no backing store reduzido a 55% e o
+   upscale o transformava num padrão quadriculado visível. Para ter grão de
+   verdade seria preciso um overlay CSS em resolução cheia — não vale o custo
+   por um efeito que ninguém nota, e que pode parecer sujeira na tela.) */
 
-  vec3 c = mix(c0, c1, smoothstep(0.00, 0.40, t));
-  c = mix(c, c2, smoothstep(0.40, 0.72, t));
-  c = mix(c, c3, smoothstep(0.72, 0.91, t));
-  // âmbar limitado a 55%: nunca vira bloco
-  c = mix(c, c4, smoothstep(0.91, 1.00, t) * 0.55);
+/* ---- PAPEL: monocromia quente, tudo no mesmo matiz (~40°) ---- */
+vec3 palettePaper(float t) {
+  vec3 c0 = vec3(0.988, 0.980, 0.965); // papel #fcfaf6
+  vec3 c1 = vec3(0.976, 0.961, 0.933); // creme #f9f5ee
+  vec3 c2 = vec3(0.961, 0.933, 0.882); // areia #f5eee1
+  vec3 c3 = vec3(0.945, 0.898, 0.812); // âmbar claro #f1e5cf
+  vec3 c4 = vec3(0.922, 0.845, 0.714); // mel #ebd8b6
+
+  vec3 c = mix(c0, c1, smoothstep(0.00, 0.35, t));
+  c = mix(c, c2, smoothstep(0.35, 0.65, t));
+  c = mix(c, c3, smoothstep(0.65, 0.88, t));
+  // o mel fica no traço: nunca vira mancha
+  c = mix(c, c4, smoothstep(0.88, 1.00, t) * 0.7);
+  return c;
+}
+
+/* ---- ESPRESSO: café quente, sem azul. Substitui o grafite-índigo. ---- */
+vec3 paletteEspresso(float t) {
+  vec3 c0 = vec3(0.090, 0.082, 0.063); // #17150f
+  vec3 c1 = vec3(0.110, 0.098, 0.075); // #1c1913
+  vec3 c2 = vec3(0.141, 0.122, 0.086); // #241f16
+  vec3 c3 = vec3(0.180, 0.149, 0.098); // #2e2619
+  vec3 c4 = vec3(0.290, 0.227, 0.110); // #4a3a1c âmbar profundo
+
+  vec3 c = mix(c0, c1, smoothstep(0.00, 0.35, t));
+  c = mix(c, c2, smoothstep(0.35, 0.68, t));
+  c = mix(c, c3, smoothstep(0.68, 0.90, t));
+  c = mix(c, c4, smoothstep(0.90, 1.00, t) * 0.65);
   return c;
 }
 
 void main() {
+  float light = 1.0 - step(0.5, uMode); // 1 = claro, 0 = escuro
+
   float ar = uResolution.x / max(uResolution.y, 1.0);
   vec2 p = vec2(vUv.x * ar, vUv.y) * 2.2;
 
-  float t = uTime * 0.035; // lento: o olho não deve seguir o fundo
+  float t = uTime * 0.030; // lento: o olho não deve seguir o fundo
 
   /* domain warping em dois níveis — é o que dá o aspecto líquido */
   vec2 q = vec2(
@@ -145,24 +189,44 @@ void main() {
   /* ondulação do mouse: empurra o campo em anéis suaves */
   vec2 m = uMouse * vec2(ar, 1.0) * 2.2;
   float d = length(p - m);
-  f += exp(-d * 2.4) * sin(d * 6.0 - uTime * 1.2) * 0.22;
+  float ripple = exp(-d * 2.4) * sin(d * 6.0 - uTime * 1.2);
 
   /* velocidade de rolagem inclina o campo */
   f += uScrollVelocity * 0.10 * sin(p.y * 1.4 + uTime * 0.9);
 
-  /* áudio: preparado, hoje sempre 0 (metrônomo/clipe no futuro) */
+  /* áudio: preparado, hoje sempre 0 */
   f += uAudioFrequency * 0.15 * sin(p.x * 3.0 + uTime * 2.0);
 
   f = f * 0.5 + 0.5;
-  // CONTRASTE BAIXO: 0.55 de amplitude. Texto monoespaçado precisa do fundo quieto.
-  f = clamp((f - 0.5) * 0.55 + 0.5, 0.0, 1.0);
 
-  vec3 col = palette(f);
+  /* AMPLITUDE DIFERENTE POR TEMA:
+     - claro: 0.28. O fundo precisa ficar QUASE liso para o texto escuro
+       manter contraste altíssimo. Só um sopro de creme.
+     - escuro: 0.55. Pode aparecer mais porque o texto é claro e o contraste
+       é folgado. */
+  float amp = mix(0.55, 0.28, light);
+  f = clamp((f - 0.5) * amp + 0.5, 0.0, 1.0);
 
-  /* vinheta: escurece as bordas, o centro respira */
+  /* o ripple entra DEPOIS do clamp, fraco, para não estourar a faixa */
+  f = clamp(f + ripple * mix(0.10, 0.05, light), 0.0, 1.0);
+
+  vec3 col = mix(paletteEspresso(f), palettePaper(f), light);
+
+  /* LUZ: um brilho quente onde o mouse está.
+     No claro é "luz atravessando papel" (clareia); no escuro é uma lâmpada
+     âmbar distante (também clareia, mas pouco). Nunca escurece o centro. */
+  float glow = exp(-d * 1.6);
+  col += vec3(1.0, 0.86, 0.62) * glow * mix(0.030, 0.022, light);
+
+  /* VINHETA:
+     - claro: aquece e ASSENTA as bordas no creme (não escurece — escurecer
+       no papel parece sujeira).
+     - escuro: escurece, como antes.
+  */
   vec2 v = vUv - 0.5;
-  float vig = 1.0 - 0.55 * clamp(length(v) - 0.30, 0.0, 1.0) * 1.4;
-  col *= vig;
+  float vig = clamp(length(v) - 0.28, 0.0, 1.0) * 1.4;
+  col = mix(col, vec3(0.980, 0.969, 0.945), vig * 0.55 * light);
+  col *= mix(1.0 - 0.55 * vig, 1.0, light);
 
   outColor = vec4(col, 1.0);
 }
