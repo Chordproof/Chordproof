@@ -17,7 +17,7 @@ export default function PianoDiagram({
 }) {
   const notes = pianoVoicing(chord);
   const hasNotes = notes.length > 0;
-  const L = diagramLabels();
+  const L = diagramLabels("en");
 
   const LOW = 48;
   const HIGH = 72;
