@@ -1,2 +1,0 @@
-import { pianoVoicing, isBlackKey, midiToName } from "@/lib/pianoVoicings";
-import { diagramLabels } from "@/lib/fretboard";
