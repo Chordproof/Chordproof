@@ -154,12 +154,11 @@ export default function TabDetailComponent({
     const n = parseInt(String(raw).replace(/[^0-9]/g, ""), 10);
     return Number.isFinite(n) && n > 0 && n <= 12 ? n : 0;
   })();
-  // Idioma: o navegador do visitante. O site e em ingles, mas capotraste e
-  // "variacao" sao justamente onde o iniciante brasileiro se perde.
-  const locale: string | undefined = undefined;
-  const isPt =
-    typeof navigator !== "undefined" &&
-    navigator.language.toLowerCase().startsWith("pt");
+  // O site e inteiro em ingles, entao o diagrama tambem: detectar o idioma do
+  // navegador misturava "Capotraste na casa 3" com "Chords used in this tab".
+  // Pior: o servidor renderiza sem `navigator` (ingles) e o cliente trocava
+  // para portugues na hidratacao, gerando erro de hidratacao do React.
+  const locale = "en"; // site em ingles: diagrama em ingles tambem
   const hasTab = tablature && tablature.trim().length > 0;
 
   return (
@@ -185,7 +184,7 @@ export default function TabDetailComponent({
           <div className="flex gap-4 pt-2 flex-wrap">
             {tab.key_sig && <span className="bg-[var(--c-overlay-soft)] px-3 py-1 rounded text-sm">Key: <strong>{tab.key_sig}</strong></span>}
             {tab.difficulty && <span className="bg-[var(--c-overlay-soft)] px-3 py-1 rounded text-sm">Difficulty: <strong className="text-green-400">{tab.difficulty}</strong></span>}
-            {capoFret > 0 && <span className="bg-[var(--c-gold-soft)] text-[var(--c-gold)] px-3 py-1 rounded text-sm font-bold tracking-wide">{isPt ? `CAPOTRASTE NA CASA ${capoFret}` : `CAPO ON FRET ${capoFret}`}</span>}
+            {capoFret > 0 && <span className="bg-[var(--c-gold-soft)] text-[var(--c-gold)] px-3 py-1 rounded text-sm font-bold tracking-wide">CAPO ON FRET {capoFret}</span>}
             {easyOverride?.capo && <span className="bg-brand-gold/10 text-brand-gold px-3 py-1 rounded text-sm font-bold">Easy capo: <strong>{easyOverride.capo}</strong></span>}
           </div>
         </div>
