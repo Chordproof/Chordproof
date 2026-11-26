@@ -167,13 +167,15 @@ export default async function HomePage() {
     { icon: Music, value: formatNumber(totalTabs), label: "Verified tabs" },
     { icon: Users, value: formatNumber(totalArtists), label: "Artists" },
     // "Checked by hand" não cabia em 390px: virava "CHECKED BY H", cortado.
-    // O rótulo curto cabe em qualquer tela e diz a mesma coisa.
     { icon: BadgeCheck, value: `${verifiedPct}%`, label: "Verified" },
   ];
 
   return (
     <div className="-mt-4">
-      {/* ============================ HERO ============================ */}
+      {/* ============================ HERO ============================
+          O fundo fluido é UM só, montado no layout (global e fixo). Antes havia
+          um segundo canvas aqui dentro do hero: dois shaders animando a mesma
+          tela, o dobro de GPU para desenhar duas vezes a mesma coisa. */}
       <section className="pt-6 pb-14 md:pt-10 md:pb-20">
         <div className="grid lg:grid-cols-[1.05fr_1fr] gap-10 lg:gap-14 items-center">
           <div>
@@ -283,8 +285,7 @@ export default async function HomePage() {
                   <Flame size={11} /> Tab of the day
                 </span>
                 {/* Sem truncate: no card em destaque, cortar o nome da música
-                    esconde justamente o que o card existe para mostrar.
-                    Em até duas linhas ele cabe inteiro no mobile. */}
+                    esconde justamente o que o card existe para mostrar. */}
                 <h2 className="text-2xl md:text-3xl font-bold mt-2 leading-tight line-clamp-2">
                   {ofTheDay.song}
                 </h2>

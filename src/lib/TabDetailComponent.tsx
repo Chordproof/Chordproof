@@ -23,6 +23,10 @@ import { chordsUsed } from "@/lib/chordData";
 import { MiniFretboard, ChordDiagram, ThemePicker, THEMES, type ThemeKey } from "@/lib/fretboard";
 import { renderContent, renderTablature, hasInlineTablature } from "@/lib/tabRenderer";
 import { usePlusAccess } from "@/components/PlusGate";
+import { audioEngine, chordMidiFromName, chordMidiFromShape, bassMidiForChord } from "@/lib/audio";
+import { CHORD_SHAPES } from "@/lib/chordData";
+import SoundToggle from "@/components/SoundToggle";
+import PlayProgression from "@/components/PlayProgression";
 
 
 function Sep() {
@@ -57,6 +61,30 @@ export default function TabDetailComponent({
   const [moreOpen, setMoreOpen] = useState(false);
   const [instrument, setInstrument] = useState<InstrumentKey>("guitar");
   const plus = usePlusAccess();
+
+  /**
+   * Clique num acorde da cifra: abre o diagrama E toca o acorde.
+   * Usa o desenho real de violão quando existe (vozes de verdade); senão
+   * calcula pelo nome. A transposição da tela entra no som.
+   */
+  const handleChordClick = (chord: string) => {
+    setActiveChord(chord);
+    const NOTE_NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+    const m = chord.match(/^([A-G])([#b]?)(.*)$/);
+    let name = chord;
+    if (m && transpose) {
+      let idx = NOTE_NAMES.indexOf(m[1]);
+      if (m[2] === "#") idx += 1;
+      if (m[2] === "b") idx += 11;
+      idx = ((idx % 12) + transpose + 12) % 12;
+      name = NOTE_NAMES[idx] + (m[3] || "");
+    }
+    const shape = CHORD_SHAPES[name] || CHORD_SHAPES[chord];
+    const midis = shape && shape.length === 6
+      ? chordMidiFromShape(shape)
+      : chordMidiFromName(name, bassMidiForChord(chord));
+    audioEngine.unlock().then(() => audioEngine.playChord(midis, name));
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem("chordproof-instrument") as InstrumentKey | null;
@@ -147,6 +175,7 @@ export default function TabDetailComponent({
           <SaveOfflineButton tab={tab} slugArtist={params.artist} slugSong={params.song} />
           <AddToSetlist tabId={tab.id} song={songName} artist={artistName} />
           <SaveTabButton artist={params.artist} song={params.song} />
+          <SoundToggle />
           <a href="#tab-content" className="flex items-center gap-2 px-6 py-3 bg-[var(--c-cta-bg)] text-[var(--c-cta-text)] rounded-full font-bold hover:scale-105 transition"><Play size={18} /> Play</a>
         </div>
       </div>
@@ -156,7 +185,7 @@ export default function TabDetailComponent({
         <button onClick={() => { if (plus.hasAccess) setTrainerOpen(true); else window.location.href = "/pricing?feature=Trainer"; }} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)]" title="Train chord transitions with a timer (ChordProof+)"><Zap size={16} className="text-brand-gold" /> Trainer{!plus.hasAccess && <span className="text-[10px] font-bold text-[var(--c-gold)]">+</span>}</button>
         <button onClick={() => { if (plus.hasAccess) setDrumOpen(true); else window.location.href = "/pricing?feature=Drums"; }} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)]" title="Drum machine — groove by genre at the song BPM (ChordProof+)">🥁 Drums{!plus.hasAccess && <span className="text-[10px] font-bold text-[var(--c-gold)]">+</span>}</button>
         <StageMode>
-          {renderContent(content, showTablature, transpose, setActiveChord, theme)}
+          {renderContent(content, showTablature, transpose, handleChordClick, theme)}
           {showTablature && hasTab && !hasInlineTablature(content) && renderTablature(tablature)}
         </StageMode>
         <EasyModeToggle
@@ -208,16 +237,16 @@ export default function TabDetailComponent({
           colunas a partir de md. */}
       <div style={{display:"flex",gap:"24px",alignItems:"flex-start"}} className="flex-col md:flex-row md:items-start">
         <div style={{flex:"3 1 0%",minWidth:"0",width:"100%"}} className="order-2 md:order-1 md:w-auto">
-          <div id="tab-content" className="bg-brand-card rounded-2xl p-8 border border-[var(--c-hairline)]" style={{marginBottom:"24px"}}>
-            <div style={{fontFamily:"monospace",fontSize:"1rem",lineHeight:"1.6"}}>{renderContent(content, showTablature, transpose, setActiveChord, theme)}</div>
+          <div id="tab-content" className="glass-card rounded-2xl p-8" style={{marginBottom:"24px"}}>
+            <div style={{fontFamily:"monospace",fontSize:"1rem",lineHeight:"1.6"}}>{renderContent(content, showTablature, transpose, handleChordClick, theme)}</div>
             {showTablature && hasTab && !hasInlineTablature(content) && renderTablature(tablature)}
           </div>
           {usedChords.length > 0 && (
-            <section className="bg-brand-card rounded-2xl p-6 border border-[var(--c-hairline)] space-y-4" style={{marginBottom:"24px"}}>
+            <section className="glass-card rounded-2xl p-6 space-y-4" style={{marginBottom:"24px"}}>
               <h2 className="text-2xl font-bold">Chords used in this tab</h2>
-              <p className="text-sm text-brand-muted">Hover over a chord in the tab to see its shape. Click to enlarge:</p>
+              <p className="text-sm text-brand-muted">Hover over a chord in the tab to see its shape. Click to hear it:</p>
               <div style={{display:"flex",flexWrap:"wrap",gap:"12px"}}>
-                {usedChords.map((c) => (<div key={c} onClick={() => setActiveChord(c)} style={{cursor:"pointer"}}><MiniFretboard chord={c} theme={theme} instrument={instrument} /></div>))}
+                {usedChords.map((c) => (<div key={c} onClick={() => handleChordClick(c)} style={{cursor:"pointer"}}><MiniFretboard chord={c} theme={theme} instrument={instrument} /></div>))}
               </div>
             </section>
           )}
@@ -231,19 +260,23 @@ export default function TabDetailComponent({
         </div>
         <div style={{flex:"1 0 320px",maxWidth:"360px",width:"100%"}} className="order-1 md:order-2 md:w-auto">
           <div style={{position:"sticky",top:"24px"}}>
+            {/* Ouvir vem PRIMEIRO: quem quer ouvir acha antes de quem quer ver. */}
+            <div style={{marginBottom:"16px"}}>
+              <PlayProgression content={tab.content || ""} transpose={transpose} />
+            </div>
             {youtubeId ? (
-              <div className="bg-brand-card rounded-2xl p-4 border border-[var(--c-hairline)] space-y-3" style={{marginBottom:"16px"}}>
+              <div className="glass-card rounded-2xl p-4 space-y-3" style={{marginBottom:"16px"}}>
                 <h3 className="text-lg font-bold flex items-center gap-2"><Youtube size={20} className="text-red-500" /> Watch &amp; Play</h3>
                 <iframe className="w-full aspect-video rounded-xl border border-[var(--c-hairline)]" src={"https://www.youtube.com/embed/"+youtubeId} title={songName + " - " + artistName} allowFullScreen />
                 <p className="text-xs text-brand-muted">Play along with the video while reading the tab.</p>
               </div>
             ) : youtubeLoading ? (
-              <div className="bg-brand-card rounded-2xl p-4 border border-[var(--c-hairline)] space-y-3" style={{marginBottom:"16px"}}>
+              <div className="glass-card rounded-2xl p-4 space-y-3" style={{marginBottom:"16px"}}>
                 <h3 className="text-lg font-bold flex items-center gap-2"><Youtube size={20} className="text-red-500" /> Searching video...</h3>
                 <div className="flex items-center justify-center py-8"><Loader2 className="animate-spin text-brand-muted" size={24} /></div>
               </div>
             ) : (
-              <div className="bg-brand-card rounded-2xl p-4 border border-[var(--c-hairline)] space-y-2" style={{marginBottom:"16px"}}>
+              <div className="glass-card rounded-2xl p-4 space-y-2" style={{marginBottom:"16px"}}>
                 <h3 className="text-lg font-bold flex items-center gap-2"><Youtube size={20} className="text-red-500" /> Video</h3>
                 <p className="text-sm text-brand-muted">No video found for this tab.</p>
               </div>
@@ -253,10 +286,10 @@ export default function TabDetailComponent({
                 "Chords used in this tab", que fica logo abaixo da cifra e já
                 mostra os mesmos acordes com o desenho. No desktop continua. */}
             {usedChords.length > 0 && (
-              <div className="hidden md:block bg-brand-card rounded-2xl p-4 border border-[var(--c-hairline)] space-y-3">
+              <div className="hidden md:block glass-card rounded-2xl p-4 space-y-3">
                 <h3 className="text-sm font-bold text-brand-muted uppercase tracking-wider">Quick Reference</h3>
                 <div className="flex flex-wrap gap-2">
-                  {usedChords.map((c) => (<button key={c} onClick={() => setActiveChord(c)} className="px-3 py-1.5 bg-[var(--c-overlay-soft)] rounded-lg text-sm hover:bg-brand-gold/10 transition-colors" style={{color:"#34d399",fontWeight:700}}>{c}</button>))}
+                  {usedChords.map((c) => (<button key={c} onClick={() => handleChordClick(c)} className="px-3 py-1.5 bg-[var(--c-overlay-soft)] rounded-lg text-sm hover:bg-brand-gold/10 transition-colors" style={{color:"#34d399",fontWeight:700}}>{c}</button>))}
                 </div>
               </div>
             )}

@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import JsonLd from "@/components/JsonLd";
 import RegisterSW from "@/components/RegisterSW";
+import FluidBackground from "@/components/FluidBackground";
 import { SITE_URL } from "@/lib/seo";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "ChordProof",
   },
   icons: {
@@ -39,10 +40,13 @@ export const metadata: Metadata = {
   },
 };
 
+// themeColor acompanha o tema PADRÃO (papel). Antes anunciava #1d1d1f para
+// quem prefere escuro, o que pintava a barra do navegador de preto num site
+// claro.
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#1d1d1f" },
-    { media: "(prefers-color-scheme: light)", color: "#f5f5f7" },
+    { media: "(prefers-color-scheme: light)", color: "#faf8f3" },
+    { media: "(prefers-color-scheme: dark)", color: "#17150f" },
   ],
 };
 
@@ -50,8 +54,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
-        {/* Anti-flash: aplica o tema salvo ANTES do primeiro paint */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('chordproof-theme-mode');if(t==='light'){document.documentElement.classList.add('light')}}catch(e){}})()` }} />
+        {/* Anti-flash: aplica o tema salvo ANTES do primeiro paint.
+            PADRÃO = claro (papel). Só quem escolheu "dark" explicitamente
+            fica sem a classe `light`. Sem isso o primeiro paint saía escuro
+            e o site "piscava" antes de virar papel. */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('chordproof-theme-mode');if(t!=='dark'){document.documentElement.classList.add('light')}}catch(e){}})()` }} />
         {/* Google tag (gtag.js) — GA4 do ChordProof */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-96HFNQPLEB" />
         <script
@@ -63,7 +70,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={inter.className}>
         <RegisterSW />
         <Providers>
-          <div className="flex flex-col min-h-screen">
+          <div className="relative isolate flex flex-col min-h-screen">
+            {/* Fundo fluido GLOBAL: cobre a pagina toda, atras de todo o
+                conteudo. Em mobile e com prefers-reduced-motion ele desenha
+                um frame ESTATICO (mesma paleta, sem animar em GPU de celular);
+                sem WebGL2 nao monta e a cor de reserva do body assume. */}
+            <FluidBackground fixed />
             <Navbar />
             <main className="flex-grow w-full max-w-6xl mx-auto px-4 py-8">
               {children}
