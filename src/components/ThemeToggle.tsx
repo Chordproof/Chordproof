@@ -2,17 +2,24 @@
 import { useEffect, useState } from "react";
 
 /**
- * ThemeToggle — alternância Dark/Light (estilo Apple).
+ * ThemeToggle — alternância Light/Dark (estilo Apple).
  * Persiste em localStorage; aplica a classe `light` no <html>.
- * Default: dark (identidade da marca). Sem flash: aplica antes do paint.
+ *
+ * DEFAULT: LIGHT (papel). O fundo "papel" é o visual principal do site.
+ * Quem já escolheu dark continua em dark (localStorage vence).
+ *
+ * O tema escuro é a AUSÊNCIA da classe `light` — não existe classe `dark`
+ * no `<html>`. O CSS responde com `html:not(.light)`; `.dark` fica só para
+ * os portais fullscreen (Stage Mode, Trainer) que a põem no próprio nó.
  */
 export default function ThemeToggle() {
-  const [isLight, setIsLight] = useState(false);
+  const [isLight, setIsLight] = useState(true);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("chordproof-theme-mode");
-    const light = saved === "light";
+    // PADRAO: claro (papel). Só quem escolheu dark explicitamente fica dark.
+    const light = saved !== "dark";
     setIsLight(light);
     document.documentElement.classList.toggle("light", light);
     setMounted(true);
