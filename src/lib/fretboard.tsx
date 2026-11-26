@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, Palette, X } from "lucide-react";
 import { CHORD_SHAPES } from "./chordData";
+import { solveChord } from "./chordSolver";
 import { adaptShape, INSTRUMENTS, INSTRUMENT_VISUALS, type InstrumentKey } from "./instruments";
 import { generateVoicing, suggestFingers } from "./fourStringVoicings";
 import PianoDiagramLazy from "@/components/PianoDiagram";
@@ -187,6 +188,20 @@ function getVariations(chord: string, instrument: InstrumentKey = "guitar"): { s
   // Guitarra/Violão: dicionário de voicings (6 cordas)
   const base6 = CHORD_SHAPES[chord];
   if (!base6 || !Array.isArray(base6) || base6.length !== 6) {
+    // NÃO está no dicionário -> o SOLVER calcula a posição.
+    //
+    // Antes daqui saía um shape vazio e o modal mostrava "Diagram under
+    // construction": 452 acordes do catálogo, 5.4 mil ocorrências. O solver
+    // resolve qualquer acorde a partir das notas (ver chordSolver.ts), então
+    // nenhum acorde fica sem desenho — inclusive os transpostos, que nunca
+    // estiveram no dicionário.
+    const solved = solveChord(chord);
+    if (solved.length) {
+      return {
+        shapes: solved.map((v) => v.frets),
+        fingers: solved.map((v) => v.fingers),
+      };
+    }
     return { shapes: [[-1,-1,-1,-1,-1,-1]], fingers: [[-1,-1,-1,-1,-1,-1]] };
   }
   const base = adaptShape(chord, base6, instrument);
@@ -316,30 +331,18 @@ export function MiniFretboard({ chord, theme, instrument = "guitar" }: { chord: 
 
 export function ChordDiagram({ chord, onClose, theme, instrument = "guitar" }: { chord: string; onClose: () => void; theme: typeof THEMES[ThemeKey]; instrument?: InstrumentKey }) {
   const C = theme;
+  // ORDEM DOS HOOKS: os hooks vêm antes de qualquer return. O desvio para o
+  // piano já esteve ACIMA do useState, o que viola as Regras dos Hooks (trocar
+  // de instrumento mudava a ordem das chamadas e o React quebrava).
+  const { shapes, fingers } = getVariations(chord, instrument);
+  const [varIdx, setVarIdx] = useState(0);
+
   if (instrument === "piano") {
     return <PianoDiagramLazy chord={chord} onClose={onClose} accentColor={theme.dot} />;
   }
-  // FALLBACK: acorde sem shape registrado → modal no centro com aviso claro
-  if (!CHORD_SHAPES[chord]) {
-    return (
-      <div
-        onClick={onClose}
-        style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}
-      >
-        <div
-          onClick={(e) => e.stopPropagation()}
-          onMouseLeave={onClose}
-          style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-hairline)", borderRadius: "16px", padding: "24px", boxShadow: "0 12px 40px rgba(0,0,0,0.7)", minWidth: "260px", textAlign: "center", cursor: "pointer" }}
-        >
-          <div style={{ fontSize: "24px", fontWeight: 700, color: C.text }}>{chord}</div>
-          <div style={{ fontSize: "13px", color: C.muted, marginTop: "8px" }}>Diagram under construction</div>
-          <div style={{ fontSize: "11px", color: "var(--c-text-tertiary)", marginTop: "12px" }}>Click anywhere to close</div>
-        </div>
-      </div>
-    );
-  }
-  const { shapes, fingers } = getVariations(chord, instrument);
-  const [varIdx, setVarIdx] = useState(0);
+  // Sem "under construction": o solver cobre qualquer acorde. Se nem as notas
+  // forem reconhecíveis (nome inválido), FretboardSVG desenha o aviso — mas
+  // isso agora depende do NOME não ser um acorde, não de faltar no dicionário.
   const shape = shapes[varIdx] || shapes[0];
   const finger = fingers[varIdx] || fingers[0];
   const posFrets = shape.filter((f: number) => f > 0);
