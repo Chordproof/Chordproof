@@ -1,0 +1,9 @@
+"use client";
+import { useState } from "react";
+import { BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, Palette, X } from "lucide-react";
+import { CHORD_SHAPES } from "./chordData";
+import { solveChord } from "./chordSolver";
+import { adaptShape, INSTRUMENTS, INSTRUMENT_VISUALS, type InstrumentKey } from "./instruments";
+import { generateVoicing, suggestFingers } from "./fourStringVoicings";
+import PianoDiagramLazy from "@/components/PianoDiagram";
+import { MiniPiano } from "@/components/PianoDiagram";
