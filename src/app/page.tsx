@@ -3,7 +3,6 @@ import Link from "next/link";
 import ArtistAvatar from "@/components/ArtistAvatar";
 import Reveal from "@/components/Reveal";
 import TabMockup from "@/components/TabMockup";
-import FluidBackground from "@/components/FluidBackground";
 import {
   ArrowRight,
   Music,
@@ -174,12 +173,10 @@ export default async function HomePage() {
   return (
     <div className="-mt-4">
       {/* ============================ HERO ============================
-          O fundo fluido mora DENTRO do hero: as seções abaixo têm fundo
-          opaco próprio e cobririam um canvas fixo na página. Ele não monta em
-          mobile, com prefers-reduced-motion ou sem WebGL2 — nesses casos a
-          página fica exatamente como estava. */}
-      <section className="relative isolate -mx-4 overflow-hidden rounded-3xl px-4 pt-6 pb-14 md:-mx-6 md:px-6 md:pt-10 md:pb-20">
-        <FluidBackground />
+          O fundo fluido é UM só, montado no layout (global e fixo). Antes havia
+          um segundo canvas aqui dentro do hero: dois shaders animando a mesma
+          tela, o dobro de GPU para desenhar duas vezes a mesma coisa. */}
+      <section className="pt-6 pb-14 md:pt-10 md:pb-20">
         <div className="grid lg:grid-cols-[1.05fr_1fr] gap-10 lg:gap-14 items-center">
           <div>
             <Reveal>
