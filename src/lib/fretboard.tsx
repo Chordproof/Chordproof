@@ -171,7 +171,6 @@ function generateBarre(chord: string): { shape: number[] | null; fingers: number
 }
 
 function getVariations(chord: string, instrument: InstrumentKey = "guitar"): { shapes: number[][]; fingers: number[][] } {
-  // Cavaquinho/Ukulele: voicing gerado por teoria (4 cordas)
   if (instrument === "cavaco" || instrument === "ukulele") {
     const shape = generateVoicing(chord, instrument);
     if (shape.every((f) => f === -1)) {
@@ -179,22 +178,13 @@ function getVariations(chord: string, instrument: InstrumentKey = "guitar"): { s
     }
     return { shapes: [shape], fingers: [suggestFingers(shape)] };
   }
-  // Baixo: adapter fundamental+quinta (4 cordas)
   if (instrument === "bass") {
     const base6 = CHORD_SHAPES[chord];
     const shape = adaptShape(chord, base6 || [-1,-1,-1,-1,-1,-1], instrument);
     return { shapes: [shape], fingers: [shape.map((f) => (f > 0 ? 1 : f))] };
   }
-  // Guitarra/Violão: dicionário de voicings (6 cordas)
   const base6 = CHORD_SHAPES[chord];
   if (!base6 || !Array.isArray(base6) || base6.length !== 6) {
-    // NÃO está no dicionário -> o SOLVER calcula a posição.
-    //
-    // Antes daqui saía um shape vazio e o modal mostrava "Diagram under
-    // construction": 452 acordes do catálogo, 5.4 mil ocorrências. O solver
-    // resolve qualquer acorde a partir das notas (ver chordSolver.ts), então
-    // nenhum acorde fica sem desenho — inclusive os transpostos, que nunca
-    // estiveram no dicionário.
     const solved = solveChord(chord);
     if (solved.length) {
       return {
@@ -215,23 +205,106 @@ function getVariations(chord: string, instrument: InstrumentKey = "guitar"): { s
   return { shapes: [base], fingers: [baseFingers] };
 }
 
-function FretboardSVG({ shape, fingers, theme, instrument = "guitar" }: { shape: number[]; fingers: number[]; theme: typeof THEMES[ThemeKey]; instrument?: InstrumentKey }) {
+/**
+ * Textos do diagrama no IDIOMA NATIVO do visitante.
+ */
+export function diagramLabels(locale?: string) {
+  const raw =
+    locale ||
+    (typeof navigator !== "undefined" ? navigator.language : "en");
+  const pt = raw.toLowerCase().startsWith("pt");
+  return pt
+    ? {
+        variation: (i: number, n: number) => `Variação ${i} de ${n}`,
+        close: "Clique em qualquer lugar para fechar",
+        startingAt: (f: number) => `A partir da casa ${f}`,
+        noDiagram: "Sem diagrama",
+        capo: (f: number) => `Capotraste na casa ${f}`,
+        shortened: "Capotraste",
+      }
+    : {
+        variation: (i: number, n: number) => `Variation ${i} of ${n}`,
+        close: "Click anywhere to close",
+        startingAt: (f: number) => `Starting at fret ${f}`,
+        noDiagram: "No diagram",
+        capo: (f: number) => `Capo on fret ${f}`,
+        shortened: "Capo",
+      };
+}
+
+/**
+ * FretboardSVG — o desenho do braço.
+ *
+ * TRÊS DEFEITOS QUE ESTE CÓDIGO CORRIGE (todos vistos em print do dono):
+ *
+ * 1. ACORDE CORTADO. O SVG tinha altura fixa de 130px e `baseFret` só subia
+ *    quando a casa mais grave passava de 3. No Cm (x35543) o mínimo é 3, então
+ *    `baseFret` ficava 0 e a bolinha da casa 5 caía em y=132 — fora do
+ *    desenho. Agora o ponto de partida é calculado pela FAIXA (mín..máx) e a
+ *    altura vem do conteúdo: é impossível cortar.
+ *
+ * 2. BOLINHAS SOBREPOSTAS. Eram 18px de diâmetro com 16px de distância entre
+ *    cordas: encostavam e viravam uma mancha. Agora o espaçamento (18px) é
+ *    maior que o diâmetro da bolinha (16px).
+ *
+ * 3. CAPOTRASTE INVISÍVEL. A música podia ter capo e o diagrama não dizia
+ *    nada — o iniciante tocava na casa errada. Agora o capo é desenhado como
+ *    barra no topo do braço, com o número da casa.
+ */
+function FretboardSVG({
+  shape,
+  fingers,
+  theme,
+  instrument = "guitar",
+  capo = 0,
+  locale,
+}: {
+  shape: number[];
+  fingers: number[];
+  theme: typeof THEMES[ThemeKey];
+  instrument?: InstrumentKey;
+  capo?: number;
+  locale?: string;
+}) {
   const C = theme;
   const V = INSTRUMENT_VISUALS[instrument];
   const strings = INSTRUMENTS[instrument].strings;
+  const L = diagramLabels(locale);
+
+  const spacing = strings === 4 ? 22 : 18;
+  const X0 = 14;
+  const W = X0 * 2 + (strings - 1) * spacing;
+  const FRETS = 4;
+  const fretH = 26;
+  const HEAD = 13;
+  const showCapo = capo > 0;
+  const CAPO_H = showCapo ? 16 : 0;
+  const H = HEAD + CAPO_H + FRETS * fretH + 5;
+  const dotR = 8;
+
   const posFrets = shape.filter((f: number) => f > 0);
   const minPos = posFrets.length > 0 ? Math.min(...posFrets) : 0;
-  const baseFret = minPos > 3 ? minPos - 1 : 0;
-  const frets = [baseFret + 1, baseFret + 2, baseFret + 3, baseFret + 4];
-  const W = strings === 4 ? 78 : 100;
-  const spacing = strings === 4 ? 19 : 16;
-  const dotSize = 18;
-  const fretH = 28;
-  // Inlays reais ficam nas casas absolutas 3, 5, 7, 9, 12, 15, 17
+  const maxPos = posFrets.length > 0 ? Math.max(...posFrets) : 0;
+  let baseFret = 0;
+  if (maxPos > FRETS) baseFret = Math.max(0, minPos - 1);
+  while (maxPos - baseFret > FRETS) baseFret += 1;
+  if (minPos - baseFret < 1 && minPos > 0) baseFret = Math.max(0, minPos - 1);
+
+  const fretY = (i: number) => HEAD + CAPO_H + i * fretH;
+  const bandCenter = (fret: number) => {
+    const idx = fret - baseFret - 1;
+    return fretY(idx) + fretH / 2;
+  };
+
   const INLAY_FRETS = [3, 5, 7, 9, 12, 15, 17];
-  const visibleInlays = frets.filter((f) => INLAY_FRETS.includes(f));
+  const visibleInlays = [];
+  for (let i = 0; i < FRETS; i++) {
+    const abs = baseFret + 1 + i;
+    if (INLAY_FRETS.includes(abs)) visibleInlays.push({ abs, i });
+  }
+
   return (
-    <svg width={W} height="130" viewBox={`0 0 ${W} 130`}>
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
       <defs>
         <linearGradient id={"wood-" + instrument} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={V.wood1} />
@@ -241,62 +314,126 @@ function FretboardSVG({ shape, fingers, theme, instrument = "guitar" }: { shape:
           <stop offset="100%" stopColor={V.wood5} />
         </linearGradient>
       </defs>
-      <rect x="0" y="0" width={W} height="130" fill={`url(#wood-${instrument})`} rx="6" />
-      <rect x="0" y="0" width={W} height="130" fill="none" stroke={V.binding} strokeWidth={V.bindingWidth} rx="6" />
-      <rect x="0" y="0" width={W} height={V.nutHeight} fill={V.nut} />
-      {frets.map((fret, fi) => (
-        <line key={fi} x1="0" y1={6 + (fi + 1) * fretH} x2={W} y2={6 + (fi + 1) * fretH} stroke={fi % 2 === 0 ? V.fretColor : V.fretColor2} strokeWidth="2" />
+      <rect x="0" y="0" width={W} height={H} fill={`url(#wood-${instrument})`} rx="6" />
+      <rect x="0" y="0" width={W} height={H} fill="none" stroke={V.binding} strokeWidth={V.bindingWidth} rx="6" />
+
+      {showCapo && (
+        <g>
+          <rect
+            x={X0 - 7}
+            y={HEAD + 3}
+            width={(strings - 1) * spacing + 14}
+            height={CAPO_H - 6}
+            rx={(CAPO_H - 6) / 2}
+            fill="var(--c-gold, #f0b429)"
+            stroke="rgba(0,0,0,0.35)"
+            strokeWidth="1"
+          />
+          <text
+            x={W / 2}
+            y={HEAD + CAPO_H / 2 + 2.5}
+            textAnchor="middle"
+            fontSize="9"
+            fontWeight="800"
+            fill="#1d1d1f"
+            style={{ pointerEvents: "none" }}
+          >
+            {L.shortened} {capo}
+          </text>
+        </g>
+      )}
+
+      {Array.from({ length: FRETS }).map((_, fi) => (
+        <line
+          key={fi}
+          x1={0}
+          y1={fretY(fi + 1)}
+          x2={W}
+          y2={fretY(fi + 1)}
+          stroke={fi % 2 === 0 ? V.fretColor : V.fretColor2}
+          strokeWidth="2"
+        />
       ))}
-      {/* Inlays (marcadores de posição) — embaixo das cordas */}
-      {visibleInlays.map((f) => {
-        const fi = f - baseFret - 1;
-        const y = 6 + fi * fretH + fretH / 2;
-        return <circle key={"inl" + f} cx={W / 2} cy={y} r={V.inlayRadius} fill={V.inlay} opacity="0.9" />;
-      })}
-      {shape.map((f, i) => (
-        <line key={i} x1={10 + i * spacing} y1="6" x2={10 + i * spacing} y2="130" stroke={i < strings / 2 ? V.stringColor : V.stringHighlight} strokeWidth={V.stringWidths[i] ?? 1.5} />
+
+      {visibleInlays.map(({ abs, i }) => (
+        <circle
+          key={"inl" + abs}
+          cx={W / 2}
+          cy={fretY(i) + fretH / 2}
+          r={V.inlayRadius}
+          fill={V.inlay}
+          opacity="0.9"
+        />
       ))}
+
+      {Array.from({ length: strings }).map((_, i) => (
+        <line
+          key={"s" + i}
+          x1={X0 + i * spacing}
+          y1={HEAD + CAPO_H}
+          x2={X0 + i * spacing}
+          y2={H - 2}
+          stroke={i < strings / 2 ? V.stringColor : V.stringHighlight}
+          strokeWidth={V.stringWidths[i] ?? 1.5}
+        />
+      ))}
+
       {shape.map((f, i) => (
-        <text key={"m" + i} x={10 + i * spacing} y="4" textAnchor="middle" fontSize="9" fill={f === -1 ? C.x : C.o} fontWeight="bold">
+        <text
+          key={"m" + i}
+          x={X0 + i * spacing}
+          y={HEAD - 3}
+          textAnchor="middle"
+          fontSize="9"
+          fill={f === -1 ? C.x : C.o}
+          fontWeight="bold"
+        >
           {f === -1 ? "×" : f === 0 ? "○" : ""}
         </text>
       ))}
+
       {shape.map((f, i) => {
         if (f <= 0) return null;
-        const fretIdx = f - baseFret;
-        const y = 6 + fretIdx * fretH - fretH / 2;
+        const y = bandCenter(f);
         return (
           <g key={"d" + i}>
-            <circle cx={10 + i * spacing} cy={y} r={dotSize / 2} fill={C.dot} />
-            <circle cx={10 + i * spacing - 2} cy={y - 2} r={dotSize / 4} fill={C.dotHi} opacity="0.6" />
-            <text x={10 + i * spacing} y={y + 4} textAnchor="middle" fontSize="9" fill="#000" fontWeight="bold">
-              {fingers[i] || ""}
+            <circle cx={X0 + i * spacing} cy={y} r={dotR} fill={C.dot} />
+            <circle cx={X0 + i * spacing - 2} cy={y - 2} r={dotR / 2.2} fill={C.dotHi} opacity="0.55" />
+            <text
+              x={X0 + i * spacing}
+              y={y + 3}
+              textAnchor="middle"
+              fontSize="8.5"
+              fill="#1d1d1f"
+              fontWeight="800"
+            >
+              {fingers[i] > 0 ? fingers[i] : ""}
             </text>
           </g>
         );
       })}
+
       {baseFret > 0 && (
-        <text x={W - 2} y="34" textAnchor="end" fontSize="9" fill={C.muted}>
-          {baseFret + 1}fr
+        <text x={W - 2} y={fretY(0) - 1} textAnchor="end" fontSize="8.5" fill={C.muted}>
+          {baseFret + 1}ª
         </text>
       )}
     </svg>
   );
 }
 
-export function MiniFretboard({ chord, theme, instrument = "guitar" }: { chord: string; theme: typeof THEMES[ThemeKey]; instrument?: InstrumentKey }) {
+export function MiniFretboard({ chord, theme, instrument = "guitar", capo = 0, locale }: { chord: string; theme: typeof THEMES[ThemeKey]; instrument?: InstrumentKey; capo?: number; locale?: string }) {
   const C = theme;
-  // Piano: teclado em vez de braço
+  const L = diagramLabels(locale);
   if (instrument === "piano") {
     return <MiniPiano chord={chord} accentColor={theme.dot} />;
   }
-  // FALLBACK: acorde sem voicing possível → mostra só o nome
   const probe = getVariations(chord, instrument);
   if (probe.shapes.length === 1 && probe.shapes[0].every((f) => f === -1)) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", padding: "4px" }}>
         <span style={{ color: C.text, fontWeight: 700, fontSize: "14px" }}>{chord}</span>
-        <span style={{ color: C.muted, fontSize: "10px" }}>Sem diagrama</span>
+        <span style={{ color: C.muted, fontSize: "10px" }}>{L.noDiagram}</span>
       </div>
     );
   }
@@ -307,7 +444,7 @@ export function MiniFretboard({ chord, theme, instrument = "guitar" }: { chord: 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
       <span style={{ color: C.text, fontWeight: 700, fontSize: "14px" }}>{chord}</span>
-      <FretboardSVG shape={shape} fingers={finger} theme={theme} instrument={instrument} />
+      <FretboardSVG shape={shape} fingers={finger} theme={theme} instrument={instrument} capo={capo} locale={locale} />
       {shapes.length > 1 && (
         <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
           <button
@@ -316,7 +453,7 @@ export function MiniFretboard({ chord, theme, instrument = "guitar" }: { chord: 
           >
             <ChevronLeft size={12} />
           </button>
-          <span style={{ fontSize: "10px", color: C.muted }}>Variation {varIdx + 1} of {shapes.length}</span>
+          <span style={{ fontSize: "10px", color: C.muted }}>{L.variation(varIdx + 1, shapes.length)}</span>
           <button
             onClick={(e) => { e.stopPropagation(); setVarIdx((varIdx + 1) % shapes.length); }}
             style={{ background: "none", border: "none", cursor: "pointer", padding: "2px", color: C.muted, display: "flex" }}
@@ -329,29 +466,22 @@ export function MiniFretboard({ chord, theme, instrument = "guitar" }: { chord: 
   );
 }
 
-export function ChordDiagram({ chord, onClose, theme, instrument = "guitar" }: { chord: string; onClose: () => void; theme: typeof THEMES[ThemeKey]; instrument?: InstrumentKey }) {
+export function ChordDiagram({ chord, onClose, theme, instrument = "guitar", capo = 0, locale }: { chord: string; onClose: () => void; theme: typeof THEMES[ThemeKey]; instrument?: InstrumentKey; capo?: number; locale?: string }) {
   const C = theme;
-  // ORDEM DOS HOOKS: os hooks vêm antes de qualquer return. O desvio para o
-  // piano já esteve ACIMA do useState, o que viola as Regras dos Hooks (trocar
-  // de instrumento mudava a ordem das chamadas e o React quebrava).
+  const L = diagramLabels(locale);
+  // ORDEM DOS HOOKS: hooks antes de qualquer return (o desvio para o piano já
+  // esteve ACIMA do useState e quebrava o React ao trocar de instrumento).
   const { shapes, fingers } = getVariations(chord, instrument);
   const [varIdx, setVarIdx] = useState(0);
 
   if (instrument === "piano") {
     return <PianoDiagramLazy chord={chord} onClose={onClose} accentColor={theme.dot} />;
   }
-  // Sem "under construction": o solver cobre qualquer acorde. Se nem as notas
-  // forem reconhecíveis (nome inválido), FretboardSVG desenha o aviso — mas
-  // isso agora depende do NOME não ser um acorde, não de faltar no dicionário.
   const shape = shapes[varIdx] || shapes[0];
   const finger = fingers[varIdx] || fingers[0];
   const posFrets = shape.filter((f: number) => f > 0);
   const minPos = posFrets.length > 0 ? Math.min(...posFrets) : 0;
   const baseFret = minPos > 3 ? minPos - 1 : 0;
-  const frets = [baseFret + 1, baseFret + 2, baseFret + 3, baseFret + 4];
-  const stringW = [5, 4.5, 4, 3.5, 3, 2.5];
-  const dotSize = 32;
-  const woodGrad = "linear-gradient(180deg," + C.wood1 + " 0%," + C.wood2 + " 18%," + C.wood3 + " 40%," + C.wood4 + " 65%," + C.wood5 + " 100%)";
   return (
     <div
       onClick={onClose}
@@ -359,30 +489,31 @@ export function ChordDiagram({ chord, onClose, theme, instrument = "guitar" }: {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        onMouseLeave={onClose}
-        style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-hairline)", borderRadius: "16px", padding: "16px", boxShadow: "0 12px 40px rgba(0,0,0,0.7)", minWidth: "220px" }}
+        style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-hairline)", borderRadius: "16px", padding: "16px", boxShadow: "0 12px 40px rgba(0,0,0,0.7)", minWidth: "220px", maxWidth: "min(92vw, 340px)" }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
           <span style={{ fontSize: "20px", fontWeight: 700, color: C.text }}>{chord}</span>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--c-text-tertiary)" }}>
+          <button onClick={onClose} aria-label="close" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--c-text-tertiary)" }}>
             <X size={18} />
           </button>
         </div>
         {baseFret > 0 && (
           <div style={{ fontSize: "11px", color: C.muted, marginBottom: "4px" }}>
-            Starting at fret {baseFret + 1}
+            {L.startingAt(baseFret + 1)}
           </div>
         )}
-        <FretboardSVG shape={shape} fingers={finger} theme={theme} instrument={instrument} />
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <FretboardSVG shape={shape} fingers={finger} theme={theme} instrument={instrument} capo={capo} locale={locale} />
+        </div>
         {shapes.length > 1 && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginTop: "8px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginTop: "10px" }}>
             <button
               onClick={(e) => { e.stopPropagation(); setVarIdx((varIdx - 1 + shapes.length) % shapes.length); }}
               style={{ background: "var(--c-overlay)", border: "none", borderRadius: "50%", width: "32px", height: "32px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--c-text)" }}
             >
               <ChevronLeft size={16} />
             </button>
-            <span style={{ fontSize: "12px", color: "var(--c-text-secondary)" }}>Variation {varIdx + 1} of {shapes.length}</span>
+            <span style={{ fontSize: "12px", color: "var(--c-text-secondary)" }}>{L.variation(varIdx + 1, shapes.length)}</span>
             <button
               onClick={(e) => { e.stopPropagation(); setVarIdx((varIdx + 1) % shapes.length); }}
               style={{ background: "var(--c-overlay)", border: "none", borderRadius: "50%", width: "32px", height: "32px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--c-text)" }}
@@ -392,14 +523,14 @@ export function ChordDiagram({ chord, onClose, theme, instrument = "guitar" }: {
           </div>
         )}
         <div style={{ fontSize: "11px", color: "var(--c-text-tertiary)", textAlign: "center", marginTop: "12px" }}>
-          Click anywhere to close
+          {L.close}
         </div>
       </div>
     </div>
   );
 }
 
-export function ChordSpan({ chord, onClick, theme, instrument = "guitar" }: { chord: string; onClick: (chord: string) => void; theme: typeof THEMES[ThemeKey]; instrument?: InstrumentKey }) {
+export function ChordSpan({ chord, onClick, theme, instrument = "guitar", capo = 0, locale }: { chord: string; onClick: (chord: string) => void; theme: typeof THEMES[ThemeKey]; instrument?: InstrumentKey; capo?: number; locale?: string }) {
   const [showTip, setShowTip] = useState(false);
   return (
     <span
@@ -411,7 +542,7 @@ export function ChordSpan({ chord, onClick, theme, instrument = "guitar" }: { ch
       {chord}
       {showTip && (
         <span style={{ position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)", zIndex: 10 }}>
-          <MiniFretboard chord={chord} theme={theme} instrument={instrument} />
+          <MiniFretboard chord={chord} theme={theme} instrument={instrument} capo={capo} locale={locale} />
         </span>
       )}
     </span>
