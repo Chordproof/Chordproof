@@ -1,0 +1,57 @@
+/* ==================================================================
+   NORMALIZAÇÃO DOS BOTÕES DA ACTION BAR
+   ------------------------------------------------------------------
+   O <StageMode> é um componente grande (22 KB: autoscroll, loop,
+   metrônomo) e o seu botão vive dentro dele com as classes antigas
+   (pílula, texto "Stage Mode"). Em vez de reescrever o componente
+   inteiro só para trocar um botão, a barra normaliza esse botão por
+   seletor escopado: mesma altura/raio/peso dos vizinhos e rótulo
+   curto "Stage" (ícone puro no celular).
+
+   Escopo: só dentro de .tbar-in, para nenhum outro uso do StageMode
+   no site ser afetado.
+   ================================================================== */
+.tbar-in > button[title^="Stage Mode"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 33px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--c-text);
+  /* esconde o texto original ("Stage Mode"), que é nó de texto solto */
+  font-size: 0;
+  flex: 0 0 auto;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 140ms ease, color 140ms ease;
+}
+.tbar-in > button[title^="Stage Mode"]::after {
+  content: "Stage";
+  font-size: 13px;
+  font-weight: 650;
+}
+.tbar-in > button[title^="Stage Mode"]:hover {
+  background: var(--c-overlay);
+}
+.tbar-in > button[title^="Stage Mode"]:focus-visible {
+  outline: 2px solid var(--c-gold);
+  outline-offset: 1px;
+}
+.tbar-in > button[title^="Stage Mode"] > svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+}
+
+@media (max-width: 767px) {
+  .tbar-in > button[title^="Stage Mode"] {
+    padding: 0 8px;
+  }
+  /* celular: só o ícone, como os outros controles da barra */
+  .tbar-in > button[title^="Stage Mode"]::after {
+    content: none;
+  }
+}
