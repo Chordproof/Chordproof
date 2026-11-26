@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+/* Normalização do botão do StageMode dentro da action bar da cifra.
+   Vive em arquivo próprio porque o botão está dentro de StageMode.tsx
+   (22 KB) e só a barra precisa dessa correção. */
+import "./tbar.css";
 import Providers from "./providers";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
