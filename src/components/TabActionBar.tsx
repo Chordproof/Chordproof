@@ -18,9 +18,8 @@ import { Zap, Drum, MoreHorizontal } from "lucide-react";
  * controles de leitura no meio, instrumento e menu "More" à direita. O aviso
  * do Easy Mode ganha faixa própria embaixo, em vez de empurrar controles.
  *
- * CELULAR (≤767px): os nove controles continuam TODOS visíveis, em ícone
- * (medido: 375px de conteúdo em 386px úteis). O rótulo escrito fica no
- * `title`/`aria-label`, então continua acessível e com tooltip.
+ * CELULAR (≤767px): os nove controles continuam TODOS visíveis, em ícone.
+ * O rótulo escrito fica no `title`/`aria-label`.
  *
  * Nota de cor: só `Tablature ON` e `Easy ON` recebem dourado, porque são os
  * únicos com estado. O resto é neutro.
@@ -29,6 +28,9 @@ import { Zap, Drum, MoreHorizontal } from "lucide-react";
  * na primeira versão usava <style jsx global>, que o styled-jsx injeta por
  * JavaScript em runtime. Se o chunk atrasa, a barra renderiza sem estilo.
  * Arquivo CSS importado no layout vem no <head>, antes do primeiro paint.
+ *
+ * POSIÇÃO DO MENU: abre para baixo e vira para cima quando o botão está na
+ * metade de baixo da tela (em tela baixa o menu caía fora da dobra).
  */
 export default function TabActionBar({
   transpose,
@@ -89,7 +91,9 @@ export default function TabActionBar({
   stageChildren: ReactNode;
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
+  const [moreUp, setMoreUp] = useState(false);
   const moreRef = useRef<HTMLDivElement | null>(null);
+  const moreBtnRef = useRef<HTMLButtonElement | null>(null);
 
   // fecha o menu com Esc ou clique fora
   useEffect(() => {
@@ -165,7 +169,12 @@ export default function TabActionBar({
 
         <div style={{ position: "relative" }} ref={moreRef}>
           <button
-            onClick={() => setMoreOpen(!moreOpen)}
+            ref={moreBtnRef}
+            onClick={() => {
+              const r = moreBtnRef.current?.getBoundingClientRect();
+              if (r) setMoreUp(r.bottom > (typeof window !== "undefined" ? window.innerHeight / 2 : 400));
+              setMoreOpen(!moreOpen);
+            }}
             className="ticon"
             title="More: export, print, theme"
             aria-label="More: export, print, theme"
@@ -177,9 +186,10 @@ export default function TabActionBar({
             <div
               style={{
                 position: "absolute",
-                top: "100%",
                 right: 0,
-                marginTop: 8,
+                ...(moreUp ? { bottom: "100%", marginBottom: 8 } : { top: "100%", marginTop: 8 }),
+                maxHeight: "min(70vh, 420px)",
+                overflowY: "auto",
                 /* superfície do TEMA (antes era #1a1a2e fixo) */
                 background: "var(--c-bg-elevated)",
                 border: "1px solid var(--c-hairline)",
