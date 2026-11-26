@@ -177,6 +177,7 @@ export default function TabDetailComponent({
             {capoFret > 0 && <span className="bg-[var(--c-gold-soft)] text-[var(--c-gold)] px-3 py-1 rounded text-sm font-bold tracking-wide">CAPO ON FRET {capoFret}</span>}
             {easyOverride?.capo && <span className="bg-brand-gold/10 text-brand-gold px-3 py-1 rounded text-sm font-bold">Easy capo: <strong>{easyOverride.capo}</strong></span>}
           </div>
+          {tab.genre && <p className="text-sm text-brand-muted pt-1">Style: {tab.genre}</p>}
         </div>
         <div className="flex gap-3">
           <button onClick={() => { navigator.clipboard?.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 2000); }} className="p-3 bg-[var(--c-overlay-soft)] rounded-full hover:bg-[var(--c-overlay)]" title={copied ? "Link copied!" : "Share"}><Share2 size={20} className={copied ? "text-brand-gold" : ""} /></button>
@@ -259,7 +260,13 @@ export default function TabDetailComponent({
           <div style={{position:"sticky",top:"24px"}}>
             {/* Ouvir vem PRIMEIRO: quem quer ouvir acha antes de quem quer ver. */}
             <div style={{marginBottom:"16px"}}>
-              <PlayProgression content={tab.content || ""} transpose={transpose} />
+              <PlayProgression
+                content={tab.content || ""}
+                transpose={transpose}
+                genre={tab.genre || null}
+                artist={artistName}
+                song={songName}
+              />
             </div>
             {youtubeId ? (
               <div className="glass-card rounded-2xl p-4 space-y-3" style={{marginBottom:"16px"}}>
