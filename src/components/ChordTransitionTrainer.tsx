@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { Play, Pause, RotateCcw, X, Timer, Zap, CheckCircle2, ChevronRight, Volume2, VolumeX } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Zap, X, Volume2, VolumeX, Play, ChevronRight, CheckCircle2, RotateCcw } from "lucide-react";
 import { MiniFretboard } from "@/lib/fretboard";
 
 /**
@@ -141,7 +141,9 @@ export default function ChordTransitionTrainer({
   const nextPair = () => { setPairIdx((i) => (i + 1) % Math.max(pairs.length, 1)); setPhase("idle"); };
   const prevPair = () => { setPairIdx((i) => (i - 1 + pairs.length) % Math.max(pairs.length, 1)); setPhase("idle"); };
 
-  const level = switches >= 30 ? "Guitar Hero 🎸" : switches >= 20 ? "Avançado" : switches >= 12 ? "Intermediário" : switches >= 6 ? "Em progresso" : "Iniciante";
+  // Níveis em INGLÊS: o site inteiro é em inglês. Antes vazava "Avançado",
+  // "Intermediário", "Em progresso" e "Iniciante" para a tela do usuário.
+  const level = switches >= 30 ? "Guitar Hero 🎸" : switches >= 20 ? "Advanced" : switches >= 12 ? "Intermediate" : switches >= 6 ? "Getting there" : "Beginner";
 
   return (
     <div
@@ -206,13 +208,13 @@ export default function ChordTransitionTrainer({
                     <div style={{ textAlign: "center" }}>
                       <div style={{ fontSize: "36px", fontWeight: 700, color: "#34d399" }}>{activePair[0]}</div>
                       <div style={{ fontSize: "11px", color: "#666", marginTop: "4px", marginBottom: "8px" }}>FROM</div>
-                      <MiniFretboard chord={activePair[0]} theme={C} />
+                      <MiniFretboard chord={activePair[0]} theme={C} locale="en" />
                     </div>
                     <ChevronRight size={28} color="#f0b429" />
                     <div style={{ textAlign: "center" }}>
                       <div style={{ fontSize: "36px", fontWeight: 700, color: "#34d399" }}>{activePair[1]}</div>
                       <div style={{ fontSize: "11px", color: "#666", marginTop: "4px", marginBottom: "8px" }}>TO</div>
-                      <MiniFretboard chord={activePair[1]} theme={C} />
+                      <MiniFretboard chord={activePair[1]} theme={C} locale="en" />
                     </div>
                   </div>
                   <button onClick={nextPair} style={{ background: "none", border: "none", color: "#666", cursor: "pointer", padding: "8px" }}>›</button>
@@ -224,7 +226,7 @@ export default function ChordTransitionTrainer({
                   {chords.map((c, i) => (
                     <div key={i} style={{ textAlign: "center", padding: "10px 14px", borderRadius: "12px", background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.3)" }}>
                       <div style={{ color: "#34d399", fontWeight: 700, fontSize: "20px", marginBottom: "6px" }}>{c}</div>
-                      <MiniFretboard chord={c} theme={C} />
+                      <MiniFretboard chord={c} theme={C} locale="en" />
                     </div>
                   ))}
                 </div>
@@ -272,7 +274,7 @@ export default function ChordTransitionTrainer({
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
                   <div style={{ fontSize: "64px", fontWeight: 700, color: "#34d399" }}>{activePair[targetChord % 2]}</div>
-                  <MiniFretboard chord={activePair[targetChord % 2]} theme={C} />
+                  <MiniFretboard chord={activePair[targetChord % 2]} theme={C} locale="en" />
                 </div>
               </button>
               <p style={{ color: "#666", fontSize: "13px" }}>Tap the big button EVERY TIME you play the chord</p>
@@ -288,7 +290,7 @@ export default function ChordTransitionTrainer({
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
                   <div style={{ fontSize: "64px", fontWeight: 700, color: "#34d399" }}>{chords[targetChord % chords.length]}</div>
-                  <MiniFretboard chord={chords[targetChord % chords.length]} theme={C} />
+                  <MiniFretboard chord={chords[targetChord % chords.length]} theme={C} locale="en" />
                 </div>
               </button>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "center" }}>
