@@ -18,12 +18,44 @@ export default async function BrowsePage({
 }) {
   const query = (searchParams.q || "").trim().toLowerCase();
 
-  // Todas as músicas ordenadas por views (ranking)
-  const { data: tabs } = await supabase
-    .from("tabs")
-    .select("song, artist, slug_artist, slug_song, is_verified, views, artist_image_url")
-    .order("views", { ascending: false });
-  const allTabs = tabs || [];
+  // ---------------------------------------------------------------------
+  // LEITURA PAGINADA E COM ORDEM DETERMINÍSTICA.
+  //
+  // BUG QUE ISTO CORRIGE (reportado pelo dono em 26/11: "não achei Chasing
+  // Pavements" na busca): a leitura era uma só, `order("views")`. Duas coisas
+  // quebravam, e juntas escondiam 166 músicas de 1.166:
+  //   1. o PostgREST devolve no máximo 1.000 linhas por requisição, em
+  //      silêncio — sem `.range()` a 1.001ª em diante nunca chegava;
+  //   2. `views` está empatadíssimo (1.007 músicas com 0 e só 88 valores
+  //      distintos no total). Ordenar por uma coluna sem desempate faz o
+  //      banco devolver um subconjunto ARBITRÁRIO dentro do empate: a mesma
+  //      música entra e sai entre requisições. Chasing Pavements ficava na
+  //      posição 360 mas NÃO vinha nas 1.000 devolvidas.
+  // Correção: paginar com `.range()` e desempatar por `id`, que é único.
+  // ---------------------------------------------------------------------
+  const PAGE = 1000;
+  const allTabs: {
+    song: string;
+    artist: string;
+    slug_artist: string;
+    slug_song: string;
+    is_verified: boolean;
+    views: number | null;
+    artist_image_url: string | null;
+  }[] = [];
+
+  for (let from = 0; from < 20000; from += PAGE) {
+    const { data, error } = await supabase
+      .from("tabs")
+      .select("song, artist, slug_artist, slug_song, is_verified, views, artist_image_url")
+      .order("views", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) break;
+    const page = data || [];
+    allTabs.push(...page);
+    if (page.length < PAGE) break; // última página
+  }
 
   // Filtro de busca (música, artista ou slug)
   const filtered = query
