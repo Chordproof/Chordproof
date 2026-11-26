@@ -175,6 +175,7 @@ export default function TabDetailComponent({
             <h1 className="text-4xl font-bold">{songName}</h1>
             {tab.is_verified && <div className="flex items-center gap-1 bg-brand-gold/10 text-brand-gold px-3 py-1 rounded-full text-xs font-bold gold-seal-anim"><BadgeCheck size={14} /> VERIFIED</div>}
           </div>
+          {/* Nome do artista com foto ao lado */}
           <div className="flex items-center gap-2">
             <ArtistAvatar name={artistName} slug={params.artist} imageUrl={tab.artist_image_url} size="xs" />
             <Link href={`/artist/${params.artist}`} className="text-xl text-brand-muted hover:text-brand-gold hover:underline transition-colors inline-block">
@@ -188,7 +189,8 @@ export default function TabDetailComponent({
             {easyOverride?.capo && <span className="bg-brand-gold/10 text-brand-gold px-3 py-1 rounded text-sm font-bold">Easy capo: <strong>{easyOverride.capo}</strong></span>}
           </div>
         </div>
-        <div className="flex gap-2 flex-wrap items-center">
+        <div className="flex gap-3">
+          <button onClick={() => { navigator.clipboard?.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 2000); }} className="p-3 bg-[var(--c-overlay-soft)] rounded-full hover:bg-[var(--c-overlay)]" title={copied ? "Link copied!" : "Share"}><Share2 size={20} className={copied ? "text-brand-gold" : ""} /></button>
           <SaveOfflineButton tab={tab} slugArtist={params.artist} slugSong={params.song} />
           <AddToSetlist tabId={tab.id} song={songName} artist={artistName} />
           <SaveTabButton artist={params.artist} song={params.song} />
@@ -196,17 +198,127 @@ export default function TabDetailComponent({
           <a href="#tab-content" className="flex items-center gap-2 px-6 py-3 bg-[var(--c-cta-bg)] text-[var(--c-cta-text)] rounded-full font-bold hover:scale-105 transition"><Play size={18} /> Play</a>
         </div>
       </div>
-
-      <div style={{display:"grid",gridTemplateColumns:"1fr",gap:"12px",marginBottom:"24px"}} className="md:hidden">
-        <div className="bg-[var(--c-card)] rounded-xl p-3">
-          <p className="text-xs text-brand-muted mb-2">Chords used</p>
-          <div className="flex flex-wrap gap-2">
-            {usedChords.map((c) => (<div key={c} onClick={() => handleChordClick(c)} style={{cursor:"pointer"}}><MiniFretboard chord={c} theme={theme} instrument={instrument} capo={capoFret} locale={locale} /></div>))}
+      <div className="flex flex-wrap items-center gap-2 sm:gap-4 bg-brand-card rounded-2xl p-2 sm:p-4 border border-[var(--c-hairline)]" style={{marginBottom:"24px", boxShadow: "var(--c-shadow)", position: "sticky", top: "56px", zIndex: 40}}>
+        <TransposeControls transpose={transpose} onTranspose={setTranspose} />
+        <button onClick={() => setShowTablature(!showTablature)} className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (showTablature ? "bg-[var(--c-cta-bg)] text-[var(--c-cta-text)]" : "bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)]")}><ChevronDown size={16} /> Tablature {showTablature ? "ON" : "OFF"}</button>
+        <button onClick={() => { if (plus.hasAccess) setTrainerOpen(true); else window.location.href = "/pricing?feature=Trainer"; }} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)]" title="Train chord transitions with a timer (ChordProof+)"><Zap size={16} className="text-brand-gold" /> Trainer{!plus.hasAccess && <span className="text-[10px] font-bold text-[var(--c-gold)]">+</span>}</button>
+        <button onClick={() => { if (plus.hasAccess) setDrumOpen(true); else window.location.href = "/pricing?feature=Drums"; }} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)]" title="Drum machine — groove by genre at the song BPM (ChordProof+)">🥁 Drums{!plus.hasAccess && <span className="text-[10px] font-bold text-[var(--c-gold)]">+</span>}</button>
+        <StageMode>
+          {renderContent(content, showTablature, transpose, handleChordClick, theme)}
+          {showTablature && hasTab && !hasInlineTablature(content) && renderTablature(tablature)}
+        </StageMode>
+        <EasyModeToggle
+          content={tab.content || ""}
+          transpose={transpose}
+          onContentOverride={(easyContent, capo) => setEasyOverride(easyContent ? { content: easyContent, capo } : null)}
+        />
+        <Sep />
+        <InstrumentPicker current={instrument} onChange={setInstrument} />
+        <div style={{position:"relative"}} className="ml-auto">
+          <button onClick={() => setMoreOpen(!moreOpen)} className="w-9 h-9 flex items-center justify-center rounded-full bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)] transition" title="More: PDF, Print, Theme">
+            <MoreHorizontal size={18} />
+          </button>
+          {moreOpen && (
+            <div style={{position:"absolute", top:"100%", right:0, marginTop:"8px", background:"#1a1a2e", border:"1px solid #333", borderRadius:"12px", padding:"6px", minWidth:"180px", zIndex:60, boxShadow:"0 8px 24px rgba(0,0,0,0.5)"}}>
+              <div style={{padding:"6px 12px 2px", fontSize:"10px", color:"var(--c-text-tertiary)", textTransform:"uppercase", letterSpacing:"0.5px"}}>Export</div>
+              {plus.hasAccess ? (<>
+                <div style={{padding:"0 6px"}}><PdfButton
+                  song={songName}
+                  artist={artistName}
+                  content={content}
+                  transpose={transpose}
+                  capo={tab.capo}
+                  easyCapo={easyOverride?.capo ?? null}
+                  keySig={tab.key_sig}
+                /></div>
+                <div style={{padding:"0 6px"}}><PrintButton
+                  tab={tab}
+                  content={content}
+                  transpose={transpose}
+                  easyApplied={!!easyOverride}
+                  easyCapo={easyOverride?.capo ?? null}
+                /></div>
+              </>) : (
+                <div style={{padding:"0 6px 4px"}}>
+                  <a href="/pricing?feature=PDF" className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-[var(--c-gold-soft)] text-[var(--c-gold)] font-bold" title="PDF &amp; Print — ChordProof+">PDF &amp; Print <span className="text-[10px]">+</span></a>
+                </div>
+              )}
+              <div style={{padding:"6px 12px 2px", fontSize:"10px", color:"#666", textTransform:"uppercase", letterSpacing:"0.5px"}}>Appearance</div>
+              <div style={{padding:"0 6px 6px"}}><ThemePicker current={themeKey} onChange={setThemeKey} /></div>
+            </div>
+          )}
+        </div>
+      </div>
+      {/* flexDirection="column" no style INLINE vencia a classe md:flex-row do
+          Tailwind (inline > classe): o layout ficava em UMA coluna em qualquer
+          largura e o bloco do video caia depois da cifra inteira, ate no
+          desktop. Agora a direcao vem das classes: coluna no mobile, duas
+          colunas a partir de md. */}
+      <div style={{display:"flex",gap:"24px",alignItems:"flex-start"}} className="flex-col md:flex-row md:items-start">
+        <div style={{flex:"3 1 0%",minWidth:"0",width:"100%"}} className="order-2 md:order-1 md:w-auto">
+          <div id="tab-content" className="glass-card rounded-2xl p-8" style={{marginBottom:"24px"}}>
+            <div style={{fontFamily:"monospace",fontSize:"1rem",lineHeight:"1.6"}}>{renderContent(content, showTablature, transpose, handleChordClick, theme)}</div>
+            {showTablature && hasTab && !hasInlineTablature(content) && renderTablature(tablature)}
+          </div>
+          {usedChords.length > 0 && (
+            <section className="glass-card rounded-2xl p-6 space-y-4" style={{marginBottom:"24px"}}>
+              <h2 className="text-2xl font-bold">Chords used in this tab</h2>
+              <p className="text-sm text-brand-muted">Hover over a chord in the tab to see its shape. Click to hear it:</p>
+              <div style={{display:"flex",flexWrap:"wrap",gap:"12px"}}>
+                {usedChords.map((c) => (<div key={c} onClick={() => handleChordClick(c)} style={{cursor:"pointer"}}><MiniFretboard chord={c} theme={theme} instrument={instrument} capo={capoFret} locale={locale} /></div>))}
+              </div>
+            </section>
+          )}
+          <SmartKey
+            keySig={tab.key_sig}
+            chords={usedChords}
+            currentTranspose={transpose}
+            onApplyTranspose={setTranspose}
+          />
+          <div className="flex items-center gap-2 text-sm text-brand-muted"><AlertTriangle size={16} className="text-brand-gold" /><span>Found an error? </span><button className="text-brand-gold hover:underline">Report this tab</button></div>
+        </div>
+        <div style={{flex:"1 0 320px",maxWidth:"360px",width:"100%"}} className="order-1 md:order-2 md:w-auto">
+          <div style={{position:"sticky",top:"24px"}}>
+            {/* Ouvir vem PRIMEIRO: quem quer ouvir acha antes de quem quer ver. */}
+            <div style={{marginBottom:"16px"}}>
+              <PlayProgression content={tab.content || ""} transpose={transpose} />
+            </div>
+            {youtubeId ? (
+              <div className="glass-card rounded-2xl p-4 space-y-3" style={{marginBottom:"16px"}}>
+                <h3 className="text-lg font-bold flex items-center gap-2"><Youtube size={20} className="text-red-500" /> Watch &amp; Play</h3>
+                <iframe className="w-full aspect-video rounded-xl border border-[var(--c-hairline)]" src={"https://www.youtube.com/embed/"+youtubeId} title={songName + " - " + artistName} allowFullScreen />
+                <p className="text-xs text-brand-muted">Play along with the video while reading the tab.</p>
+              </div>
+            ) : youtubeLoading ? (
+              <div className="glass-card rounded-2xl p-4 space-y-3" style={{marginBottom:"16px"}}>
+                <h3 className="text-lg font-bold flex items-center gap-2"><Youtube size={20} className="text-red-500" /> Searching video...</h3>
+                <div className="flex items-center justify-center py-8"><Loader2 className="animate-spin text-brand-muted" size={24} /></div>
+              </div>
+            ) : (
+              <div className="glass-card rounded-2xl p-4 space-y-2" style={{marginBottom:"16px"}}>
+                <h3 className="text-lg font-bold flex items-center gap-2"><Youtube size={20} className="text-red-500" /> Video</h3>
+                <p className="text-sm text-brand-muted">No video found for this tab.</p>
+              </div>
+            )}
+            {/* No mobile o bloco de vídeo sobe para antes da cifra (order-1),
+                então esta referência rápida NÃO sobe junto: ela duplica a seção
+                "Chords used in this tab", que fica logo abaixo da cifra e já
+                mostra os mesmos acordes com o desenho. No desktop continua. */}
+            {usedChords.length > 0 && (
+              <div className="hidden md:block glass-card rounded-2xl p-4 space-y-3">
+                <h3 className="text-sm font-bold text-brand-muted uppercase tracking-wider">Quick Reference</h3>
+                <div className="flex flex-wrap gap-2">
+                  {usedChords.map((c) => (<button key={c} onClick={() => handleChordClick(c)} className="px-3 py-1.5 bg-[var(--c-overlay-soft)] rounded-lg text-sm hover:bg-brand-gold/10 transition-colors" style={{color:"#34d399",fontWeight:700}}>{c}</button>))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
-
       {activeChord && <ChordDiagram chord={activeChord} onClose={() => setActiveChord(null)} theme={theme} instrument={instrument} capo={capoFret} locale={locale} />}
+      {trainerOpen && <ChordTransitionTrainer chords={usedChords} onClose={() => setTrainerOpen(false)} theme={theme} />}
+      {drumOpen && <DrumMachine genre={tab.genre || null} artist={artistName} song={songName} onClose={() => setDrumOpen(false)} accentColor={theme.dot} />}
+      <AutoScrollControl />
     </div>
   );
 }
