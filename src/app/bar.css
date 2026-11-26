@@ -1,0 +1,161 @@
+/* ==================================================================
+   ACTION BAR DA CIFRA (tbar)
+   Uma linha no desktop; no celular todos os controles continuam
+   visiveis, em icone.
+
+   POR QUE ESTE CSS E UM ARQUIVO (e nao styled-jsx no componente):
+   a primeira versao usava <style jsx global> dentro do TabActionBar.
+   O styled-jsx injeta o CSS por JavaScript em runtime — o CSS nao vem
+   do servidor. Isso e fragil: se o chunk atrasa, o JS falha ou a
+   hidratacao quebra, a barra aparece SEM estilo (foi o que aconteceu:
+   os dropdowns recortados). Arquivo CSS importado no layout vem no
+   <head>, antes do primeiro paint.
+   ================================================================== */
+.tbar {
+  background: var(--c-card);
+  -webkit-backdrop-filter: blur(var(--c-glass-blur, 14px)) saturate(1.15);
+          backdrop-filter: blur(var(--c-glass-blur, 14px)) saturate(1.15);
+  border: 1px solid var(--c-hairline);
+  border-radius: 14px;
+  box-shadow: var(--c-shadow);
+  /* os dropdowns escapam para fora da barra */
+  overflow: visible;
+}
+.tbar-in {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 9px;
+  flex-wrap: nowrap;
+  /*
+    VISIVEL — sem isso os MENUS NAO ABREM.
+    Os menus do instrumento e do botao de tres pontos sao position:absolute
+    DENTRO da barra. Com overflow (auto/hidden) o navegador RECORTA o menu:
+    ele abre e nao aparece. O usuario ve o botao "nao fazer nada", e
+    "Download PDF"/"Print" nunca aparecem porque moram dentro do menu.
+    Para nao transbordar em tela estreita, o aperto vem dos @media abaixo —
+    nunca de rolagem horizontal.
+  */
+  overflow: visible;
+}
+
+/* ---- grupo do transpose ---- */
+.tgroup {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  flex: 0 0 auto;
+  background: var(--c-overlay-soft);
+  border-radius: 10px;
+  padding: 3px;
+}
+.tstep {
+  width: 27px; height: 27px; flex: 0 0 27px;
+  display: grid; place-items: center;
+  border: 0; border-radius: 7px; cursor: pointer;
+  background: transparent; color: var(--c-text);
+  font-size: 16px; font-weight: 700; line-height: 1;
+  font-family: inherit;
+  transition: background 140ms ease;
+}
+.tstep:hover { background: var(--c-overlay); }
+.tstep:focus-visible { outline: 2px solid var(--c-gold); outline-offset: 1px; }
+.tval { min-width: 48px; text-align: center; line-height: 1.05; }
+.tval .lb {
+  display: block; font-size: 8px; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--c-text-tertiary); font-weight: 800;
+}
+.tval .nm { display: block; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.tsep { width: 1px; height: 22px; background: var(--c-hairline); margin: 0 5px; flex: 0 0 1px; }
+
+/* ---- botao padrao da barra ---- */
+.tbtn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 33px; padding: 0 10px;
+  border: 1px solid transparent; border-radius: 9px;
+  background: transparent; color: var(--c-text);
+  font-size: 13px; font-weight: 650; white-space: nowrap;
+  flex: 0 0 auto; cursor: pointer; font-family: inherit;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+.tbtn:hover { background: var(--c-overlay); }
+.tbtn:focus-visible { outline: 2px solid var(--c-gold); outline-offset: 1px; }
+.tbtn > svg { width: 15px; height: 15px; flex: 0 0 15px; }
+/* ESTADO LIGADO: dourado discreto. So Tablature e Easy tem estado. */
+.tbtn.on {
+  background: var(--c-gold-soft);
+  border-color: rgba(156, 91, 0, 0.26);
+  color: var(--c-gold);
+}
+[data-theme="dark"] .tbtn.on, .dark .tbtn.on {
+  border-color: rgba(240, 180, 41, 0.34);
+}
+.tstate {
+  font-size: 9px; font-weight: 800; letter-spacing: 0.05em;
+  padding: 2px 4px; border-radius: 4px;
+  background: var(--c-overlay); color: var(--c-text-tertiary);
+}
+.tbtn.on .tstate { background: var(--c-gold); color: #fff; }
+.dark .tbtn.on .tstate, [data-theme="dark"] .tbtn.on .tstate { color: #1b1408; }
+/* selo de recurso Plus */
+.tplus { font-size: 9px; font-weight: 800; color: var(--c-gold); line-height: 1; transform: translateY(-5px); margin-left: -3px; }
+
+.tspacer { flex: 1 1 auto; min-width: 4px; }
+.tinst { gap: 5px; padding-right: 6px; }
+.tinst .chev { width: 11px; height: 11px; opacity: 0.5; flex: 0 0 11px; }
+.ticon {
+  width: 33px; height: 33px; flex: 0 0 33px;
+  display: grid; place-items: center; padding: 0;
+  border: 1px solid transparent; border-radius: 9px;
+  background: transparent; color: var(--c-muted); cursor: pointer;
+}
+.ticon:hover { background: var(--c-overlay); color: var(--c-text); }
+.ticon:focus-visible { outline: 2px solid var(--c-gold); outline-offset: 1px; }
+.ticon > svg { width: 16px; height: 16px; }
+
+/* ---- faixa do aviso (Easy Mode) ---- */
+.tbar-msg { display: flex; align-items: center; gap: 8px; padding: 0 12px 10px; flex-wrap: wrap; }
+.tbar-msg .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c-gold); flex: 0 0 6px; }
+.tmsg-text { margin: 0; font-size: 12.5px; color: var(--c-muted); line-height: 1.3; }
+.tmsg-text b { color: var(--c-text); font-weight: 700; }
+.tmsg-try {
+  border: 0; background: transparent; color: var(--c-gold);
+  font-weight: 800; font-size: 12.5px; cursor: pointer; padding: 0;
+  text-decoration: underline; text-underline-offset: 2px; font-family: inherit;
+}
+.tmsg-x {
+  margin-left: auto; border: 0; background: transparent;
+  color: var(--c-text-tertiary); cursor: pointer; font-size: 15px; line-height: 1;
+  padding: 2px 5px; border-radius: 4px;
+}
+.tmsg-x:hover { background: var(--c-overlay); }
+
+/* ---- CELULAR: os 9 controles continuam visiveis, em icone ---- */
+@media (max-width: 767px) {
+  .tbar-in { gap: 2px; padding: 8px 7px; }
+  .tbar-in .tbtn { padding: 0 8px; }
+  .tbar-in .tbtn .tlbl { display: none; }
+  .tbar-in .tbtn .tstate { display: none; }
+  .tbar-in .tgroup { padding: 2px; }
+  .tbar-in .tstep { width: 25px; height: 25px; flex: 0 0 25px; }
+  .tbar-in .tval { min-width: 22px; }
+  .tbar-in .tval .lb { display: none; }
+  .tbar-in .tval .nm { font-size: 13px; }
+  .tbar-in .tsep { margin: 0 3px; }
+  .tbar-in .ticon { width: 30px; flex: 0 0 30px; }
+  .tbar-in .tinst { padding: 0 5px; }
+  .tbar-msg { padding: 0 11px 9px; }
+}
+
+/* TELAS MUITO ESTREITAS (<=400px): aperta mais um pouco em vez de rolar.
+   Com 390px medidos os 9 controles cabem; aqui sobra folga para navegadores
+   que descontam barra de rolagem ou usam fonte maior. */
+@media (max-width: 400px) {
+  .tbar-in { gap: 1px; padding: 7px 5px; }
+  .tbar-in .tbtn { padding: 0 6px; }
+  .tbar-in .tstep { width: 23px; height: 23px; flex: 0 0 23px; }
+  .tbar-in .tval { min-width: 20px; }
+  .tbar-in .tinst { padding: 0 3px; }
+  .tbar-in .ticon { width: 28px; flex: 0 0 28px; }
+}
