@@ -5,10 +5,14 @@ import { INSTRUMENTS, INSTRUMENT_ORDER, type InstrumentKey } from "@/lib/instrum
 /**
  * InstrumentPicker — dropdown compacto na action bar.
  * Um botão único mostra o instrumento atual; o menu abre a lista completa
- * com mini-descrição. Reduz ~40% da largura da toolbar.
+ * com mini-descrição.
  *
  * No celular o rótulo escrito some (classe .tlbl) e fica o ícone + seta;
- * o nome continua no `title` e o rótulo no aria-label do botão.
+ * o nome continua no `title` e no aria-label.
+ *
+ * POSIÇÃO DO MENU: abre para BAIXO por padrão e para CIMA quando o botão está
+ * na metade de baixo da tela. Medido em 360px de viewport, o menu abria abaixo
+ * da dobra e as opções ficavam fora do alcance.
  */
 export default function InstrumentPicker({
   current,
@@ -18,7 +22,9 @@ export default function InstrumentPicker({
   onChange: (k: InstrumentKey) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [openUp, setOpenUp] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -39,7 +45,12 @@ export default function InstrumentPicker({
   return (
     <div ref={ref} style={{ position: "relative" }}>
       <button
-        onClick={() => setOpen(!open)}
+        ref={btnRef}
+        onClick={() => {
+          const r = btnRef.current?.getBoundingClientRect();
+          if (r) setOpenUp(r.bottom > (typeof window !== "undefined" ? window.innerHeight / 2 : 400));
+          setOpen(!open);
+        }}
         className="tbtn tinst"
         title={inst.description}
         aria-label={`Instrument: ${inst.label}`}
@@ -52,7 +63,12 @@ export default function InstrumentPicker({
       {open && (
         <div
           style={{
-            position: "absolute", top: "100%", right: 0, marginTop: "8px",
+            position: "absolute",
+            ...(openUp ? { bottom: "100%", marginBottom: "8px" } : { top: "100%", marginTop: "8px" }),
+            right: 0,
+            /* nunca maior que a tela: se a lista passar, rola dentro do menu */
+            maxHeight: "min(70vh, 360px)",
+            overflowY: "auto",
             background: "var(--c-bg-elevated)", border: "1px solid var(--c-hairline)", borderRadius: "12px",
             padding: "6px", minWidth: "210px", zIndex: 60, boxShadow: "var(--c-shadow)",
           }}
