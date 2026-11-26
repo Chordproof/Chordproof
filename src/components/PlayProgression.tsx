@@ -12,29 +12,31 @@ import { CHORD_SHAPES } from "@/lib/chordData";
 import { isChordToken, TAB_LINE_RE } from "@/lib/tabRenderer";
 import { patternDisplay, type StrumPattern } from "@/lib/strumPatterns";
 import { allPatterns, arpeggioSteps, resolveRhythm, type RhythmMode } from "@/lib/rhythmFromTab";
+import { isMonophonic } from "@/lib/instrumentTone";
+import type { InstrumentKey } from "@/lib/instruments";
 
 /**
  * PlayProgression — "Hear the progression".
  *
- * A BATIDA VEM DA MÚSICA, NÃO DO GÊNERO.
- * O gênero dá uma batida genérica (423 músicas de rock tocariam igual). A
- * decisão agora é:
- *   1. o que a PRÓPRIA CIFRA diz sobre a execução — 54% do catálogo traz
- *      instrução ("one downstroke per chord", "straight 8ths", "do not
- *      strum"). Ver lib/rhythmFromTab.ts;
- *   2. sem instrução na cifra, o gênero, como reserva.
- * A interface mostra de onde veio e o trecho que decidiu: nada de vender
- * chute de gênero como se fosse a batida da gravação.
+ * A BATIDA VEM DA MÚSICA, NÃO DO GÊNERO: primeiro o que a própria cifra diz
+ * sobre a execução (54% do catálogo traz instrução — ver lib/rhythmFromTab.ts),
+ * só depois o gênero como reserva. A interface marca de onde veio.
  *
- * DEDILHADO: quando a cifra manda não bater, o player toca ARPEJO — uma corda
- * por vez, na ordem de subida e descida. Bater o acorde ali seria tocar outra
- * música.
+ * O SOM SEGUE O INSTRUMENTO: `playChordFor` sintetiza no timbre escolhido na
+ * barra (piano com envelope de martelo, baixo uma oitava abaixo com
+ * fundamental+quinta, ukulele de nylon, cavaco curto e metálico). Ver
+ * lib/instrumentTone.ts.
  *
- * BPM: o real da gravação pela API (Deezer), com o valor de referência do
- * padrão como reserva.
+ * DEDILHADO: quando a cifra manda não bater, toca arpejo — uma corda por vez.
  */
 
 const MAX_CHORDS = 16;
+
+/**
+ * Acordes que ainda precisam das notas MIDI do shape (usado só no caminho
+ * antigo do playChord). Mantemos a extração porque o arpejo precisa da lista
+ * de notas e o baixo precisa do número de cordas aproximado.
+ */
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
 export default function PlayProgression({
@@ -43,12 +45,15 @@ export default function PlayProgression({
   genre = null,
   artist = "",
   song = "",
+  instrument = "guitar",
 }: {
   content: string;
   transpose?: number;
   genre?: string | null;
   artist?: string;
   song?: string;
+  /** o instrumento do seletor da barra: define o TIMBRE e o voicing do som */
+  instrument?: InstrumentKey;
 }) {
   const [playing, setPlaying] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(-1);
@@ -140,6 +145,11 @@ export default function PlayProgression({
     [transpose]
   );
 
+  /**
+   * MIDI do shape de guitarra — só para o arpejo, que precisa da sequência de
+   * notas. O acorde em si vai por nome para `playChordFor`, que aplica o
+   * voicing e o timbre do instrumento escolhido.
+   */
   const midisFor = useCallback(
     (name: string): number[] => {
       const t = transposeChord(name);
@@ -178,26 +188,35 @@ export default function PlayProgression({
     const arpSteps = arpeggioSteps(6);
 
     chordList.forEach((name, i) => {
+      const tName = transposeChord(name);
       const midis = midisFor(name);
       const barStart = i * barMs;
+      const mono = isMonophonic(instrument);
 
-      if (mode === "arpeggio" && midis.length) {
-        // dedilhado: uma corda por colcheia, subindo e descendo
+      // O SOM SEGUE O INSTRUMENTO: playChordFor sintetiza no timbre escolhido
+      if ((mode === "arpeggio" || mono) && midis.length) {
+        // dedilhado (ou baixo, que é monofônico): uma corda por colcheia
         arpSteps.forEach((stringIdx, k) => {
           const midi = midis[Math.min(stringIdx, midis.length - 1)];
           const at = barStart + k * stepMs * 2;
           timersRef.current.push(
-            window.setTimeout(() => audioEngine.playNote(midi, { volume: 0.42 }), at)
+            window.setTimeout(
+              () => audioEngine.playChord([midi], `n${midi}`, { volume: 0.42 }),
+              at
+            )
           );
         });
       } else {
-        // batida: cada palhetada do padrão, com direção
-        pattern.steps.forEach((s, step) => {
-          if (!s) return;
+        // batida: cada palhetada do padrão, no timbre do instrumento
+        pattern.steps.forEach((st, step) => {
+          if (!st) return;
           const at = barStart + step * stepMs;
           timersRef.current.push(
             window.setTimeout(
-              () => audioEngine.playChord(midis, name, { direction: s === "U" ? "up" : "down" }),
+              () =>
+                audioEngine.playChordFor(tName, instrument, {
+                  direction: st === "U" ? "up" : "down",
+                }),
               at
             )
           );
@@ -219,7 +238,7 @@ export default function PlayProgression({
         setCurrentStep(-1);
       }, chordList.length * barMs)
     );
-  }, [playing, chordList, bpm, midisFor, pattern, mode, stop]);
+  }, [playing, chordList, bpm, midisFor, pattern, mode, stop, instrument, transposeChord]);
 
   if (chordList.length === 0) return null;
 
@@ -431,7 +450,7 @@ export default function PlayProgression({
               key={`${c}-${i}`}
               onClick={async () => {
                 await audioEngine.unlock();
-                audioEngine.playChord(midisFor(c), c);
+                audioEngine.playChordFor(transposeChord(c), instrument);
               }}
               className="px-2 py-1 rounded text-xs font-bold transition-all"
               style={{
