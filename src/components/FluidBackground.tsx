@@ -12,21 +12,29 @@ import { FLUID_VERT, FLUID_FRAG } from "@/shaders/fluid";
  * superfície para quebrar, nenhuma dependência nova no package.json.
  *
  * PERFORMANCE (as regras que importam):
- *  - Renderiza em ESCALA REDUZIDA e o CSS estica. Um fundo desfocado não
- *    precisa de 1 pixel por pixel de tela.
+ *  - Renderiza em ESCALA REDUZIDA (backing store menor que a tela) e o CSS
+ *    estica. Um fundo desfocado não precisa de 1 pixel por pixel de tela.
  *  - Loop para quando a aba está oculta e quando o canvas sai da viewport.
- *  - MOBILE: antes não montava (max-width: 767px desligava). Agora monta,
- *    mas desenha UM frame parado — o mobile ganha a mesma paleta harmonizada
+ *  - MOBILE: monta, mas desenha UM frame parado — mesma paleta harmonizada,
  *    sem o custo de animar em GPU de celular.
  *  - prefers-reduced-motion: mesma regra do mobile, frame único.
  *
- * TEMA: o ThemeToggle NÃO adiciona a classe `dark`; ele só controla `light`.
- * Logo, tema claro = `html` tem a classe `light`. O shader recebe uMode 0
- * (papel) ou 1 (espresso) e escuta a troca em tempo real (MutationObserver)
- * — sem isso o fundo ficaria com a paleta errada até um F5.
+ * TEMA: lê a classe `light` no <html>, então o shader entrega a paleta de
+ * papel no claro e espresso no escuro. Escuta a troca de tema em tempo real
+ * (MutationObserver) — sem isso o fundo ficaria com a paleta errada até um F5.
  *
  * ACESSIBILIDADE: o canvas é aria-hidden e pointer-events: none.
  */
+
+/**
+ * SINGLETON — só UMA instância desenha por página.
+ *
+ * Motivo real: a home montou este componente DUAS vezes (uma no hero, outra
+ * global no layout). Dois contextos WebGL animando a mesma tela é o dobro de
+ * GPU para desenhar exatamente a mesma coisa. O contador de módulo garante que
+ * a segunda instância não monte — a duplicação não volta por descuido.
+ */
+let activeInstances = 0;
 
 export default function FluidBackground({
   className = "",
@@ -44,10 +52,20 @@ export default function FluidBackground({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+
     // Só a ausência de WebGL2 desliga de vez. Mobile e reduced-motion
     // continuam montando (frame único).
     const ok = !!document.createElement("canvas").getContext("webgl2");
-    setEnabled(ok);
+    if (!ok) return;
+
+    // Singleton: já existe um canvas ativo nesta página -> este não monta.
+    if (activeInstances > 0) return;
+    activeInstances += 1;
+    setEnabled(true);
+
+    return () => {
+      activeInstances = Math.max(0, activeInstances - 1);
+    };
   }, []);
 
   useEffect(() => {
@@ -109,6 +127,8 @@ export default function FluidBackground({
     const uRes = gl.getUniformLocation(prog, "uResolution");
     const uMode = gl.getUniformLocation(prog, "uMode");
 
+    // Mobile desenha mais barato ainda: o fundo é suave, não precisa de
+    // resolução. 0.4 esconde perfeitamente qualquer serrilhado.
     const isSmall = window.matchMedia("(max-width: 767px)").matches;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
     const RENDER_SCALE = isSmall ? 0.4 : 0.55;
@@ -144,14 +164,8 @@ export default function FluidBackground({
     // Primeiro paint imediato: sem ele o canvas aparece preto por um frame.
     draw(0);
 
-    const cleanup = () => {
-      gl.deleteBuffer(buf);
-      gl.deleteProgram(prog);
-      gl.deleteShader(vs);
-      gl.deleteShader(fs);
-    };
-
     if (STATIC_ONLY) {
+      // Frame único. Anti-flash: se o tema trocar, redesenha parado.
       const onTheme = () => {
         themeLight = document.documentElement.classList.contains("light");
         draw(0);
@@ -166,7 +180,10 @@ export default function FluidBackground({
       return () => {
         mo.disconnect();
         window.removeEventListener("resize", onResize);
-        cleanup();
+        gl.deleteBuffer(buf);
+        gl.deleteProgram(prog);
+        gl.deleteShader(vs);
+        gl.deleteShader(fs);
       };
     }
 
@@ -192,6 +209,8 @@ export default function FluidBackground({
     io.observe(canvas);
 
     const start = performance.now();
+
+    // Troca de tema: redesenha já, sem esperar o próximo frame pintar errado.
     const onThemeChange = () => {
       themeLight = document.documentElement.classList.contains("light");
       draw((performance.now() - start) / 1000);
@@ -206,9 +225,11 @@ export default function FluidBackground({
     const frame = (t: number) => {
       raf = requestAnimationFrame(frame);
       if (!visible || document.hidden) return;
+
       mouse.x += (mouseTarget.x - mouse.x) * 0.06;
       mouse.y += (mouseTarget.y - mouse.y) * 0.06;
       scrollVel *= 0.92;
+
       draw((t - start) / 1000);
     };
     raf = requestAnimationFrame(frame);
@@ -222,7 +243,10 @@ export default function FluidBackground({
       mo.disconnect();
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("scroll", onScroll);
-      cleanup();
+      gl.deleteBuffer(buf);
+      gl.deleteProgram(prog);
+      gl.deleteShader(vs);
+      gl.deleteShader(fs);
     };
   }, [enabled]);
 
