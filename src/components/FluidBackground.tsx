@@ -8,13 +8,22 @@ import { FLUID_VERT, FLUID_FRAG } from "@/shaders/fluid";
  *
  * POR QUE SEM THREE
  * O efeito é UM quad de tela cheia com um fragment shader. Para isso o three
- * custa ~127 KB gzip; escrevendo o WebGL direto, são ~4 KB.
+ * custa ~127 KB gzip; escrevendo o WebGL direto, são ~4 KB. Menos bytes, menos
+ * superfície para quebrar, nenhuma dependência nova no package.json.
  *
- * PERFORMANCE:
- *  - Renderiza em ESCALA REDUZIDA (55% dos pixels CSS) e o CSS estica. Um
- *    gradiente suave não precisa de 1 pixel por pixel — corta ~4x o fill-rate.
+ * PERFORMANCE (as regras que importam):
+ *  - Renderiza em ESCALA REDUZIDA e o CSS estica. Um fundo desfocado não
+ *    precisa de 1 pixel por pixel de tela.
  *  - Loop para quando a aba está oculta e quando o canvas sai da viewport.
- *  - Não monta em: telas < 768px, prefers-reduced-motion, ou sem WebGL2.
+ *  - MOBILE: antes não montava (max-width: 767px desligava). Agora monta,
+ *    mas desenha UM frame parado — o mobile ganha a mesma paleta harmonizada
+ *    sem o custo de animar em GPU de celular.
+ *  - prefers-reduced-motion: mesma regra do mobile, frame único.
+ *
+ * TEMA: o ThemeToggle NÃO adiciona a classe `dark`; ele só controla `light`.
+ * Logo, tema claro = `html` tem a classe `light`. O shader recebe uMode 0
+ * (papel) ou 1 (espresso) e escuta a troca em tempo real (MutationObserver)
+ * — sem isso o fundo ficaria com a paleta errada até um F5.
  *
  * ACESSIBILIDADE: o canvas é aria-hidden e pointer-events: none.
  */
@@ -33,30 +42,12 @@ export default function FluidBackground({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [enabled, setEnabled] = useState(false);
 
-  // Decide antes de criar qualquer contexto GL.
   useEffect(() => {
     if (typeof window === "undefined") return;
-
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const small = window.matchMedia("(max-width: 767px)");
-
-    const decide = () => {
-      let hasGL = false;
-      try {
-        hasGL = !!document.createElement("canvas").getContext("webgl2");
-      } catch {
-        hasGL = false;
-      }
-      setEnabled(!reduce.matches && !small.matches && hasGL);
-    };
-
-    decide();
-    reduce.addEventListener("change", decide);
-    small.addEventListener("change", decide);
-    return () => {
-      reduce.removeEventListener("change", decide);
-      small.removeEventListener("change", decide);
-    };
+    // Só a ausência de WebGL2 desliga de vez. Mobile e reduced-motion
+    // continuam montando (frame único).
+    const ok = !!document.createElement("canvas").getContext("webgl2");
+    setEnabled(ok);
   }, []);
 
   useEffect(() => {
@@ -116,8 +107,14 @@ export default function FluidBackground({
     const uScroll = gl.getUniformLocation(prog, "uScrollVelocity");
     const uAudio = gl.getUniformLocation(prog, "uAudioFrequency");
     const uRes = gl.getUniformLocation(prog, "uResolution");
+    const uMode = gl.getUniformLocation(prog, "uMode");
 
-    const RENDER_SCALE = 0.55;
+    const isSmall = window.matchMedia("(max-width: 767px)").matches;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const RENDER_SCALE = isSmall ? 0.4 : 0.55;
+    const STATIC_ONLY = isSmall || reduce.matches;
+
+    let themeLight = document.documentElement.classList.contains("light");
 
     const resize = () => {
       const w = Math.max(1, Math.round(canvas.clientWidth * RENDER_SCALE));
@@ -132,6 +129,47 @@ export default function FluidBackground({
 
     const mouse = { x: 0.5, y: 0.5 };
     const mouseTarget = { x: 0.5, y: 0.5 };
+    let scrollVel = 0;
+
+    const draw = (seconds: number) => {
+      resize();
+      gl.uniform1f(uTime, seconds);
+      gl.uniform2f(uMouse, mouse.x, mouse.y);
+      gl.uniform1f(uScroll, scrollVel);
+      gl.uniform1f(uAudio, 0);
+      gl.uniform1f(uMode, themeLight ? 0 : 1);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    };
+
+    // Primeiro paint imediato: sem ele o canvas aparece preto por um frame.
+    draw(0);
+
+    const cleanup = () => {
+      gl.deleteBuffer(buf);
+      gl.deleteProgram(prog);
+      gl.deleteShader(vs);
+      gl.deleteShader(fs);
+    };
+
+    if (STATIC_ONLY) {
+      const onTheme = () => {
+        themeLight = document.documentElement.classList.contains("light");
+        draw(0);
+      };
+      const mo = new MutationObserver(onTheme);
+      mo.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["class"],
+      });
+      const onResize = () => draw(0);
+      window.addEventListener("resize", onResize);
+      return () => {
+        mo.disconnect();
+        window.removeEventListener("resize", onResize);
+        cleanup();
+      };
+    }
+
     const onMove = (e: PointerEvent) => {
       const r = canvas.getBoundingClientRect();
       if (!r.width || !r.height) return;
@@ -139,7 +177,6 @@ export default function FluidBackground({
       mouseTarget.y = 1 - (e.clientY - r.top) / r.height;
     };
 
-    let scrollVel = 0;
     let lastScroll = window.scrollY;
     const onScroll = () => {
       const now = window.scrollY;
@@ -154,24 +191,25 @@ export default function FluidBackground({
     });
     io.observe(canvas);
 
-    let raf = 0;
     const start = performance.now();
+    const onThemeChange = () => {
+      themeLight = document.documentElement.classList.contains("light");
+      draw((performance.now() - start) / 1000);
+    };
+    const mo = new MutationObserver(onThemeChange);
+    mo.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
 
+    let raf = 0;
     const frame = (t: number) => {
       raf = requestAnimationFrame(frame);
       if (!visible || document.hidden) return;
-
-      resize();
-
       mouse.x += (mouseTarget.x - mouse.x) * 0.06;
       mouse.y += (mouseTarget.y - mouse.y) * 0.06;
       scrollVel *= 0.92;
-
-      gl.uniform1f(uTime, (t - start) / 1000);
-      gl.uniform2f(uMouse, mouse.x, mouse.y);
-      gl.uniform1f(uScroll, scrollVel);
-      gl.uniform1f(uAudio, 0);
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      draw((t - start) / 1000);
     };
     raf = requestAnimationFrame(frame);
 
@@ -181,12 +219,10 @@ export default function FluidBackground({
     return () => {
       cancelAnimationFrame(raf);
       io.disconnect();
+      mo.disconnect();
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("scroll", onScroll);
-      gl.deleteBuffer(buf);
-      gl.deleteProgram(prog);
-      gl.deleteShader(vs);
-      gl.deleteShader(fs);
+      cleanup();
     };
   }, [enabled]);
 
@@ -209,7 +245,10 @@ export default function FluidBackground({
                   "linear-gradient(180deg, rgba(0,0,0,.95) 0%, rgba(0,0,0,.85) 55%, transparent 100%)",
               }
             : {}),
-          opacity: fixed ? 0.55 : 1,
+          // Opacidade total: o shader já entrega a cor final do papel. Antes
+          // ele era um véu a 55% sobre o grafite do body, e o cinza-azulado
+          // do body vazava por baixo — parte do porquê parecia "de outro site".
+          opacity: 1,
         } as React.CSSProperties
       }
     />
