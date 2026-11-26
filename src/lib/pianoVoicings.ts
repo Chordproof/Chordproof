@@ -1,8 +1,8 @@
 // pianoVoicings.ts — Fase 3: notas de teclado a partir do nome do acorde
-// Reaproveita o parser de qualidades do fourStringVoicings e converte para
-// notas MIDI/nome, com voicing fechado na região média do piano (C3-C5).
+// Converte o nome em notas MIDI/nome, com voicing fechado na região média do
+// piano (C3-C5).
 
-import { parseChord } from "./fourStringVoicings";
+import { parseChordName } from "./chordTheory";
 
 const PITCH_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
@@ -12,9 +12,15 @@ function pcToName(pc: number): string {
 
 /** Notas do acorde como pitch classes (0-11), fundamental primeiro. */
 export function chordPitchClasses(chordName: string): number[] {
-  const spec = parseChord(chordName);
+  const spec = parseChordName(chordName);
   if (!spec) return [];
-  return spec.intervals.map((i) => (spec.root + i) % 12);
+  const seen = new Set<number>();
+  const out: number[] = [];
+  for (const i of spec.intervals) {
+    const pc = (spec.root + i) % 12;
+    if (!seen.has(pc)) { seen.add(pc); out.push(pc); }
+  }
+  return out;
 }
 
 /**
@@ -22,7 +28,10 @@ export function chordPitchClasses(chordName: string): number[] {
  * Fundamental perto de C3, demais notas empilhadas acima (voicing fechado).
  */
 export function pianoVoicing(chordName: string): number[] {
-  const spec = parseChord(chordName);
+  // Parser próprio do site (chordTheory): o anterior (fourStringVoicings)
+  // só conhecia ~24 qualidades e devolvia undefined para o resto — era o que
+  // fazia o teclado exibir "Diagram under construction" em acorde comum.
+  const spec = parseChordName(chordName);
   if (!spec) return [];
 
   // Pitch classes únicas preservando a ordem dos intervalos (fundamental primeiro)
