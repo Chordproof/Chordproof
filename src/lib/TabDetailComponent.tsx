@@ -1,26 +1,21 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import TransposeControls from "@/components/TransposeControls";
 import AutoScrollControl from "@/components/AutoScrollControl";
 import ArtistAvatar from "@/components/ArtistAvatar";
 import SaveOfflineButton from "@/components/SaveOfflineButton";
-import StageMode from "@/components/StageMode";
-import EasyModeToggle from "@/components/EasyModeToggle";
-import PdfButton from "@/components/PdfButton";
-import PrintButton from "@/components/PrintButton";
 import AddToSetlist from "@/components/AddToSetlist";
 import ChordTransitionTrainer from "@/components/ChordTransitionTrainer";
 import SmartKey from "@/components/SmartKey";
-import InstrumentPicker from "@/components/InstrumentPicker";
 import SaveTabButton from "@/components/SaveTabButton";
 import DrumMachine from "@/components/DrumMachine";
 import type { InstrumentKey } from "@/lib/instruments";
-import { BadgeCheck, AlertTriangle, Share2, Play, MousePointer2, Loader2, ChevronDown, Youtube, Zap, MoreHorizontal } from "lucide-react";
+import { BadgeCheck, AlertTriangle, Share2, Play, Loader2, Youtube } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { recordAction } from "@/lib/gamification";
 import { chordsUsed } from "@/lib/chordData";
-import { MiniFretboard, ChordDiagram, ThemePicker, THEMES, type ThemeKey } from "@/lib/fretboard";
+import { MiniFretboard, ChordDiagram, THEMES, type ThemeKey } from "@/lib/fretboard";
+import TabActionBar from "@/components/TabActionBar";
 import { renderContent, renderTablature, hasInlineTablature } from "@/lib/tabRenderer";
 import { usePlusAccess } from "@/components/PlusGate";
 import { audioEngine, chordMidiFromName, chordMidiFromShape, bassMidiForChord } from "@/lib/audio";
@@ -28,10 +23,6 @@ import { CHORD_SHAPES } from "@/lib/chordData";
 import SoundToggle from "@/components/SoundToggle";
 import PlayProgression from "@/components/PlayProgression";
 
-
-function Sep() {
-  return <div style={{ width: "1px", height: "24px", background: "rgba(255,255,255,0.12)", margin: "0 4px" }} />;
-}
 
 /**
  * Recebe `initialTab` do Server Component: com ela, o HTML já sai com a cifra
@@ -56,9 +47,11 @@ export default function TabDetailComponent({
   const [youtubeLoading, setYoutubeLoading] = useState(false);
   const [themeKey, setThemeKey] = useState<ThemeKey>("amber");
   const [easyOverride, setEasyOverride] = useState<{ content: string; capo: number | null } | null>(null);
+  const [easyOn, setEasyOn] = useState(false);
+  const [easyDismissed, setEasyDismissed] = useState(false);
+  const [easyApply, setEasyApply] = useState(0);
   const [trainerOpen, setTrainerOpen] = useState(false);
   const [drumOpen, setDrumOpen] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
   const [instrument, setInstrument] = useState<InstrumentKey>("guitar");
   const plus = usePlusAccess();
 
@@ -144,9 +137,8 @@ export default function TabDetailComponent({
 
   /**
    * CAPOTRASTE: o banco guarda em `capo`. O diagrama precisa do NUMERO para
-   * desenhar a barra na casa certa — antes o capo so existia como selo no topo
-   * e o desenho do acorde escondia a informacao, entao quem lia cifra com capo
-   * tocava na casa errada. Sao 254 cifras com capo no catalogo.
+   * desenhar a barra na casa certa — antes o capo só existia como selo no topo
+   * e o desenho do acorde escondia a informação. 254 cifras têm capo.
    */
   const capoFret = (() => {
     const raw = (tab as any)?.capo;
@@ -154,11 +146,9 @@ export default function TabDetailComponent({
     const n = parseInt(String(raw).replace(/[^0-9]/g, ""), 10);
     return Number.isFinite(n) && n > 0 && n <= 12 ? n : 0;
   })();
-  // O site e inteiro em ingles, entao o diagrama tambem: detectar o idioma do
+  // O site é inteiro em inglês, então o diagrama também: detectar o idioma do
   // navegador misturava "Capotraste na casa 3" com "Chords used in this tab".
-  // Pior: o servidor renderiza sem `navigator` (ingles) e o cliente trocava
-  // para portugues na hidratacao, gerando erro de hidratacao do React.
-  const locale = "en"; // site em ingles: diagrama em ingles tambem
+  const locale = "en";
   const hasTab = tablature && tablature.trim().length > 0;
 
   return (
@@ -197,57 +187,46 @@ export default function TabDetailComponent({
           <a href="#tab-content" className="flex items-center gap-2 px-6 py-3 bg-[var(--c-cta-bg)] text-[var(--c-cta-text)] rounded-full font-bold hover:scale-105 transition"><Play size={18} /> Play</a>
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-2 sm:gap-4 bg-brand-card rounded-2xl p-2 sm:p-4 border border-[var(--c-hairline)]" style={{marginBottom:"24px", boxShadow: "var(--c-shadow)", position: "sticky", top: "56px", zIndex: 40}}>
-        <TransposeControls transpose={transpose} onTranspose={setTranspose} />
-        <button onClick={() => setShowTablature(!showTablature)} className={"flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition " + (showTablature ? "bg-[var(--c-cta-bg)] text-[var(--c-cta-text)]" : "bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)]")}><ChevronDown size={16} /> Tablature {showTablature ? "ON" : "OFF"}</button>
-        <button onClick={() => { if (plus.hasAccess) setTrainerOpen(true); else window.location.href = "/pricing?feature=Trainer"; }} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)]" title="Train chord transitions with a timer (ChordProof+)"><Zap size={16} className="text-brand-gold" /> Trainer{!plus.hasAccess && <span className="text-[10px] font-bold text-[var(--c-gold)]">+</span>}</button>
-        <button onClick={() => { if (plus.hasAccess) setDrumOpen(true); else window.location.href = "/pricing?feature=Drums"; }} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)]" title="Drum machine — groove by genre at the song BPM (ChordProof+)">🥁 Drums{!plus.hasAccess && <span className="text-[10px] font-bold text-[var(--c-gold)]">+</span>}</button>
-        <StageMode>
-          {renderContent(content, showTablature, transpose, handleChordClick, theme)}
-          {showTablature && hasTab && !hasInlineTablature(content) && renderTablature(tablature)}
-        </StageMode>
-        <EasyModeToggle
-          content={tab.content || ""}
-          transpose={transpose}
-          onContentOverride={(easyContent, capo) => setEasyOverride(easyContent ? { content: easyContent, capo } : null)}
-        />
-        <Sep />
-        <InstrumentPicker current={instrument} onChange={setInstrument} />
-        <div style={{position:"relative"}} className="ml-auto">
-          <button onClick={() => setMoreOpen(!moreOpen)} className="w-9 h-9 flex items-center justify-center rounded-full bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)] transition" title="More: PDF, Print, Theme">
-            <MoreHorizontal size={18} />
-          </button>
-          {moreOpen && (
-            <div style={{position:"absolute", top:"100%", right:0, marginTop:"8px", background:"#1a1a2e", border:"1px solid #333", borderRadius:"12px", padding:"6px", minWidth:"180px", zIndex:60, boxShadow:"0 8px 24px rgba(0,0,0,0.5)"}}>
-              <div style={{padding:"6px 12px 2px", fontSize:"10px", color:"var(--c-text-tertiary)", textTransform:"uppercase", letterSpacing:"0.5px"}}>Export</div>
-              {plus.hasAccess ? (<>
-                <div style={{padding:"0 6px"}}><PdfButton
-                  song={songName}
-                  artist={artistName}
-                  content={content}
-                  transpose={transpose}
-                  capo={tab.capo}
-                  easyCapo={easyOverride?.capo ?? null}
-                  keySig={tab.key_sig}
-                /></div>
-                <div style={{padding:"0 6px"}}><PrintButton
-                  tab={tab}
-                  content={content}
-                  transpose={transpose}
-                  easyApplied={!!easyOverride}
-                  easyCapo={easyOverride?.capo ?? null}
-                /></div>
-              </>) : (
-                <div style={{padding:"0 6px 4px"}}>
-                  <a href="/pricing?feature=PDF" className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-[var(--c-gold-soft)] text-[var(--c-gold)] font-bold" title="PDF &amp; Print — ChordProof+">PDF &amp; Print <span className="text-[10px]">+</span></a>
-                </div>
-              )}
-              <div style={{padding:"6px 12px 2px", fontSize:"10px", color:"#666", textTransform:"uppercase", letterSpacing:"0.5px"}}>Appearance</div>
-              <div style={{padding:"0 6px 6px"}}><ThemePicker current={themeKey} onChange={setThemeKey} /></div>
-            </div>
-          )}
-        </div>
-      </div>
+      {/*
+        ACTION BAR — extraída para <TabActionBar/>: uma linha, com hierarquia
+        (Transpose ancora à esquerda, instrumento e menu à direita). Antes esta
+        barra gastava 122px em 2 linhas e o seletor de instrumento caía sozinho
+        na segunda. No celular os 9 controles continuam visíveis, em ícone.
+      */}
+      <TabActionBar
+        transpose={transpose}
+        onTranspose={setTranspose}
+        showTablature={showTablature}
+        onToggleTablature={() => setShowTablature((v) => !v)}
+        plusAccess={plus.hasAccess}
+        onOpenTrainer={() => { if (plus.hasAccess) setTrainerOpen(true); else window.location.href = "/pricing?feature=Trainer"; }}
+        onOpenDrums={() => { if (plus.hasAccess) setDrumOpen(true); else window.location.href = "/pricing?feature=Drums"; }}
+        easyContent={tab.content || ""}
+        easyOn={easyOn}
+        onEasyToggle={setEasyOn}
+        onEasyOverride={(easyContent, capo) => setEasyOverride(easyContent ? { content: easyContent, capo } : null)}
+        easyCapo={easyOverride?.capo ?? null}
+        easyDismissed={easyDismissed}
+        onEasyDismiss={() => setEasyDismissed(true)}
+        easyApply={easyApply}
+        onEasyTry={() => setEasyApply((n) => n + 1)}
+        instrument={instrument}
+        onInstrumentChange={setInstrument}
+        themeKey={themeKey}
+        onThemeChange={setThemeKey}
+        songName={songName}
+        artistName={artistName}
+        content={content}
+        capo={tab.capo}
+        keySig={tab.key_sig}
+        tab={tab}
+        stageChildren={
+          <>
+            {renderContent(content, showTablature, transpose, handleChordClick, theme)}
+            {showTablature && hasTab && !hasInlineTablature(content) && renderTablature(tablature)}
+          </>
+        }
+      />
       {/* flexDirection="column" no style INLINE vencia a classe md:flex-row do
           Tailwind (inline > classe): o layout ficava em UMA coluna em qualquer
           largura e o bloco do video caia depois da cifra inteira, ate no
@@ -307,7 +286,7 @@ export default function TabDetailComponent({
               <div className="hidden md:block glass-card rounded-2xl p-4 space-y-3">
                 <h3 className="text-sm font-bold text-brand-muted uppercase tracking-wider">Quick Reference</h3>
                 <div className="flex flex-wrap gap-2">
-                  {usedChords.map((c) => (<button key={c} onClick={() => handleChordClick(c)} className="px-3 py-1.5 bg-[var(--c-overlay-soft)] rounded-lg text-sm hover:bg-brand-gold/10 transition-colors" style={{color:"#34d399",fontWeight:700}}>{c}</button>))}
+                  {usedChords.map((c) => (<button key={c} onClick={() => handleChordClick(c)} className="px-3 py-1.5 bg-[var(--c-overlay-soft)] rounded-lg text-sm hover:bg-brand-gold/10 transition-colors" style={{color:"#047857",fontWeight:700}}>{c}</button>))}
                 </div>
               </div>
             )}
