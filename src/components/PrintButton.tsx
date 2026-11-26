@@ -3,8 +3,13 @@
 import { Printer } from "lucide-react";
 import { buildPrintHTML } from "@/lib/printView";
 
-// Botão "PDF / Print" — abre uma janela formatada para impressão (ChordProof+).
-// Respeita o tom transposto e o Easy Mode aplicado.
+/**
+ * PrintButton — abre a janela de impressão formatada (ChordProof+).
+ * Respeita o tom transposto e o Easy Mode aplicado.
+ *
+ * RÓTULO: era "PDF", igual ao botão de baixar ao lado — no menu apareciam dois
+ * "PDF" e não dava para saber qual fazia o quê. Agora "Print".
+ */
 export default function PrintButton({
   tab,
   content,
@@ -13,7 +18,8 @@ export default function PrintButton({
   easyCapo,
 }: {
   tab: any;
-  content: string; // content JÁ com easy mode aplicado (se ativo)
+  /** content JÁ com easy mode aplicado (se ativo) */
+  content: string;
   transpose: number;
   easyApplied: boolean;
   easyCapo: number | null;
@@ -46,9 +52,11 @@ export default function PrintButton({
     <button
       onClick={handlePrint}
       title="Print / Save as PDF — print-ready layout"
-      className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)] transition"
+      className="tbtn"
+      style={{ width: "100%", justifyContent: "flex-start" }}
     >
-      <Printer size={16} /> PDF
+      <Printer size={15} />
+      Print
     </button>
   );
 }
