@@ -237,6 +237,20 @@ export default function TabDetailComponent({
   const locale = "en";
   const hasTab = tablature && tablature.trim().length > 0;
 
+  /**
+   * O RÓTULO DE DIFICULDADE VEM DO BANCO (`difficulty_auto`).
+   *
+   * Motivo MEDIDO: o cálculo em JS e a função SQL calc_difficulty divergem na
+   * FRONTEIRA de faixa — "Just The Way You Are" dá 6.9 no JS (Beginner) e 8.0
+   * na SQL (Easy). Quando a cifra calculava localmente e a trilha lia o banco,
+   * a MESMA música aparecia como "Beginner" no cabeçalho e "Easy" em /learn.
+   * Agora as duas leem a coluna. O cálculo local fica só como reserva para
+   * cifra recém-inserida, que ainda não passou pelo preenchimento em massa.
+   */
+  const difficultyLabel =
+    tab.difficulty_auto ||
+    scoreDifficulty({ content: tab.content, capo: tab.capo }).label;
+
   return (
     <div style={{maxWidth:"1400px",margin:"0 auto"}}>
       <nav className="text-sm text-brand-muted" style={{marginBottom:"24px"}}><ol className="flex gap-2">
@@ -261,20 +275,9 @@ export default function TabDetailComponent({
           </div>
           <div className="flex gap-4 pt-2 flex-wrap">
             {tab.key_sig && <span className="bg-[var(--c-overlay-soft)] px-3 py-1 rounded text-sm">Key: <strong>{tab.key_sig}</strong></span>}
-            {/* A NOTA CALCULADA, não o campo `difficulty` antigo.
-                Medi os 1.166: o rótulo antigo dizia "Beginner" para cifras com
-                média de 7,3 acordes e "Advanced" para 9,1 — praticamente o
-                mesmo. Pior: a trilha /learn classifica a MESMA música pela nota
-                calculada, então manter os dois mostrava "Difficulty: Beginner"
-                aqui e "Easy" na trilha, na mesma música. Uma fonte só. */}
-            {(() => {
-              const d = scoreDifficulty({ content: tab.content, capo: tab.capo });
-              return (
-                <span className="bg-[var(--c-overlay-soft)] px-3 py-1 rounded text-sm">
-                  Difficulty: <strong className="text-green-400">{d.label}</strong>
-                </span>
-              );
-            })()}
+            <span className="bg-[var(--c-overlay-soft)] px-3 py-1 rounded text-sm">
+              Difficulty: <strong className="text-green-400">{difficultyLabel}</strong>
+            </span>
             {capoFret > 0 && <span className="bg-[var(--c-gold-soft)] text-[var(--c-gold)] px-3 py-1 rounded text-sm font-bold tracking-wide">CAPO ON FRET {capoFret}</span>}
             {easyOverride?.capo && <span className="bg-brand-gold/10 text-brand-gold px-3 py-1 rounded text-sm font-bold">Easy capo: <strong>{easyOverride.capo}</strong></span>}
           </div>
