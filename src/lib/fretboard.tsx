@@ -528,7 +528,7 @@ export function ChordDiagram({ chord, onClose, theme, instrument = "guitar", cap
             </button>
           </div>
         )}
-        <ChordLessonBlock chord={chord} instrument={instrument} />
+        <ChordLessonBlock chord={chord} instrument={instrument} capo={capo} />
 
         <div style={{ fontSize: "11px", color: "var(--c-text-tertiary)", textAlign: "center", marginTop: "12px" }}>
           {L.close}
@@ -551,8 +551,12 @@ export function ChordDiagram({ chord, onClose, theme, instrument = "guitar", cap
  *
  * SEM HOOK, de propósito: hooks fora de ordem acima do return do piano quebram
  * o React ao trocar de instrumento — já aconteceu neste arquivo.
+ *
+ * O CAPOTRASTE É AVISADO NO TOPO. As lições falam de trastes RELATIVOS (o Bm7
+ * é "2nd fret" contando do capo). Numa música com capo na casa 3, quem lê
+ * "2nd fret" e conta da pestana do braço toca na casa errada. Melhor avisar.
  */
-function ChordLessonBlock({ chord, instrument }: { chord: string; instrument: InstrumentKey }) {
+function ChordLessonBlock({ chord, instrument, capo = 0 }: { chord: string; instrument: InstrumentKey; capo?: number }) {
   if (instrument !== "guitar") return null;
   const licao = lessonFor(chord);
   if (!licao) return null;
@@ -561,6 +565,13 @@ function ChordLessonBlock({ chord, instrument }: { chord: string; instrument: In
       <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--c-gold)", marginBottom: "6px" }}>
         How to play {chord}
       </p>
+      {capo > 0 && (
+        <p style={{ fontSize: "10px", lineHeight: 1.45, color: "var(--c-text-secondary)", marginBottom: "6px", padding: "5px 7px", borderRadius: 5, background: "var(--c-gold-soft)" }}>
+          The fret numbers below are <strong>relative to the capo</strong>, not to the
+          nut: with the capo on fret {capo}, &quot;fret {capo + 1}&quot; on the neck is
+          where the first shape fret sits.
+        </p>
+      )}
       <p style={{ fontSize: "11px", lineHeight: 1.5, color: "var(--c-text-secondary)", marginBottom: "6px" }}>
         {licao.shape}
       </p>
