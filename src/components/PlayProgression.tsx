@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Play, Square, Music2, ChevronDown, Info } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Play, Square, Music2, ChevronDown, Info, Crosshair } from "lucide-react";
 import {
   audioEngine,
   chordMidiFromName,
@@ -9,12 +9,18 @@ import {
   bassMidiForChord,
 } from "@/lib/audio";
 import { CHORD_SHAPES } from "@/lib/chordData";
-import { isChordToken, TAB_LINE_RE } from "@/lib/tabRenderer";
 import { patternDisplay, type StrumPattern } from "@/lib/strumPatterns";
 import { allPatterns, arpeggioSteps, resolveRhythm, type RhythmMode } from "@/lib/rhythmFromTab";
 import { isMonophonic } from "@/lib/instrumentTone";
 import type { InstrumentKey } from "@/lib/instruments";
 import { bpmForSong } from "@/lib/songBpm";
+import {
+  applySectionRepeats,
+  buildPlaybackSequence,
+  expandByRecordMap,
+  uniqueChords,
+  type ChordEvent,
+} from "@/lib/playbackSequence";
 
 /**
  * PlayProgression — "Hear the progression".
@@ -26,17 +32,15 @@ import { bpmForSong } from "@/lib/songBpm";
  * O selo ao lado do ritmo diz de onde veio: "this song", "this tab" ou
  * "genre". Nada de vender chute como certeza.
  *
- * O ANDAMENTO também vem da gravação quando conhecido (lib/songBpm.ts): a
- * /api/bpm depende do campo `bpm` do Deezer, que vem nulo em quase tudo.
+ * TOCA A CIFRA INTEIRA (26/11): antes eram 16 acordes e parava. A mediana das
+ * 50 mais visitadas tem 80 acordes e 4min24, então o botão entregava 15% da
+ * música. A sequência sai de lib/playbackSequence.ts.
  *
- * O SOM SEGUE O INSTRUMENTO: `playChordFor` sintetiza no timbre escolhido na
- * barra (piano com martelo, baixo uma oitava abaixo, ukulele de nylon, cavaco
- * curto e metálico). Ver lib/instrumentTone.ts.
- *
- * DEDILHADO: quando a música é dedilhada, toca arpejo — uma corda por vez.
+ * A CIFRA ACOMPANHA: cada acorde tocado avisa a página (onActiveLine) qual
+ * LINHA deve ser destacada e rolada. Quem toca tem as duas mãos ocupadas e não
+ * pode rolar a tela — é esse o motivo de existir o "Follow".
  */
 
-const MAX_CHORDS = 16;
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
 export default function PlayProgression({
@@ -48,6 +52,9 @@ export default function PlayProgression({
   instrument = "guitar",
   artistSlug = "",
   songSlug = "",
+  onActiveLine,
+  follow: followProp,
+  onFollowChange,
 }: {
   content: string;
   transpose?: number;
@@ -59,44 +66,45 @@ export default function PlayProgression({
   /** slugs para achar a curadoria da batida (lib/rhythmCuration.ts) */
   artistSlug?: string;
   songSlug?: string;
+  /** avisa a página qual LINHA da cifra está tocando (para destacar/rolar) */
+  onActiveLine?: (line: number | null) => void;
+  /** controle do "Follow the tab" — mora na página, que é quem rola */
+  follow?: boolean;
+  onFollowChange?: (v: boolean) => void;
 }) {
   const [playing, setPlaying] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(-1);
   const [currentStep, setCurrentStep] = useState(-1);
   const [bpm, setBpm] = useState(90);
   const [bpmAuto, setBpmAuto] = useState(false);
-  const [chordList, setChordList] = useState<string[]>([]);
   const [patternId, setPatternId] = useState<string>("standard");
   const [mode, setMode] = useState<RhythmMode>("strum");
   const [source, setSource] = useState<"curated" | "tab" | "genre">("genre");
   const [evidence, setEvidence] = useState<string | undefined>(undefined);
   const [showWhy, setShowWhy] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [followLocal, setFollowLocal] = useState(true);
+  const follow = followProp ?? followLocal;
+  const setFollow = (v: boolean) => { setFollowLocal(v); onFollowChange?.(v); };
   const timersRef = useRef<number[]>([]);
 
   const patterns = allPatterns();
   const pattern: StrumPattern = patterns.find((p) => p.id === patternId) || patterns[0];
 
-  /** Extrai os acordes na MESMA REGRA do renderizador do site. */
-  useEffect(() => {
-    if (!content) {
-      setChordList([]);
-      return;
-    }
-    const found: string[] = [];
-    for (const raw of content.split("\n")) {
-      const line = raw.trim();
-      if (!line) continue;
-      if (TAB_LINE_RE.test(line)) continue;
-      for (const token of line.split(/\s+/)) {
-        const clean = token.replace(/^\[|\]$/g, "").replace(/[,;]$/, "");
-        if (!clean) continue;
-        if (isChordToken(clean) && found[found.length - 1] !== clean) found.push(clean);
-      }
-      if (found.length >= MAX_CHORDS) break;
-    }
-    setChordList(found);
+  /**
+   * Sequência de acordes, em ordem. Três fontes, da mais fiel à mais genérica:
+   *   1. record map declarado na cifra
+   *   2. repetição por rótulo de seção ([Verse 2] repete [Verse 1])
+   *   3. sequência linear
+   */
+  const sequence: ChordEvent[] = useMemo(() => {
+    const linear = buildPlaybackSequence(content);
+    const mapped = expandByRecordMap(content);
+    if (mapped && mapped.length > linear.length) return mapped;
+    return applySectionRepeats(linear, content || "");
   }, [content]);
+
+  const chordButtons = useMemo(() => uniqueChords(sequence, 12), [sequence]);
 
   /**
    * Decide o ritmo: curadoria, depois cifra, depois gênero.
@@ -172,7 +180,8 @@ export default function PlayProgression({
     setPlaying(false);
     setCurrentIdx(-1);
     setCurrentStep(-1);
-  }, []);
+    onActiveLine?.(null);
+  }, [onActiveLine]);
 
   useEffect(() => () => stop(), [stop]);
 
@@ -181,7 +190,7 @@ export default function PlayProgression({
       stop();
       return;
     }
-    if (chordList.length === 0) return;
+    if (sequence.length === 0) return;
     const ctx = await audioEngine.unlock();
     if (!ctx) return;
 
@@ -189,65 +198,87 @@ export default function PlayProgression({
     const barMs = (60000 / bpm) * 4; // 1 compasso por acorde
     const stepMs = barMs / 16;
     const arpSteps = arpeggioSteps(6);
+    const mono = isMonophonic(instrument);
 
-    chordList.forEach((name, i) => {
+    sequence.forEach((ev, i) => {
+      const name = ev.chord;
       const midis = midisFor(name);
       const barStart = i * barMs;
 
-      // O SOM SEGUE O INSTRUMENTO: playChordFor sintetiza no timbre escolhido
-      const mono = isMonophonic(instrument);
       if ((mode === "arpeggio" || mono) && midis.length) {
         // dedilhado (ou baixo, que é monofônico): uma corda por colcheia
         arpSteps.forEach((stringIdx, k) => {
           const midi = midis[Math.min(stringIdx, midis.length - 1)];
-          const at = barStart + k * stepMs * 2;
           timersRef.current.push(
             window.setTimeout(
               () => audioEngine.playChord([midi], `${instrument}:n${midi}`, { volume: 0.42 }),
-              at
+              barStart + k * stepMs * 2
             )
           );
         });
       } else {
-        // batida: cada palhetada do padrão, no timbre do instrumento
         pattern.steps.forEach((st, step) => {
           if (!st) return;
-          const at = barStart + step * stepMs;
           timersRef.current.push(
             window.setTimeout(
               () =>
                 audioEngine.playChordFor(name, instrument, {
                   direction: st === "U" ? "up" : "down",
                 }),
-              at
+              barStart + step * stepMs
             )
           );
         });
       }
 
-      timersRef.current.push(window.setTimeout(() => setCurrentIdx(i), barStart));
-      for (let step = 0; step < 16; step++) {
-        timersRef.current.push(
-          window.setTimeout(() => setCurrentStep(step), barStart + step * stepMs)
-        );
-      }
+      // acende o acorde e AVISA A PÁGINA qual linha destacar
+      timersRef.current.push(
+        window.setTimeout(() => {
+          setCurrentIdx(i);
+          onActiveLine?.(ev.line);
+        }, barStart)
+      );
     });
+
+    // régua anda só no primeiro compasso (barato) e o passo é global
+    const total = sequence.length * barMs;
+    const steps = Math.min(16, Math.max(1, Math.round(barMs / stepMs)));
+    for (let s = 0; s < steps; s++) {
+      timersRef.current.push(
+        window.setTimeout(() => setCurrentStep(s), s * stepMs)
+      );
+    }
 
     timersRef.current.push(
       window.setTimeout(() => {
         setPlaying(false);
         setCurrentIdx(-1);
         setCurrentStep(-1);
-      }, chordList.length * barMs)
+        onActiveLine?.(null);
+      }, total)
     );
-  }, [playing, chordList, bpm, midisFor, pattern, mode, stop, instrument]);
+  }, [
+    playing,
+    sequence,
+    bpm,
+    midisFor,
+    pattern,
+    mode,
+    stop,
+    instrument,
+    onActiveLine,
+  ]);
 
-  if (chordList.length === 0) return null;
+  if (sequence.length === 0) return null;
 
   const visualSteps: string[] =
     mode === "arpeggio"
       ? Array.from({ length: 16 }, (_, i) => (i % 2 === 0 ? "D" : ""))
       : pattern.steps;
+
+  const totalSec = Math.round((sequence.length * (60000 / bpm) * 4) / 1000);
+  const mm = Math.floor(totalSec / 60);
+  const ss = String(totalSec % 60).padStart(2, "0");
 
   return (
     <div className="glass-card rounded-2xl p-4 space-y-3">
@@ -268,7 +299,7 @@ export default function PlayProgression({
           }}
         >
           {playing ? <Square size={14} /> : <Play size={14} />}
-          {playing ? "Stop" : "Play progression"}
+          {playing ? "Stop" : "Play the whole tab"}
         </button>
 
         <label className="flex items-center gap-1.5 text-xs text-[var(--c-text-tertiary)]">
@@ -295,6 +326,25 @@ export default function PlayProgression({
           </span>
         </label>
       </div>
+
+      {/* seguir a cifra: rola e destaca a linha que está tocando */}
+      <button
+        onClick={() => setFollow(!follow)}
+        aria-pressed={follow}
+        className="w-full inline-flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl text-[11px]"
+        style={{
+          background: follow ? "var(--c-gold-soft)" : "var(--c-overlay-soft)",
+          border: "1px solid var(--c-hairline)",
+          color: follow ? "var(--c-gold)" : "var(--c-text-tertiary)",
+          fontWeight: 700,
+        }}
+        title="Keep the tab scrolling with the music"
+      >
+        <span className="inline-flex items-center gap-1.5">
+          <Crosshair size={11} /> Follow the tab
+        </span>
+        <span>{follow ? "on" : "off"}</span>
+      </button>
 
       {/* ritmo: curadoria, cifra ou gênero — com o selo dizendo qual */}
       <div style={{ position: "relative" }}>
@@ -447,31 +497,26 @@ export default function PlayProgression({
       )}
 
       <div className="flex flex-wrap gap-1.5">
-        {chordList.map((c, i) => {
-          const active = i === currentIdx;
-          return (
-            <button
-              key={`${c}-${i}`}
-              onClick={async () => {
-                await audioEngine.unlock();
-                audioEngine.playChordFor(c, instrument);
-              }}
-              className="px-2 py-1 rounded text-xs font-bold transition-all"
-              style={{
-                background: active ? "var(--c-gold)" : "var(--c-overlay-soft)",
-                color: active ? "#1d1d1f" : "var(--c-gold)",
-                transform: active ? "scale(1.12)" : "scale(1)",
-                boxShadow: active ? "0 0 14px var(--c-gold-soft)" : "none",
-              }}
-              title={`Play ${c}`}
-            >
-              {transposeChord(c)}
-            </button>
-          );
-        })}
+        {chordButtons.map((c) => (
+          <button
+            key={c}
+            onClick={async () => {
+              await audioEngine.unlock();
+              audioEngine.playChordFor(c, instrument);
+            }}
+            className="px-2 py-1 rounded text-xs font-bold transition-all"
+            style={{
+              background: "var(--c-overlay-soft)",
+              color: "var(--c-gold)",
+            }}
+            title={`Play ${c}`}
+          >
+            {transposeChord(c)}
+          </button>
+        ))}
       </div>
 
-      {/* régua do compasso */}
+      {/* régua do compasso (do primeiro acorde) */}
       <div className="flex items-center gap-[3px]" aria-hidden>
         {Array.from({ length: 16 }).map((_, step) => {
           const isStroke = Boolean(visualSteps[step]);
@@ -500,10 +545,12 @@ export default function PlayProgression({
       </div>
 
       <p className="text-[11px] text-[var(--c-text-tertiary)]">
+        {sequence.length} chords · about {mm}:{ss} ·{" "}
         {mode === "arpeggio"
-          ? "One bar per chord, fingerpicked one string at a time."
-          : `One bar per chord, played with the ${pattern.label.toLowerCase()} strumming pattern.`}{" "}
-        Tap any chord to hear it. Sound comes from your browser — nothing to download.
+          ? "fingerpicked one string at a time"
+          : `played with the ${pattern.label.toLowerCase()} strumming pattern`}
+        .{" "}
+        {follow ? "The tab scrolls with the music." : "The tab stays put."}
       </p>
     </div>
   );
