@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { Play, Flame, ArrowRight } from "lucide-react";
 
@@ -12,7 +13,8 @@ import { Play, Flame, ArrowRight } from "lucide-react";
  * "abri de novo" em "não quero perder a sequência".
  *
  * HONESTIDADE: sem sessão, não há o que mostrar — nada de inventar progresso.
- * A barra simplesmente não aparece para visitante deslogado.
+ * E deslogado NÃO faz request: /api/position e /api/stats devolveriam 401 e
+ * encheriam o console em toda visita anônima, que é a maioria.
  *
  * O streak vem de /api/stats (tabela user_stats, por CONTA — nunca
  * localStorage, que é do navegador e já misturou contas).
@@ -39,8 +41,14 @@ export default function ContinueBar({
   const [position, setPosition] = useState<Position | null>(null);
   const [streak, setStreak] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const { status } = useSession();
 
   useEffect(() => {
+    if (status === "loading") return;
+    if (status !== "authenticated") {
+      setLoading(false);
+      return;
+    }
     let active = true;
     (async () => {
       try {
@@ -59,7 +67,7 @@ export default function ContinueBar({
           if (Number.isFinite(n) && n > 0) setStreak(n);
         }
       } catch {
-        /* sem sessão ou rede: a barra não aparece */
+        /* rede: a barra não aparece */
       } finally {
         if (active) setLoading(false);
       }
@@ -67,7 +75,7 @@ export default function ContinueBar({
     return () => {
       active = false;
     };
-  }, []);
+  }, [status]);
 
   if (loading) return null;
   if (!position && !streak) return null;
@@ -116,7 +124,8 @@ export default function ContinueBar({
 
       {position && mesmaMusica && (
         <span className="text-[11px] min-w-0 flex-1" style={{ color: "var(--c-text-tertiary)" }}>
-          You were at chord <strong style={{ color: "var(--c-gold)" }}>{(position.chord_index ?? 0) + 1}</strong> here.
+          You were at chord{" "}
+          <strong style={{ color: "var(--c-gold)" }}>{(position.chord_index ?? 0) + 1}</strong> here.
         </span>
       )}
 
