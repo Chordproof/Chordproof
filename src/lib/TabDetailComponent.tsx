@@ -19,6 +19,7 @@ import TabActionBar from "@/components/TabActionBar";
 import { renderContent, renderTablature, hasInlineTablature } from "@/lib/tabRenderer";
 import { usePlusAccess } from "@/components/PlusGate";
 import { audioEngine } from "@/lib/audio";
+import { useSession } from "next-auth/react";
 import SoundToggle from "@/components/SoundToggle";
 import PlayProgression from "@/components/PlayProgression";
 import ContinueBar from "@/components/ContinueBar";
@@ -65,12 +66,16 @@ export default function TabDetailComponent({
   const [resumeAt, setResumeAt] = useState<number | null>(null);
   const posGravarRef = useRef<number>(0);
   const plus = usePlusAccess();
+  // sem sessão não há posição a buscar: /api/position devolveria 401 em toda
+  // visita anônima (é a maioria do tráfego) e sujaria o console.
+  const { status: authStatus } = useSession();
   // nomes para exibir/gravar — precisam existir ANTES de gravarPosicao usá-los
   const songName = tab?.song || params.song.replace(/-/g, " ");
   const artistName = tab?.artist || params.artist.replace(/-/g, " ");
 
   // Onde esta conta parou nesta música?
   useEffect(() => {
+    if (authStatus !== "authenticated") return;
     let active = true;
     (async () => {
       try {
@@ -90,7 +95,7 @@ export default function TabDetailComponent({
     return () => {
       active = false;
     };
-  }, [params.artist, params.song]);
+  }, [params.artist, params.song, authStatus]);
 
   /**
    * Grava o ponto de retorno. Limita a 1 gravação a cada 15s: o player avisa
