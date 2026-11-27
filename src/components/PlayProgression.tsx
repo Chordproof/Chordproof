@@ -25,20 +25,20 @@ import {
 /**
  * PlayProgression — "Hear the progression".
  *
- * A BATIDA VEM DA MÚSICA. Ordem de prioridade (lib/rhythmFromTab.ts):
- *   1. CURADORIA (lib/rhythmCuration.ts) — o padrão da gravação, escrito à mão
- *   2. instrução escrita na cifra
- *   3. gênero — reserva genérica
- * O selo ao lado do ritmo diz de onde veio: "this song", "this tab" ou
- * "genre". Nada de vender chute como certeza.
+ * A BATIDA VEM DA MÚSICA (lib/rhythmFromTab.ts): curadoria da gravação, depois
+ * instrução da cifra, depois gênero. O selo diz qual das três decidiu.
  *
- * TOCA A CIFRA INTEIRA (26/11): antes eram 16 acordes e parava. A mediana das
+ * TOCA A CIFRA INTEIRA (26/11): antes eram 16 acordes e parava; a mediana das
  * 50 mais visitadas tem 80 acordes e 4min24, então o botão entregava 15% da
  * música. A sequência sai de lib/playbackSequence.ts.
  *
- * A CIFRA ACOMPANHA: cada acorde tocado avisa a página (onActiveLine) qual
- * LINHA deve ser destacada e rolada. Quem toca tem as duas mãos ocupadas e não
- * pode rolar a tela — é esse o motivo de existir o "Follow".
+ * A CIFRA ACOMPANHA: cada acorde avisa a página (onActiveLine) qual LINHA
+ * destacar e rolar. Quem toca tem as duas mãos ocupadas.
+ *
+ * PRÁTICA (26/11): velocidade de 50–100% SEM mudar a afinação — o
+ * sintetizador gera cada nota na hora, então só o intervalo muda. E loop de
+ * trecho: marca o início e o fim e o player volta sozinho, que é como se
+ * estuda um refrão.
  */
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -83,10 +83,28 @@ export default function PlayProgression({
   const [evidence, setEvidence] = useState<string | undefined>(undefined);
   const [showWhy, setShowWhy] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  /**
+   * LOOP DE TRECHO (prática). "Quem estuda repete o refrão 20 vezes" — cada
+   * repetição é tempo no site. Marca-se o acorde inicial e o final, e o player
+   * volta ao início sozinho.
+   */
+  const [loopA, setLoopA] = useState<number | null>(null);
+  const [loopB, setLoopB] = useState<number | null>(null);
+  /**
+   * VELOCIDADE DE PRÁTICA: o tempo em que o player anda, separado do tempo da
+   * música. A afinação não muda (o sintetizador gera cada nota na hora), então
+   * desacelerar é só mudar o intervalo entre os eventos.
+   */
+  const [practicePct, setPracticePct] = useState(100);
   const [followLocal, setFollowLocal] = useState(true);
   const follow = followProp ?? followLocal;
-  const setFollow = (v: boolean) => { setFollowLocal(v); onFollowChange?.(v); };
+  const setFollow = (v: boolean) => {
+    setFollowLocal(v);
+    onFollowChange?.(v);
+  };
   const timersRef = useRef<number[]>([]);
+  // versão que SEMPRE começa do início: é o que o loop precisa (`play` alterna)
+  const restartRef = useRef<(() => void) | null>(null);
 
   const patterns = allPatterns();
   const pattern: StrumPattern = patterns.find((p) => p.id === patternId) || patterns[0];
@@ -106,11 +124,7 @@ export default function PlayProgression({
 
   const chordButtons = useMemo(() => uniqueChords(sequence, 12), [sequence]);
 
-  /**
-   * Decide o ritmo: curadoria, depois cifra, depois gênero.
-   * Depende de content/genre/slugs — não roda a cada render, senão a escolha
-   * do usuário seria sobrescrita.
-   */
+  /** Decide o ritmo: curadoria, depois cifra, depois gênero. */
   useEffect(() => {
     const r = resolveRhythm(content, genre, { artist: artistSlug, song: songSlug });
     setPatternId(r.pattern.id);
@@ -185,89 +199,116 @@ export default function PlayProgression({
 
   useEffect(() => () => stop(), [stop]);
 
-  const play = useCallback(async () => {
-    if (playing) {
-      stop();
-      return;
-    }
-    if (sequence.length === 0) return;
-    const ctx = await audioEngine.unlock();
-    if (!ctx) return;
+  const play = useCallback(
+    async (forcarInicio = false) => {
+      if (playing) {
+        if (!forcarInicio) {
+          stop();
+          return;
+        }
+        // loop: limpa os agendamentos e começa de novo sem alternar para "stop"
+        timersRef.current.forEach((t) => clearTimeout(t));
+        timersRef.current = [];
+      }
+      if (sequence.length === 0) return;
+      const ctx = await audioEngine.unlock();
+      if (!ctx) return;
 
-    setPlaying(true);
-    const barMs = (60000 / bpm) * 4; // 1 compasso por acorde
-    const stepMs = barMs / 16;
-    const arpSteps = arpeggioSteps(6);
-    const mono = isMonophonic(instrument);
+      setPlaying(true);
+      // 100% = tempo da gravação; menos que isso = estudo
+      const effBpm = Math.max(30, Math.round((bpm * practicePct) / 100));
+      const barMs = (60000 / effBpm) * 4; // 1 compasso por acorde
+      const stepMs = barMs / 16;
+      const arpSteps = arpeggioSteps(6);
+      const mono = isMonophonic(instrument);
 
-    sequence.forEach((ev, i) => {
-      const name = ev.chord;
-      const midis = midisFor(name);
-      const barStart = i * barMs;
+      // recorte do trecho marcado (A..B). Sem marcação, a música inteira.
+      const ini = loopA !== null ? Math.min(loopA, loopB ?? loopA) : 0;
+      const fim = loopB !== null ? Math.max(loopA ?? 0, loopB) : sequence.length - 1;
+      const recorte = sequence.slice(ini, Math.max(ini + 1, fim + 1));
 
-      if ((mode === "arpeggio" || mono) && midis.length) {
-        // dedilhado (ou baixo, que é monofônico): uma corda por colcheia
-        arpSteps.forEach((stringIdx, k) => {
-          const midi = midis[Math.min(stringIdx, midis.length - 1)];
-          timersRef.current.push(
-            window.setTimeout(
-              () => audioEngine.playChord([midi], `${instrument}:n${midi}`, { volume: 0.42 }),
-              barStart + k * stepMs * 2
-            )
-          );
-        });
-      } else {
-        pattern.steps.forEach((st, step) => {
-          if (!st) return;
-          timersRef.current.push(
-            window.setTimeout(
-              () =>
-                audioEngine.playChordFor(name, instrument, {
-                  direction: st === "U" ? "up" : "down",
-                }),
-              barStart + step * stepMs
-            )
-          );
-        });
+      recorte.forEach((ev, n) => {
+        const i = n; // posição dentro do recorte
+        const name = ev.chord;
+        const midis = midisFor(name);
+        const barStart = i * barMs;
+
+        if ((mode === "arpeggio" || mono) && midis.length) {
+          // dedilhado (ou baixo, que é monofônico): uma corda por colcheia
+          arpSteps.forEach((stringIdx, k) => {
+            const midi = midis[Math.min(stringIdx, midis.length - 1)];
+            timersRef.current.push(
+              window.setTimeout(
+                () => audioEngine.playChord([midi], `${instrument}:n${midi}`, { volume: 0.42 }),
+                barStart + k * stepMs * 2
+              )
+            );
+          });
+        } else {
+          pattern.steps.forEach((st, step) => {
+            if (!st) return;
+            timersRef.current.push(
+              window.setTimeout(
+                () =>
+                  audioEngine.playChordFor(name, instrument, {
+                    direction: st === "U" ? "up" : "down",
+                  }),
+                barStart + step * stepMs
+              )
+            );
+          });
+        }
+
+        // acende o acorde e AVISA A PÁGINA qual linha destacar
+        timersRef.current.push(
+          window.setTimeout(() => {
+            setCurrentIdx(i);
+            onActiveLine?.(ev.line);
+          }, barStart)
+        );
+      });
+
+      // régua anda só no primeiro compasso (barato) e o passo é global
+      const total = recorte.length * barMs;
+      const steps = Math.min(16, Math.max(1, Math.round(barMs / stepMs)));
+      for (let s = 0; s < steps; s++) {
+        timersRef.current.push(window.setTimeout(() => setCurrentStep(s), s * stepMs));
       }
 
-      // acende o acorde e AVISA A PÁGINA qual linha destacar
       timersRef.current.push(
         window.setTimeout(() => {
-          setCurrentIdx(i);
-          onActiveLine?.(ev.line);
-        }, barStart)
+          if (loopA !== null) {
+            // LOOP: volta ao início do trecho sozinho (é o que se faz estudando)
+            timersRef.current = [];
+            restartRef.current?.();
+            return;
+          }
+          setPlaying(false);
+          setCurrentIdx(-1);
+          setCurrentStep(-1);
+          onActiveLine?.(null);
+        }, total)
       );
-    });
+    },
+    [
+      playing,
+      sequence,
+      bpm,
+      midisFor,
+      pattern,
+      mode,
+      stop,
+      instrument,
+      onActiveLine,
+      practicePct,
+      loopA,
+      loopB,
+    ]
+  );
 
-    // régua anda só no primeiro compasso (barato) e o passo é global
-    const total = sequence.length * barMs;
-    const steps = Math.min(16, Math.max(1, Math.round(barMs / stepMs)));
-    for (let s = 0; s < steps; s++) {
-      timersRef.current.push(
-        window.setTimeout(() => setCurrentStep(s), s * stepMs)
-      );
-    }
-
-    timersRef.current.push(
-      window.setTimeout(() => {
-        setPlaying(false);
-        setCurrentIdx(-1);
-        setCurrentStep(-1);
-        onActiveLine?.(null);
-      }, total)
-    );
-  }, [
-    playing,
-    sequence,
-    bpm,
-    midisFor,
-    pattern,
-    mode,
-    stop,
-    instrument,
-    onActiveLine,
-  ]);
+  restartRef.current = () => {
+    void play(true);
+  };
 
   if (sequence.length === 0) return null;
 
@@ -276,7 +317,9 @@ export default function PlayProgression({
       ? Array.from({ length: 16 }, (_, i) => (i % 2 === 0 ? "D" : ""))
       : pattern.steps;
 
-  const totalSec = Math.round((sequence.length * (60000 / bpm) * 4) / 1000);
+  const effBpm = Math.max(30, Math.round((bpm * practicePct) / 100));
+  const nTocando = loopA !== null ? Math.abs((loopB ?? loopA) - loopA) + 1 : sequence.length;
+  const totalSec = Math.round((nTocando * (60000 / effBpm) * 4) / 1000);
   const mm = Math.floor(totalSec / 60);
   const ss = String(totalSec % 60).padStart(2, "0");
 
@@ -291,7 +334,7 @@ export default function PlayProgression({
 
       <div className="flex items-center gap-2">
         <button
-          onClick={play}
+          onClick={() => play()}
           className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full font-bold text-sm transition-transform hover:scale-[1.02]"
           style={{
             background: playing ? "var(--c-overlay)" : "var(--c-cta-bg)",
@@ -299,7 +342,7 @@ export default function PlayProgression({
           }}
         >
           {playing ? <Square size={14} /> : <Play size={14} />}
-          {playing ? "Stop" : "Play the whole tab"}
+          {playing ? "Stop" : loopA !== null ? "Play the loop" : "Play the whole tab"}
         </button>
 
         <label className="flex items-center gap-1.5 text-xs text-[var(--c-text-tertiary)]">
@@ -345,6 +388,98 @@ export default function PlayProgression({
         </span>
         <span>{follow ? "on" : "off"}</span>
       </button>
+
+      {/* velocidade de prática: desacelera sem mudar a afinação */}
+      <div className="flex items-center gap-2">
+        <span
+          className="text-[9px] font-bold uppercase tracking-wider"
+          style={{ color: "var(--c-text-tertiary)" }}
+        >
+          Speed
+        </span>
+        <input
+          type="range"
+          min={50}
+          max={100}
+          step={5}
+          value={practicePct}
+          onChange={(e) => setPracticePct(Number(e.target.value))}
+          className="flex-1 accent-[var(--c-gold)]"
+          aria-label="Practice speed"
+        />
+        <span className="tabular-nums text-[11px] w-9 text-right" style={{ color: "var(--c-gold)" }}>
+          {practicePct}%
+        </span>
+      </div>
+      {practicePct < 100 && (
+        <p className="text-[10px]" style={{ color: "var(--c-text-tertiary)" }}>
+          Playing at {effBpm} BPM. Pitch is unchanged — only the timing slows down.
+        </p>
+      )}
+
+      {/* loop de trecho: marcar início e fim para repetir */}
+      <div className="flex items-center gap-1.5 text-[10px]">
+        <span
+          className="font-bold uppercase tracking-wider"
+          style={{ color: "var(--c-text-tertiary)" }}
+        >
+          Loop
+        </span>
+        {loopA === null ? (
+          <button
+            onClick={() => {
+              setLoopA(0);
+              setLoopB(Math.min(3, sequence.length - 1));
+            }}
+            className="px-2 py-1 rounded"
+            style={{ background: "var(--c-overlay-soft)", color: "var(--c-text)", border: 0 }}
+          >
+            Mark a section
+          </button>
+        ) : (
+          <>
+            <button
+              onClick={() => {
+                const from = loopA;
+                const alvo = Math.max(0, from - 8);
+                setLoopA(alvo);
+                setLoopB(Math.max(alvo, (loopB ?? from) - 8));
+              }}
+              className="px-1.5 py-1 rounded"
+              style={{ background: "var(--c-overlay-soft)", color: "var(--c-text)", border: 0 }}
+              title="Move the loop back"
+            >
+              −
+            </button>
+            <span className="tabular-nums px-1" style={{ color: "var(--c-gold)" }}>
+              {loopA + 1}–{(loopB ?? loopA) + 1}
+            </span>
+            <button
+              onClick={() => {
+                const to = Math.min(sequence.length - 1, (loopB ?? loopA) + 8);
+                setLoopB(to);
+                setLoopA(Math.min(loopA, to));
+              }}
+              className="px-1.5 py-1 rounded"
+              style={{ background: "var(--c-overlay-soft)", color: "var(--c-text)", border: 0 }}
+              title="Move the loop forward"
+            >
+              +
+            </button>
+            <span style={{ color: "var(--c-text-tertiary)" }}>of {sequence.length} chords</span>
+            <button
+              onClick={() => {
+                setLoopA(null);
+                setLoopB(null);
+              }}
+              className="px-1.5 py-1 rounded ml-auto"
+              style={{ background: "transparent", color: "var(--c-text-tertiary)", border: 0 }}
+            >
+              clear
+            </button>
+          </>
+        )}
+      </div>
 
       {/* ritmo: curadoria, cifra ou gênero — com o selo dizendo qual */}
       <div style={{ position: "relative" }}>
@@ -545,7 +680,7 @@ export default function PlayProgression({
       </div>
 
       <p className="text-[11px] text-[var(--c-text-tertiary)]">
-        {sequence.length} chords · about {mm}:{ss} ·{" "}
+        {nTocando} chords · about {mm}:{ss} ·{" "}
         {mode === "arpeggio"
           ? "fingerpicked one string at a time"
           : `played with the ${pattern.label.toLowerCase()} strumming pattern`}
