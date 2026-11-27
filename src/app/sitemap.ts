@@ -34,9 +34,39 @@ export default async function sitemap() {
       priority: 0.8,
     }));
 
+  /**
+   * PÁGINAS DE ACORDE: 183+ destinos que respondem à dúvida mais elementar
+   * ("como tocar G") e que o site não tinha. Fora do sitemap dependeriam só de
+   * link interno — e o Google levou meses para descobrir as cifras quando
+   * elas não estavam declaradas.
+   */
+  const chordSet = new Set<string>();
+  for (let from = 0; from < 3000; from += PAGE) {
+    const { data } = await supabase
+      .from("tabs")
+      .select("chords_used")
+      .not("chords_used", "is", null)
+      .order("id", { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (!data || data.length === 0) break;
+    for (const r of data as { chords_used: string[] | null }[]) {
+      for (const c of r.chords_used ?? []) chordSet.add(c);
+    }
+    if (data.length < PAGE) break;
+  }
+  const chordUrls = Array.from(chordSet)
+    .sort()
+    .map((c) => ({
+      url: `${SITE_URL}/chord/${encodeURIComponent(c.toLowerCase().replace(/#/g, "-"))}`,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    }));
+
   return [
     { url: SITE_URL, changeFrequency: "daily" as const, priority: 1 },
     { url: `${SITE_URL}/browse`, changeFrequency: "daily" as const, priority: 0.9 },
+    { url: `${SITE_URL}/learn`, changeFrequency: "weekly" as const, priority: 0.9 },
+    ...chordUrls,
     ...tabUrls,
   ];
 }

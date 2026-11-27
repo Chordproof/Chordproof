@@ -14,6 +14,7 @@ export default function Footer() {
           <div className="flex gap-8 text-sm text-brand-muted">
             <Link href="/about" className="hover:text-[var(--c-text)] transition-colors duration-200">About</Link>
             <Link href="/legal" className="hover:text-[var(--c-text)] transition-colors duration-200">Legal</Link>
+            <Link href="/learn" className="hover:text-[var(--c-text)] transition-colors duration-200">Learn</Link>
             <Link href="/browse" className="hover:text-[var(--c-text)] transition-colors duration-200">Browse</Link>
             <Link href="/request" className="hover:text-[var(--c-text)] transition-colors duration-200">Request</Link>
           </div>
