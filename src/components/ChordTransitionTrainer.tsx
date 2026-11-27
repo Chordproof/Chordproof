@@ -5,6 +5,7 @@ import { MiniFretboard } from "@/lib/fretboard";
 import {
   cromaDoEspectro,
   estadoInicial,
+  janelaRecomendada,
   nomeClasse,
   passoConferencia,
   type EstadoConferencia,
@@ -15,11 +16,10 @@ import {
  * Treina a troca entre 2 acordes (ou progressão da cifra) com metrônomo de 60s.
  * Conta trocas limpas por minuto (1DPS = one chord per second benchmark).
  *
- * DOIS MODOS DE PONTUAR (27/11):
- *   "eye"  — a pessoa toca e regista com o dedo. E o sistema original; mede a
- *            percepção dela, nao o som.
- *   "ear"  — o microfone confere se as NOTAS DO ACORDE PEDIDO estao soando.
- *            Nao adivinha o acorde: ver lib/chordCheck.ts.
+ * DOIS MODOS DE PONTUAR:
+ *   "eye"  — a pessoa toca e regista com o dedo. Mede a percepção dela.
+ *   "ear"  — o microfone confere se as NOTAS DO ACORDE PEDIDO estão soando.
+ *            Não adivinha o acorde: ver lib/chordCheck.ts.
  */
 
 export type TrainerChord = { name: string; shape: number[] };
@@ -54,14 +54,6 @@ export default function ChordTransitionTrainer({
   });
   const [soundOn, setSoundOn] = useState(true);
   const [targetChord, setTargetChord] = useState(0); // índice do acorde alvo no par atual
-  /**
-   * MODO DO ROUND:
-   *  "eye" = pratica livre. A pessoa toca e regista a troca com o dedo (o
-   *          sistema original). CONFIAVEL, nao depende de microfone.
-   *  "ear" = com microfone. O site ESCUTA e diz se as notas do acorde pedido
-   *          estao soando. A pergunta e "o acorde que eu pedi esta ai?", nunca
-   *          "que acorde e esse?" — ver lib/chordCheck.ts para o porque.
-   */
   const [listenMode, setListenMode] = useState<"eye" | "ear">("eye");
   const [micErro, setMicErro] = useState<string | null>(null);
   const [ouvindo, setOuvindo] = useState(false);
@@ -73,8 +65,8 @@ export default function ChordTransitionTrainer({
   const streamRef = useRef<MediaStream | null>(null);
   const ctxMicRef = useRef<AudioContext | null>(null);
   const rafRef = useRef<number | null>(null);
-  // o laco de audio roda a ~60 Hz: o estado da conferencia vive em ref para
-  // nao provocar um render por quadro (isso derrete a bateria do celular)
+  // o laço de áudio roda a ~60 Hz: o estado vive em ref para não renderizar
+  // 60 vezes por segundo (isso derrete a bateria do celular)
   const estadoRef = useRef<EstadoConferencia>(estadoInicial());
   const alvoRef = useRef<string>("");
 
@@ -84,7 +76,6 @@ export default function ChordTransitionTrainer({
     if (chords.length < 2) return out;
     if (chords.length === 2) return [[chords[0], chords[1]]];
     for (let i = 0; i < chords.length - 1; i++) out.push([chords[i], chords[i + 1]]);
-    // fecha o ciclo (último → primeiro) se houver 3+
     if (chords.length > 2) out.push([chords[chords.length - 1], chords[0]]);
     return out;
   }, [chords]);
@@ -109,7 +100,7 @@ export default function ChordTransitionTrainer({
 
   const stopTimer = () => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } };
 
-  /** Fecha o microfone e para o laco. Idempotente. */
+  /** Fecha o microfone e para o laço. Idempotente. */
   const pararOuvido = useCallback(() => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     rafRef.current = null;
@@ -140,7 +131,7 @@ export default function ChordTransitionTrainer({
     }, 1000);
   };
 
-  /** AVANÇA O ALVO. Chamado pelo dedo (modo eye) e pela conferencia (modo ear). */
+  /** AVANÇA O ALVO. Chamado pelo dedo (modo eye) e pela conferência (modo ear). */
   const avancarAlvo = () => setTargetChord((t) => t + 1);
 
   const registerSwitch = () => {
@@ -193,10 +184,10 @@ export default function ChordTransitionTrainer({
   useEffect(() => () => pararOuvido(), [pararOuvido]);
 
   /**
-   * Liga o microfone e comeca a conferir.
+   * Liga o microfone e começa a conferir.
    *
-   * PRIVACIDADE: igual ao afinador, o audio NAO sai do dispositivo. Nao ha
-   * fetch aqui — a leitura morre na mesma aba.
+   * PRIVACIDADE: o áudio NÃO sai do dispositivo. Não há fetch aqui — a leitura
+   * morre na mesma aba.
    */
   const iniciarOuvido = useCallback(async () => {
     setMicErro(null);
@@ -222,18 +213,15 @@ export default function ChordTransitionTrainer({
       hp.type = "highpass";
       hp.frequency.value = 70;
       const analisador = ctx.createAnalyser();
-      // 4096 = ~93 ms a 44,1 kHz: janela curta o bastante para pegar a troca de
-      // acorde, longa o bastante para resolver o mi grave (82 Hz).
-      analisador.fftSize = 4096;
+      analisador.fftSize = 8192; // ponto de partida; o laço ajusta por acorde
       analisador.smoothingTimeConstant = 0.35;
       fonte.connect(hp);
       hp.connect(analisador);
-      // NAO conecta ao destination: nada e tocado de volta (sem microfonia).
+      // NÃO conecta ao destination: nada é tocado de volta (sem microfonia).
 
-      const mags = new Float32Array(analisador.frequencyBinCount);
+      let mags = new Float32Array(analisador.frequencyBinCount);
       setOuvindo(true);
 
-      // marca de tempo do ultimo render da dica visual (2x/segundo e suficiente)
       let ultimoRender = 0;
 
       const laco = () => {
@@ -242,11 +230,42 @@ export default function ChordTransitionTrainer({
           rafRef.current = requestAnimationFrame(laco);
           return;
         }
+        /**
+         * A JANELA ACOMPANHA O ACORDE PEDIDO (janelaRecomendada em
+         * lib/chordCheck.ts). Medido: com 4096 amostras um Sol perfeito
+         * oscilava entre certo e errado, porque 98 Hz pede mais resolução do
+         * que um bin de 10,8 Hz oferece.
+         */
+        const desejada = janelaRecomendada(alvo);
+        if (analisador.fftSize !== desejada) {
+          analisador.fftSize = desejada;
+          mags = new Float32Array(analisador.frequencyBinCount);
+        }
         analisador.getFloatFrequencyData(mags);
-        // getFloatFrequencyData devolve dB (de -Infinity a 0). Converte para
-        // magnitude linear: a croma precisa de energia, nao de decibeis.
+        /**
+         * dB -> AMPLITUDE LINEAR. Era aqui que o conferidor nunca reconhecia
+         * nada (bug de 27/11), e o erro era aritmético.
+         *
+         * O QUE ESTAVA ESCRITO: `Math.max(0, (db + 100) / 100)`.
+         * O QUE ISSO FAZIA, MEDIDO com um WAV de violão no AnalyserNode real:
+         * o piso de ruído fica em torno de -200 dB e as notas tocadas entre
+         * -40 e -70 dB. O clamp em -100 transformava TODO bin abaixo de -100
+         * em zero — apagando justamente as fundamentais graves, que são as
+         * mais fracas. Sobravam alguns bins em ~0,6 e o resto em 0: a proporção
+         * entre as notas ia embora e nada batia.
+         *
+         * MEDIÇÃO do mesmo áudio, mesma croma, mesma régua:
+         *   conversão antiga: 0 de 12 leituras corretas
+         *   amplitude linear: 12 de 12 corretas
+         *
+         * A conversão correta é a definição de decibel: amplitude = 10^(dB/20).
+         * Como `cromaDoEspectro` normaliza pelo maior valor, a escala absoluta
+         * não importa — só a PROPORÇÃO, que era o que o clamp destruía. Bins
+         * não finitos (-Infinity em silêncio digital absoluto) viram 0.
+         */
         for (let i = 0; i < mags.length; i++) {
-          mags[i] = Math.max(0, (mags[i] + 100) / 100);
+          const db = mags[i];
+          mags[i] = Number.isFinite(db) ? Math.pow(10, db / 20) : 0;
         }
         const cr = cromaDoEspectro(mags, ctx.sampleRate, analisador.fftSize);
         const r = passoConferencia(estadoRef.current, cr, alvo, performance.now());
@@ -255,7 +274,7 @@ export default function ChordTransitionTrainer({
           setVeredito({ ...r.estado });
           if (r.evento === "acerto") {
             beep(1320, 0.09);
-            // acertou: o proximo alvo entra em cena. O cronometro de
+            // acertou: o próximo alvo entra em cena. O cronômetro de
             // estabilidade reinicia sozinho porque o alvo mudou.
             setTargetChord((t) => t + 1);
           } else {
@@ -283,7 +302,7 @@ export default function ChordTransitionTrainer({
   }, [beep, pararOuvido]);
 
   /**
-   * Reinicia a conferencia no comeco de cada round. Sem isto, um acerto do
+   * Reinicia a conferência no começo de cada round. Sem isto, um acerto do
    * round anterior impediria o primeiro acerto deste (chave repetida).
    */
   useEffect(() => {
@@ -306,8 +325,7 @@ export default function ChordTransitionTrainer({
   const nextPair = () => { setPairIdx((i) => (i + 1) % Math.max(pairs.length, 1)); setPhase("idle"); };
   const prevPair = () => { setPairIdx((i) => (i - 1 + pairs.length) % Math.max(pairs.length, 1)); setPhase("idle"); };
 
-  // Níveis em INGLÊS: o site inteiro é em inglês. Antes vazava "Avançado",
-  // "Intermediário", "Em progresso" e "Iniciante" para a tela do usuário.
+  // Níveis em INGLÊS: o site inteiro é em inglês.
   const feitos = listenMode === "ear" ? veredito.acertos : switches;
   const level = feitos >= 30 ? "Guitar Hero 🎸" : feitos >= 20 ? "Advanced" : feitos >= 12 ? "Intermediate" : feitos >= 6 ? "Getting there" : "Beginner";
 
