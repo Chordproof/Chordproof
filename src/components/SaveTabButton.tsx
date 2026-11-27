@@ -25,6 +25,8 @@ export default function SaveTabButton({
   const [hint, setHint] = useState<string | null>(null);
 
   useEffect(() => {
+    // deslogado não pergunta: /api/bookmarks devolveria 401 e sujaria o console
+    if (status !== "authenticated") return;
     let alive = true;
     fetch(`/api/bookmarks?artist=${encodeURIComponent(artist)}&song=${encodeURIComponent(song)}`)
       .then((r) => r.json())
@@ -35,7 +37,7 @@ export default function SaveTabButton({
     return () => {
       alive = false;
     };
-  }, [artist, song]);
+  }, [artist, song, status]);
 
   async function toggle() {
     if (status === "unauthenticated") {
