@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Check, Guitar, Music2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import BarrePreview from "@/components/BarrePreview";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +62,7 @@ const NIVEIS = [
     faixa: "score 8 to 13",
     o_que: "One barre appears — usually F or Bm — and the changes get faster.",
     criterio: "Up to two barre chords, few different chords.",
-    meta: "Make F ring clean and change out of it without stalling.",
+    meta: "Make the barre ring clean and change out of it without stalling.",
   },
   {
     n: 3,
@@ -223,6 +224,35 @@ export default async function LearnPage() {
               <p className="text-sm text-[var(--c-text-secondary)] mt-3 leading-relaxed">
                 {niv.o_que}
               </p>
+
+              {/**
+               * O BLOCO DA PRIMEIRA PESTANA fica só no nível 2, porque é onde a
+               * pessoa encontra o primeiro acorde fechado e onde ela desiste.
+               *
+               * A ORDEM É MEDIDA, não achismo: a cifra mais fácil do catálogo
+               * que ainda pede pestana é "Just The Way You Are" (D, Bm7, G).
+               * Ou seja, o Bm7 chega ANTES de qualquer F — e é por isso que o
+               * bloco começa por ele. O Bm7 barra cinco cordas no 2º traste; o
+               * F barra seis no 1º, o lugar mais duro do braço.
+               */}
+              {niv.n === 2 && (
+                <div className="mt-4 rounded-xl p-4" style={{ background: "var(--c-overlay-soft)" }}>
+                  <p className="text-sm font-bold mb-1">Your first barre — start with Bm7, not F</p>
+                  <p className="text-xs text-[var(--c-text-secondary)] leading-relaxed">
+                    Bm7 barres <strong>five</strong> strings at the 2nd fret, where the string
+                    gives more. F barres <strong>six</strong> strings at the 1st fret — the
+                    hardest spot on the neck. Press with the <strong>side</strong> of the index
+                    finger, right behind the fret wire, and let the thumb pull back on the neck
+                    instead of crushing with the hand.
+                  </p>
+                  <p className="text-xs text-brand-muted mt-2 leading-relaxed">
+                    If a string dies, check <em>where</em> it dies: in the crease of the finger,
+                    rotate the hand. Under the palm, drop the wrist. Squeezing harder fixes
+                    neither.
+                  </p>
+                  <BarrePreview />
+                </div>
+              )}
 
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 <p className="text-xs text-brand-muted">
