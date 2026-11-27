@@ -16,9 +16,20 @@ import TabDetail from "@/lib/TabDetailComponent";
 export const dynamic = "force-dynamic";
 
 async function getTab(artist: string, song: string) {
+  /**
+   * COLUNAS EXPLÍCITAS, não `select("*")`.
+   *
+   * O `*` não trouxe `difficulty_auto`: o servidor recebia a linha sem a
+   * coluna e o rótulo caía no campo antigo `difficulty` ("Beginner"), enquanto
+   * /browse — que lista as colunas uma a uma — lia "Easy" da mesma tabela. Era
+   * essa diferença que fazia a cifra e a trilha discordarem sobre a MESMA
+   * música. Listar as colunas (como o /browse já faz) resolve na origem.
+   */
   const { data } = await supabase
     .from("tabs")
-    .select("*")
+    .select(
+      "id, song, artist, slug_artist, slug_song, content, tablature, capo, key_sig, genre, difficulty, difficulty_auto, difficulty_score, chords_used, is_verified, views, artist_image_url, youtube_id, video_id, youtube, video_url, yt_id"
+    )
     .eq("slug_artist", artist)
     .eq("slug_song", song)
     .maybeSingle();
