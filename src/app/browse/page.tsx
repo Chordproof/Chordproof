@@ -14,9 +14,24 @@ const formatViews = (n: number) => {
 export default async function BrowsePage({
   searchParams,
 }: {
-  searchParams: { q?: string };
+  searchParams: { q?: string; level?: string; chord?: string };
 }) {
   const query = (searchParams.q || "").trim().toLowerCase();
+  /**
+   * FILTROS USADOS PELA TRILHA (/learn) E PELAS PÁGINAS DE ACORDE (/chord).
+   * `level` vem da nota calculada (difficulty_auto) e `chord` do array
+   * chords_used — nenhum dos dois usa o campo `difficulty` antigo, que medi
+   * e não discrimina (Beginner 7,3 acordes × Advanced 9,1).
+   */
+  const levelParam = (searchParams.level || "").trim();
+  const chordParam = (searchParams.chord || "").trim();
+  const nivelPorNumero: Record<string, string> = {
+    "1": "Beginner",
+    "2": "Easy",
+    "3": "Intermediate",
+    "4": "Advanced",
+  };
+  const nivelAlvo = nivelPorNumero[levelParam] ?? "";
 
   // ---------------------------------------------------------------------
   // LEITURA PAGINADA E COM ORDEM DETERMINÍSTICA.
@@ -28,9 +43,7 @@ export default async function BrowsePage({
   //      silêncio — sem `.range()` a 1.001ª em diante nunca chegava;
   //   2. `views` está empatadíssimo (1.007 músicas com 0 e só 88 valores
   //      distintos no total). Ordenar por uma coluna sem desempate faz o
-  //      banco devolver um subconjunto ARBITRÁRIO dentro do empate: a mesma
-  //      música entra e sai entre requisições. Chasing Pavements ficava na
-  //      posição 360 mas NÃO vinha nas 1.000 devolvidas.
+  //      banco devolver um subconjunto ARBITRÁRIO dentro do empate.
   // Correção: paginar com `.range()` e desempatar por `id`, que é único.
   // ---------------------------------------------------------------------
   const PAGE = 1000;
@@ -42,12 +55,14 @@ export default async function BrowsePage({
     is_verified: boolean;
     views: number | null;
     artist_image_url: string | null;
+    difficulty_auto: string | null;
+    chords_used: string[] | null;
   }[] = [];
 
   for (let from = 0; from < 20000; from += PAGE) {
     const { data, error } = await supabase
       .from("tabs")
-      .select("song, artist, slug_artist, slug_song, is_verified, views, artist_image_url")
+      .select("song, artist, slug_artist, slug_song, is_verified, views, artist_image_url, difficulty_auto, chords_used")
       .order("views", { ascending: false })
       .order("id", { ascending: true })
       .range(from, from + PAGE - 1);
@@ -57,16 +72,21 @@ export default async function BrowsePage({
     if (page.length < PAGE) break; // última página
   }
 
+  // filtros da trilha e das páginas de acorde, antes da busca textual
+  let base = allTabs;
+  if (nivelAlvo) base = base.filter((t) => t.difficulty_auto === nivelAlvo);
+  if (chordParam) base = base.filter((t) => (t.chords_used ?? []).includes(chordParam));
+
   // Filtro de busca (música, artista ou slug)
   const filtered = query
-    ? allTabs.filter(
+    ? base.filter(
         (t) =>
           (t.song || "").toLowerCase().includes(query) ||
           (t.artist || "").toLowerCase().includes(query) ||
           (t.slug_song || "").toLowerCase().includes(query) ||
           (t.slug_artist || "").toLowerCase().includes(query)
       )
-    : allTabs;
+    : base;
 
   // Artistas mais vistos (top 10 por soma de views)
   const artistMap = new Map<string, { name: string; slug: string; views: number; image: string | null }>();
@@ -86,8 +106,21 @@ export default async function BrowsePage({
         <p className="text-brand-muted mt-2">
           {query
             ? `${filtered.length} resultado(s) para "${searchParams.q}"`
+            : nivelAlvo
+            ? `${filtered.length} tabs at the ${nivelAlvo} level`
+            : chordParam
+            ? `${filtered.length} tabs that use ${chordParam}`
             : `${allTabs.length} cifras disponíveis`}
         </p>
+        {(nivelAlvo || chordParam) && (
+          <Link
+            href="/browse"
+            className="inline-block mt-3 text-sm font-semibold"
+            style={{ color: "var(--c-gold)" }}
+          >
+            limpar filtro
+          </Link>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -95,7 +128,7 @@ export default async function BrowsePage({
         <div className="lg:col-span-3">
           {filtered.length === 0 ? (
             <p className="text-brand-muted text-center py-16">
-              Nenhuma cifra encontrada para "{searchParams.q}". Tente outro artista ou música.
+              Nenhuma cifra encontrada. Tente outro artista ou música.
             </p>
           ) : (
             <div className="columns-1 md:columns-2 xl:columns-3 gap-4">
@@ -107,62 +140,53 @@ export default async function BrowsePage({
                   <span className={`text-xl font-bold w-8 text-center flex-shrink-0 ${idx < 3 ? "text-brand-gold" : "text-brand-muted"}`}>
                     {idx + 1}
                   </span>
-                  {/* Foto do artista */}
-                  <ArtistAvatar
-                    name={tab.artist}
-                    slug={tab.slug_artist}
-                    imageUrl={tab.artist_image_url}
-                    size="xs"
-                  />
+                  <div className="flex-shrink-0">
+                    <ArtistAvatar name={tab.artist} imageUrl={tab.artist_image_url} size="sm" />
+                  </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/tab/${tab.slug_artist}/${tab.slug_song}`}
-                        className="font-semibold truncate group-hover:text-brand-gold transition block"
-                      >
+                    <Link href={`/tab/${tab.slug_artist}/${tab.slug_song}`} className="block">
+                      <h3 className="font-bold truncate group-hover:text-brand-gold transition-colors">
                         {tab.song}
-                      </Link>
-                      {tab.is_verified && <CheckCircle2 size={14} className="text-blue-400 flex-shrink-0" />}
-                    </div>
-                    <Link
-                      href={`/artist/${tab.slug_artist}`}
-                      className="text-xs text-brand-muted truncate block hover:text-brand-gold hover:underline transition-colors"
-                    >
-                      {tab.artist}
+                      </h3>
+                    </Link>
+                    <Link href={`/artist/${tab.slug_artist}`} className="block">
+                      <p className="text-sm text-brand-muted truncate hover:text-brand-gold transition-colors">
+                        {tab.artist}
+                      </p>
                     </Link>
                   </div>
-                  <Music size={16} className="text-brand-muted flex-shrink-0" />
+                  {tab.difficulty_auto && (
+                    <span
+                      className="hidden sm:inline-block shrink-0 text-[10px] font-bold uppercase px-2 py-1 rounded"
+                      style={{ background: "var(--c-gold-soft)", color: "var(--c-gold)" }}
+                    >
+                      {tab.difficulty_auto}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Sidebar: artistas mais vistos */}
-        <aside>
-          <h2 className="text-sm font-bold uppercase tracking-widest text-brand-muted mb-4">Artistas mais vistos</h2>
-          <div className="space-y-3">
-            {topArtists.map((artist, idx) => (
-              <Link
-                key={artist.slug}
-                href={`/artist/${artist.slug}`}
-                className="flex items-center gap-3 group"
-              >
-                <span className={`text-sm font-bold w-5 text-center flex-shrink-0 ${idx < 3 ? "text-brand-gold" : "text-brand-muted"}`}>
-                  {idx + 1}
-                </span>
-                {artist.image ? (
-                  <img src={artist.image} alt={artist.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-                ) : (
-                  <ArtistAvatar name={artist.name} slug={artist.slug} size="xs" />
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-sm truncate group-hover:text-brand-gold transition">{artist.name}</p>
-                  <p className="text-xs text-brand-muted">{formatViews(artist.views)} views</p>
-                </div>
-              </Link>
+        {/* Sidebar: artistas */}
+        <aside className="lg:col-span-1">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-brand-muted mb-3">
+            Artistas populares
+          </h2>
+          <ul className="space-y-2">
+            {topArtists.map((a) => (
+              <li key={a.slug}>
+                <Link
+                  href={`/artist/${a.slug}`}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[var(--c-overlay-soft)] transition-colors"
+                >
+                  <ArtistAvatar name={a.name} imageUrl={a.image} size="xs" />
+                  <span className="text-sm truncate">{a.name}</span>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         </aside>
       </div>
     </div>
