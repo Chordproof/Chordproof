@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Music, User as UserIcon, LogOut, Bookmark, Settings, ListMusic } from "lucide-react";
+import { Music, User as UserIcon, LogOut, Bookmark, Settings, ListMusic, Menu, X } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 import SearchBar from "@/components/SearchBar";
@@ -13,6 +13,7 @@ export default function Navbar() {
   const isHome = pathname === "/";
   const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
+  const [menuMobile, setMenuMobile] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -24,6 +25,7 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => setOpen(false), [pathname]);
+  useEffect(() => setMenuMobile(false), [pathname]);
 
   const user = session?.user;
   const initial = (user?.name || user?.email || "U").trim().charAt(0).toUpperCase();
@@ -46,6 +48,11 @@ export default function Navbar() {
           <nav className="flex items-center gap-2 sm:gap-4 shrink-0">
             {/* "Learn" vem antes de Browse: é o começo de quem não sabe tocar,
                 e o site tinha ferramenta de sobra e nenhum ponto de entrada. */}
+            {/* No celular a fileira de links NAO CABE: com cinco itens ela ja
+                empurrava a pagina 144px para o lado antes do link Tuner existir,
+                e o site inteiro rolava de lado sem ninguem perceber. Agora os
+                links vivem num painel proprio abaixo de md. */}
+            <div className="hidden md:flex items-center gap-4">
             <Link href="/learn" className="hover:text-brand-gold transition-colors">Learn</Link>
             {/* Tuner logo depois de Learn: afinar e a primeira coisa que se faz,
                 antes de aprender acorde, e "guitar tuner" e busca propria de quem
@@ -54,6 +61,15 @@ export default function Navbar() {
             <Link href="/browse" className="hover:text-brand-gold transition-colors">Browse</Link>
             <Link href="/request" className="hover:text-brand-gold transition-colors">Request</Link>
             <Link href="/about" className="hover:text-brand-gold transition-colors">About</Link>
+            </div>
+            <button
+              onClick={() => setMenuMobile((v) => !v)}
+              className="md:hidden p-2 rounded-full bg-[var(--c-overlay-soft)]"
+              aria-label={menuMobile ? "Close menu" : "Open menu"}
+              aria-expanded={menuMobile}
+            >
+              {menuMobile ? <X size={18} /> : <Menu size={18} />}
+            </button>
             <GamificationBadge />
             <ThemeToggle />
 
@@ -121,6 +137,27 @@ export default function Navbar() {
           <div className="sm:hidden mt-3">
             <SearchBar />
           </div>
+        )}
+
+        {menuMobile && (
+          <nav className="md:hidden mt-3 flex flex-col border-t border-[var(--c-hairline)] pt-2">
+            {[
+              ["/learn", "Learn"],
+              ["/tuner", "Tuner"],
+              ["/browse", "Browse"],
+              ["/request", "Request"],
+              ["/about", "About"],
+            ].map(([href, nome]) => (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setMenuMobile(false)}
+                className="px-2 py-2.5 text-sm hover:text-brand-gold"
+              >
+                {nome}
+              </Link>
+            ))}
+          </nav>
         )}
       </div>
     </header>
