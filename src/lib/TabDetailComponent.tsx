@@ -23,6 +23,7 @@ import { useSession } from "next-auth/react";
 import SoundToggle from "@/components/SoundToggle";
 import PlayProgression from "@/components/PlayProgression";
 import ContinueBar from "@/components/ContinueBar";
+import { scoreDifficulty } from "@/lib/difficulty";
 
 
 /**
@@ -260,7 +261,20 @@ export default function TabDetailComponent({
           </div>
           <div className="flex gap-4 pt-2 flex-wrap">
             {tab.key_sig && <span className="bg-[var(--c-overlay-soft)] px-3 py-1 rounded text-sm">Key: <strong>{tab.key_sig}</strong></span>}
-            {tab.difficulty && <span className="bg-[var(--c-overlay-soft)] px-3 py-1 rounded text-sm">Difficulty: <strong className="text-green-400">{tab.difficulty}</strong></span>}
+            {/* A NOTA CALCULADA, não o campo `difficulty` antigo.
+                Medi os 1.166: o rótulo antigo dizia "Beginner" para cifras com
+                média de 7,3 acordes e "Advanced" para 9,1 — praticamente o
+                mesmo. Pior: a trilha /learn classifica a MESMA música pela nota
+                calculada, então manter os dois mostrava "Difficulty: Beginner"
+                aqui e "Easy" na trilha, na mesma música. Uma fonte só. */}
+            {(() => {
+              const d = scoreDifficulty({ content: tab.content, capo: tab.capo });
+              return (
+                <span className="bg-[var(--c-overlay-soft)] px-3 py-1 rounded text-sm">
+                  Difficulty: <strong className="text-green-400">{d.label}</strong>
+                </span>
+              );
+            })()}
             {capoFret > 0 && <span className="bg-[var(--c-gold-soft)] text-[var(--c-gold)] px-3 py-1 rounded text-sm font-bold tracking-wide">CAPO ON FRET {capoFret}</span>}
             {easyOverride?.capo && <span className="bg-brand-gold/10 text-brand-gold px-3 py-1 rounded text-sm font-bold">Easy capo: <strong>{easyOverride.capo}</strong></span>}
           </div>
