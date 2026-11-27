@@ -44,6 +44,9 @@ export default function Navbar() {
           )}
 
           <nav className="flex items-center gap-2 sm:gap-4 shrink-0">
+            {/* "Learn" vem antes de Browse: é o começo de quem não sabe tocar,
+                e o site tinha ferramenta de sobra e nenhum ponto de entrada. */}
+            <Link href="/learn" className="hover:text-brand-gold transition-colors">Learn</Link>
             <Link href="/browse" className="hover:text-brand-gold transition-colors">Browse</Link>
             <Link href="/request" className="hover:text-brand-gold transition-colors">Request</Link>
             <Link href="/about" className="hover:text-brand-gold transition-colors">About</Link>
