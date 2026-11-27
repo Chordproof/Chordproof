@@ -11,6 +11,7 @@ import {
 import PlayerStats from "@/components/PlayerStats";
 import OfflineLibrary from "@/components/OfflineLibrary";
 import ManageBillingButton from "@/components/ManageBillingButton";
+import ChordProgress from "@/components/ChordProgress";
 
 type Profile = {
   email: string;
@@ -223,6 +224,9 @@ function Profile() {
       {tab === "overview" && (
         <div className="space-y-8">
           <PlayerStats />
+          {/* Os acordes que a pessoa tocou — o progresso que ENSINA, em vez do
+              XP que só recompensa presença. */}
+          <ChordProgress />
           <div className="space-y-4">
             <h2 className="text-xl font-bold flex items-center gap-2"><History size={18} /> Recent Activity</h2>
             {data!.activity.length === 0 ? (
