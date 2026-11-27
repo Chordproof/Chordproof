@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import AutoScrollControl from "@/components/AutoScrollControl";
 import ArtistAvatar from "@/components/ArtistAvatar";
@@ -21,6 +21,7 @@ import { usePlusAccess } from "@/components/PlusGate";
 import { audioEngine } from "@/lib/audio";
 import SoundToggle from "@/components/SoundToggle";
 import PlayProgression from "@/components/PlayProgression";
+import ContinueBar from "@/components/ContinueBar";
 
 
 /**
@@ -56,7 +57,62 @@ export default function TabDetailComponent({
   const [activeLine, setActiveLine] = useState<number | null>(null);
   // "Follow the tab": quando ligado, a página rola até a linha que está tocando
   const [follow, setFollow] = useState(true);
+  /**
+   * CONTINUAR DE ONDE PAREI: se a conta parou NESTA cifra, o player começa do
+   * acorde salvo. A posição é gravada de tempos em tempos (não a cada acorde,
+   * para não escrever no banco dezenas de vezes por minuto).
+   */
+  const [resumeAt, setResumeAt] = useState<number | null>(null);
+  const posGravarRef = useRef<number>(0);
   const plus = usePlusAccess();
+  // nomes para exibir/gravar — precisam existir ANTES de gravarPosicao usá-los
+  const songName = tab?.song || params.song.replace(/-/g, " ");
+  const artistName = tab?.artist || params.artist.replace(/-/g, " ");
+
+  // Onde esta conta parou nesta música?
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const r = await fetch("/api/position", { cache: "no-store" });
+        if (!r.ok) return;
+        const d = await r.json();
+        const p = d?.position;
+        if (!active || !p) return;
+        if (p.slug_artist === params.artist && p.slug_song === params.song) {
+          const idx = Number(p.chord_index);
+          if (Number.isFinite(idx) && idx > 0) setResumeAt(idx);
+        }
+      } catch {
+        /* sem sessão: começa do topo, como antes */
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [params.artist, params.song]);
+
+  /**
+   * Grava o ponto de retorno. Limita a 1 gravação a cada 15s: o player avisa
+   * a cada acorde (a música mediana tem 80) e escrever no banco 80 vezes por
+   * música seria desperdício.
+   */
+  const gravarPosicao = (chordIndex: number) => {
+    const agora = Date.now();
+    if (agora - posGravarRef.current < 15000) return;
+    posGravarRef.current = agora;
+    fetch("/api/position", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        slugArtist: params.artist,
+        slugSong: params.song,
+        songTitle: songName,
+        artistName: artistName,
+        chordIndex,
+      }),
+    }).catch(() => {});
+  };
 
   /**
    * Rolagem que acompanha a música. Quem toca tem as duas mãos no instrumento
@@ -145,8 +201,6 @@ export default function TabDetailComponent({
     </div>
   );
 
-  const songName = tab.song || params.song.replace(/-/g, " ");
-  const artistName = tab.artist || params.artist.replace(/-/g, " ");
   const content = easyOverride ? easyOverride.content : tab.content || "";
   const tablature = tab.tablature || "";
   const usedChords = chordsUsed(content, transpose);
@@ -174,6 +228,8 @@ export default function TabDetailComponent({
         <li><a href="/browse" className="hover:text-[var(--c-text)]">Browse</a></li><li>/</li>
         <li><a href={"/artist/"+params.artist} className="hover:text-[var(--c-text)] capitalize">{artistName}</a></li>
       </ol></nav>
+      {/* continuar de onde parei + streak: só aparece para conta logada */}
+      <ContinueBar currentSlugArtist={params.artist} currentSlugSong={params.song} />
       <div className="flex flex-col md:flex-row justify-between items-start gap-6" style={{marginBottom:"24px"}}>
         <div className="space-y-2">
           <div className="flex items-center gap-3 flex-wrap">
@@ -286,6 +342,8 @@ export default function TabDetailComponent({
                 artistSlug={params.artist}
                 songSlug={params.song}
                 onActiveLine={setActiveLine}
+                resumeAt={resumeAt}
+                onChordPlayed={gravarPosicao}
                 follow={follow}
                 onFollowChange={setFollow}
               />
