@@ -263,6 +263,8 @@ export default function TabDetailComponent({
                 artist={artistName}
                 song={songName}
                 instrument={instrument}
+                artistSlug={params.artist}
+                songSlug={params.song}
               />
             </div>
             {youtubeId ? (
