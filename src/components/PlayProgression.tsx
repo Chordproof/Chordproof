@@ -39,6 +39,9 @@ import {
  * sintetizador gera cada nota na hora, então só o intervalo muda. E loop de
  * trecho: marca o início e o fim e o player volta sozinho, que é como se
  * estuda um refrão.
+ *
+ * RETOMADA (26/11): resumeAt faz o player começar no acorde em que a conta
+ * parou. onChordPlayed devolve o acorde tocado para a página gravar o ponto.
  */
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -53,6 +56,8 @@ export default function PlayProgression({
   artistSlug = "",
   songSlug = "",
   onActiveLine,
+  resumeAt = null,
+  onChordPlayed,
   follow: followProp,
   onFollowChange,
 }: {
@@ -68,6 +73,14 @@ export default function PlayProgression({
   songSlug?: string;
   /** avisa a página qual LINHA da cifra está tocando (para destacar/rolar) */
   onActiveLine?: (line: number | null) => void;
+  /**
+   * "Continuar de onde parei": o índice do acorde em que a conta parou. O player
+   * começa daí quando a página retoma a música — voltar ao topo é atrito puro
+   * para quem está estudando o mesmo refrão.
+   */
+  resumeAt?: number | null;
+  /** avisa a página o acorde tocado, para gravar o ponto de retorno */
+  onChordPlayed?: (chordIndex: number) => void;
   /** controle do "Follow the tab" — mora na página, que é quem rola */
   follow?: boolean;
   onFollowChange?: (v: boolean) => void;
@@ -222,8 +235,11 @@ export default function PlayProgression({
       const arpSteps = arpeggioSteps(6);
       const mono = isMonophonic(instrument);
 
-      // recorte do trecho marcado (A..B). Sem marcação, a música inteira.
-      const ini = loopA !== null ? Math.min(loopA, loopB ?? loopA) : 0;
+      // recorte: trecho marcado (A..B) ou retomada do ponto salvo.
+      // Sem marcação e sem retomada, a música inteira.
+      const retomar =
+        resumeAt !== null && resumeAt > 0 && resumeAt < sequence.length ? resumeAt : 0;
+      const ini = loopA !== null ? Math.min(loopA, loopB ?? loopA) : retomar;
       const fim = loopB !== null ? Math.max(loopA ?? 0, loopB) : sequence.length - 1;
       const recorte = sequence.slice(ini, Math.max(ini + 1, fim + 1));
 
@@ -264,6 +280,7 @@ export default function PlayProgression({
           window.setTimeout(() => {
             setCurrentIdx(i);
             onActiveLine?.(ev.line);
+            onChordPlayed?.(ini + i);
           }, barStart)
         );
       });
@@ -303,6 +320,8 @@ export default function PlayProgression({
       practicePct,
       loopA,
       loopB,
+      resumeAt,
+      onChordPlayed,
     ]
   );
 
