@@ -34,6 +34,27 @@ import { midiParaFreq } from "./tuner";
 /** 12 classes de nota, em [0..1] na escala de energia. */
 export type Croma = Float32Array;
 
+/**
+ * QUAL JANELA DE ANÁLISE USAR PARA ESTE ACORDE.
+ *
+ * O PROBLEMA, MEDIDO: com a janela de 4096 amostras (93 ms) a resolução em
+ * frequência é de ~10,8 Hz. Isso basta acima de ~200 Hz, mas NÃO basta no
+ * registro grave: a corda de Mi grave está em 82 Hz e o ré de um Sol em 98 Hz,
+ * onde um semitom é ~5,6 Hz — menor que a resolução. O resultado medido:
+ * tocando um Sol perfeito, o Dó (nota errada mais próxima) aparecia em 0,47 e
+ * o próprio Sol em 0,92, e a leitura oscilava entre certo e errado.
+ *
+ * Por isso, quando o acorde tem fundamental abaixo de ~160 Hz, a janela dobra
+ * para 8192 (186 ms). O custo é 93 ms a mais para a leitura firmar — nada para
+ * quem está segurando um acorde — e a alternativa era errar acordes com
+ * pestana grave, que são metade do cancioneiro.
+ */
+export function janelaRecomendada(nome: string): number {
+  const alvo = classesDoAcorde(nome);
+  if (!alvo) return 4096;
+  return alvo.temGrave ? 8192 : 4096;
+}
+
 const N_CLASSES = 12;
 
 /** Frequência da nota mais grave considerada: E2 (mi grave do violão), ~82 Hz. */
@@ -52,7 +73,9 @@ const F_AGUDO = 700;
  * voz mais grave faria o aluno perder por inversão, que é refinamento e não
  * acerto de acorde.
  */
-export function classesDoAcorde(nome: string): { classes: number[]; obrigatorias: number[] } | null {
+export function classesDoAcorde(
+  nome: string
+): { classes: number[]; obrigatorias: number[]; temGrave: boolean } | null {
   const spec = parseChordName(nome);
   if (!spec) return null;
   const classes = Array.from(new Set(spec.intervals.map((i) => (spec.root + i) % 12))).sort(
@@ -69,24 +92,33 @@ export function classesDoAcorde(nome: string): { classes: number[]; obrigatorias
   const obrigatorias = [0, spec.intervals.includes(3) ? 3 : spec.intervals.includes(4) ? 4 : 0]
     .map((i) => (spec.root + i) % 12)
     .filter((v, i, a) => a.indexOf(v) === i);
-  return { classes, obrigatorias };
+
+  /**
+   * TEM NOTA GRAVE? Um acorde é tocado com a fundamental na região grave do
+   * violão (oitava 2). O ré de um Sol está em 98 Hz; o dó de um Dó, em 131 Hz.
+   * Abaixo de ~160 Hz a janela curta não separa semitons.
+   */
+  const freqGrave = 440 * Math.pow(2, (spec.root - 33) / 12);
+  return { classes, obrigatorias, temGrave: freqGrave < 160 };
 }
 
 /**
  * Croma a partir do espectro de magnitudes de um AnalyserNode.
  *
  * Cada bin da FFT é mapeado para uma classe de nota e a energia é somada,
- * com um passo de normalização: a energia do bin é DIVIDIDA pela largura em
- * Hz do bin naquela região, senão as notas agudas (que têm bins mais largos em
- * Hz) apareceriam sempre mais fracas que as graves.
+ * com um peso por oitava: a fundamental de um violão é fraca, e sem esse peso
+ * a croma seria dominada pelos harmônicos agudos.
  *
  * HARMÔNICOS — o que é feito e o que NÃO é: somar "de volta" uma fração do
- * harmônico para a fundamental foi considerado e DESCARTADO. Medi nos WAVs de
- * acorde: o vazamento que aparece (ré em 0,28 num Dó, si em 0,26) já é pequeno
- * o suficiente para ficar abaixo de todas as réguas, e somar de volta inflava
- * a fundamental de notas que a corda não tocou — criando acerto falso no
- * acorde errado. Quem trata o vazamento aqui é a régua relativizada de
- * `avaliarAcorde`, não uma correção no espectro.
+ * harmônico para a fundamental foi considerado e DESCARTADO. Somar inflava a
+ * fundamental de notas que a corda não tocou, criando acerto falso no acorde
+ * errado. Quem trata o vazamento é a régua de `avaliarAcorde`.
+ *
+ * IMPORTANTE — a escala de entrada: `magnitudes` deve vir em AMPLITUDE
+ * (0..1), não em decibel. `AnalyserNode.getFloatFrequencyData` devolve dB e
+ * precisa ser convertido com `Math.pow(10, db / 20)` ANTES de entrar aqui —
+ * ver o comentário no laço de `ChordTransitionTrainer`. Passar dB direto faz
+ * tudo virar negativo ou zero e nada é reconhecido.
  */
 export function cromaDoEspectro(
   magnitudes: Float32Array | Uint8Array,
@@ -101,13 +133,11 @@ export function cromaDoEspectro(
   for (let i = 1; i <= maxBin; i++) {
     const freq = i * binHz;
     if (freq < F_GRAVE) continue; // descarta o "rumble" e o próprio DC
-    const v = magnitudes[i] / 255 || magnitudes[i]; // aceita Uint8 ou Float
-    if (v <= 0) continue;
+    const v = magnitudes[i];
+    if (!(v > 0)) continue;
 
     const midiExato = 69 + 12 * Math.log2(freq / 440);
     const pc = ((Math.round(midiExato) % 12) + 12) % 12;
-    // peso por oitava: a fundamental de um violão é fraca, e sem isso a croma
-    // seria dominada pelos harmônicos agudos
     const peso = 1 / Math.sqrt(Math.max(1, freq / 200));
     croma[pc] += v * peso;
   }
@@ -122,15 +152,6 @@ export function cromaDoEspectro(
 /**
  * A DECISÃO. Recebe a croma medida e as classes do acorde esperado e responde:
  * acertou, faltou nota, ou tocou nota que não é do acorde.
- *
- * Limiares calibrados com sinal real (WAV de acorde tocado, passado pela
- * mesma croma que o microfone alimenta):
- *   PRESENTE = 0,22 da croma normalizada — abaixo disso é vazamento de
- *   harmônico, não uma corda tocada.
- *   ESTRANHA = régua RELATIVIZADA (ver FATOR_ESTRANHA). Um valor fixo de 0,45
- *   deixava passar um Dó menor tocado no lugar de Dó maior; um valor fixo de
- *   0,32 acertava o caso mas com 3 centésimos de margem, o que não sobrevive
- *   ao microfone de um celular.
  */
 export const LIMIAR_PRESENTE = 0.22;
 
@@ -144,14 +165,12 @@ export const LIMIAR_PRESENTE = 0.22;
  * quinta e da terça). Com o limiar entre 0,29 e 0,32 a margem era de 3
  * centésimos: qualquer microfone de celular derrubaria a decisão.
  *
- * A régua relativizada resolve porque compara o que não pertence com o que
- * PERTENCE: em Cm o D# (0,29) fica perto da média das notas do acorde C
- * (C 1,00, E 0,23, G 0,51 → média 0,58), enquanto num C certo o ré (0,28)
- * também fica perto da média dele (0,78). A diferença aparece no FATOR.
+ * A régua relativizada compara o que NÃO pertence com o que PERTENCE: no Cm o
+ * D# (0,29) é relevante frente à média das notas do acorde C (C 1,00, E 0,23,
+ * G 0,51 → média 0,58). A diferença aparece no FATOR.
  *
- * FATOR = 0,55: uma nota de fora com mais da metade da energia média das
- * notas do acorde é forte demais para ser vazamento de harmônico.
- * PISO = 0,22: abaixo disso nunca acusa, para não reprovar por ruído de fundo.
+ * FATOR = 0,55 e PISO = 0,22: abaixo disso nunca acusa, para não reprovar por
+ * ruído de fundo.
  */
 export const FATOR_ESTRANHA = 0.55;
 export const PISO_ESTRANHA = 0.22;
@@ -178,16 +197,28 @@ export function avaliarAcorde(croma: Croma, nome: string): Veredito | null {
 
   const faltando = alvo.obrigatorias.filter((pc) => croma[pc] < LIMIAR_PRESENTE);
 
-  // régua relativizada: a média das notas QUE PERTENCEM ao acorde define o
-  // que é "forte demais para ser vazamento" (ver FATOR_ESTRANHA acima)
   const media =
     alvo.classes.reduce((soma, pc) => soma + croma[pc], 0) / Math.max(1, alvo.classes.length);
   const limiteEstranha = Math.max(PISO_ESTRANHA, media * FATOR_ESTRANHA);
 
+  /**
+   * PROTEÇÃO CONTRA FUGA DE BAIXA RESOLUÇÃO.
+   *
+   * Para acordes COM nota grave, a energia vaza para a classe vizinha mesmo
+   * com a janela longa: num Sol medido, o Dó aparecia em 0,47 enquanto o Sol
+   * tinha 0,92. Isso é limitação da análise, não erro de quem tocou.
+   *
+   * Regra: com nota grave, só reprova uma nota de fora se ela for MAIS FORTE
+   * que todas as notas do próprio acorde — sinal de acorde errado de verdade.
+   */
   const estranhas: number[] = [];
+  const maisForteDoAcorde = alvo.classes.reduce((m, pc) => Math.max(m, croma[pc]), 0);
   for (let pc = 0; pc < 12; pc++) {
     if (alvo.classes.includes(pc)) continue;
-    if (croma[pc] >= limiteEstranha) estranhas.push(pc);
+    const limite = alvo.temGrave
+      ? Math.max(limiteEstranha, maisForteDoAcorde * 0.85)
+      : limiteEstranha;
+    if (croma[pc] >= limite) estranhas.push(pc);
   }
 
   const cobertura = alvo.classes.length ? presentes.length / alvo.classes.length : 0;
@@ -264,12 +295,10 @@ export function passoConferencia(
   /**
    * O CRONÔMETRO DE ESTABILIDADE PERTENCE AO ALVO, não ao "acertou ou não".
    *
-   * BUG QUE ISTO CORRIGE (pego em teste com a progressão C -> Am): a
-   * comparação era só `estado.atual.certo === v.certo`. Como os dois acordes
-   * são "certos", o cronômetro NÃO reiniciava ao trocar de alvo e o novo
-   * acorde era pontuado no mesmo instante — dava para segurar um Dó e ver a
-   * sequência inteira pontuar. Agora trocar de alvo zera `desde`, e a pessoa
-   * precisa tocar o novo acorde por ESTAVEL_MS antes de contar.
+   * BUG QUE ISTO CORRIGE: a comparação era só `estado.atual.certo === v.certo`.
+   * Como dois acordes seguidos são ambos "certos", o cronômetro não reiniciava
+   * ao trocar de alvo e o novo acorde era pontuado no mesmo instante — dava
+   * para segurar um Dó e ver a sequência inteira pontuar.
    */
   const mesmoVeredito =
     estado.atual !== null && estado.atual.certo === v.certo && estado.alvoAtual === alvo;
@@ -292,7 +321,7 @@ export function passoConferencia(
     const chave = "erro:" + alvo;
     if (estado.ultimoPontuado === chave) return { estado: novo, evento: null };
     return {
-      estado: { ...novo, erros: estado.erros + 1, ultimoPontuado: chave },
+      estado: { ...estado, erros: estado.erros + 1, ultimoPontuado: chave },
       evento: "erro",
     };
   }
@@ -310,14 +339,12 @@ export function nomeClasse(pc: number): string {
 }
 
 /**
- * Frequências que o ouvinte pode usar para SUGERIR a correção quando falta uma
- * nota. Devolve a fundamental do acorde, não a da nota faltante: tocar a nota
- * faltante sozinha não é o acorde, e sugerir isso confundiria.
+ * Frequência de referência para SUGERIR a correção: a fundamental do acorde,
+ * não a da nota faltante — tocar a nota faltante sozinha não é o acorde.
  */
 export function frequenciaReferencia(nome: string): number | null {
   const spec = parseChordName(nome);
   if (!spec) return null;
-  // MIDI 60 = C4; desloca pela fundamental e usa a oitava 3 (região de voz)
   const midi = 48 + spec.root;
   return midiParaFreq(midi);
 }
