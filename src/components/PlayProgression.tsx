@@ -42,6 +42,10 @@ import {
  *
  * RETOMADA (26/11): resumeAt faz o player começar no acorde em que a conta
  * parou. onChordPlayed devolve o acorde tocado para a página gravar o ponto.
+ *
+ * FIM (27/11): onFinish avisa quando a progressão inteira terminou. É o gatilho
+ * do convite para criar conta — o único instante em que guardar progresso
+ * significa algo para quem está tocando.
  */
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -60,6 +64,7 @@ export default function PlayProgression({
   onChordPlayed,
   follow: followProp,
   onFollowChange,
+  onFinish,
 }: {
   content: string;
   transpose?: number;
@@ -84,6 +89,12 @@ export default function PlayProgression({
   /** controle do "Follow the tab" — mora na página, que é quem rola */
   follow?: boolean;
   onFollowChange?: (v: boolean) => void;
+  /**
+   * avisa que a progressão INTEIRA terminou. É o gatilho do convite para criar
+   * conta: o momento em que a pessoa acabou de tocar é o único em que guardar
+   * o progresso significa algo para ela.
+   */
+  onFinish?: () => void;
 }) {
   const [playing, setPlaying] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(-1);
@@ -304,6 +315,9 @@ export default function PlayProgression({
           setCurrentIdx(-1);
           setCurrentStep(-1);
           onActiveLine?.(null);
+          // só avisa quando a música NÃO está em loop: num trecho em repetição
+          // a execução nunca "termina", e o convite não faria sentido.
+          onFinish?.();
         }, total)
       );
     },
@@ -322,6 +336,7 @@ export default function PlayProgression({
       loopB,
       resumeAt,
       onChordPlayed,
+      onFinish,
     ]
   );
 
