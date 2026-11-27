@@ -1,32 +1,35 @@
 "use client";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Music, User as UserIcon, LogOut, Bookmark, Settings, ListMusic } from "lucide-react";
-import { useSession, signOut } from "next-auth/react";
+
 import { useEffect, useRef, useState } from "react";
-import SearchBar from "@/components/SearchBar";
-import GamificationBadge from "@/components/GamificationBadge";
-import ThemeToggle from "@/components/ThemeToggle";
+import Link from "next/link";
+import { Search, Menu, X, Music, Sun, Moon } from "lucide-react";
+import SearchBar from "./SearchBar";
+import { useSession, signOut } from "next-auth/react";
+import { useTheme } from "./ThemeProvider";
+import GamificationBadge from "./GamificationBadge";
+import { usePathname } from "next/navigation";
 
 export default function Navbar() {
+  const { data: session, status } = useSession();
+  const user = session?.user;
+  const { theme, toggleTheme } = useTheme();
+  const [open, setOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const isHome = pathname === "/";
-  const { data: session, status } = useSession();
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function onDoc(e: MouseEvent) {
+    const onClick = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-  useEffect(() => setOpen(false), [pathname]);
-
-  const user = session?.user;
-  const initial = (user?.name || user?.email || "U").trim().charAt(0).toUpperCase();
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   return (
     <header style={{ background: "var(--c-nav-bg)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)" }} className="sticky top-0 z-50 border-b border-[var(--c-hairline)]">
@@ -45,13 +48,25 @@ export default function Navbar() {
 
           <nav className="flex items-center gap-2 sm:gap-4 shrink-0">
             {/* "Learn" vem antes de Browse: é o começo de quem não sabe tocar,
-                e o site tinha ferramenta de sobra e nenhum ponto de entrada. */}
-            <Link href="/learn" className="hover:text-brand-gold transition-colors">Learn</Link>
-            <Link href="/browse" className="hover:text-brand-gold transition-colors">Browse</Link>
-            <Link href="/request" className="hover:text-brand-gold transition-colors">Request</Link>
-            <Link href="/about" className="hover:text-brand-gold transition-colors">About</Link>
+                e o site tinha ferramenta de sobra e nenhum ponto de entrada.
+                "Tuner" vem logo depois: afinar é a PRIMEIRA coisa que qualquer
+                pessoa faz, antes de aprender um acorde — e "guitar tuner" é uma
+                busca própria, feita por quem ainda não lê cifra nenhuma. */}
+            <Link href="/learn" className="hidden md:inline hover:text-brand-gold transition-colors">Learn</Link>
+            <Link href="/tuner" className="hidden md:inline hover:text-brand-gold transition-colors">Tuner</Link>
+            <Link href="/browse" className="hidden md:inline hover:text-brand-gold transition-colors">Browse</Link>
+            <Link href="/request" className="hidden md:inline hover:text-brand-gold transition-colors">Request</Link>
+            <Link href="/about" className="hidden md:inline hover:text-brand-gold transition-colors">About</Link>
             <GamificationBadge />
             <ThemeToggle />
+            <button
+              onClick={() => setMobileOpen((v) => !v)}
+              className="md:hidden p-2 rounded-full bg-[var(--c-overlay-soft)]"
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileOpen}
+            >
+              {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
 
             {status === "loading" ? (
               <div className="w-9 h-9 rounded-full bg-[var(--c-overlay-soft)] animate-pulse" aria-hidden />
@@ -68,57 +83,53 @@ export default function Navbar() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={user.image} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   ) : (
-                    initial
+                    (user.name || user.email || "?").charAt(0).toUpperCase()
                   )}
                 </button>
                 {open && (
-                  <div
-                    role="menu"
-                    style={{ position: "absolute", top: "100%", right: 0, marginTop: 8, background: "var(--c-card)", border: "1px solid var(--c-hairline)", borderRadius: 12, padding: 6, minWidth: 210, zIndex: 60, boxShadow: "0 8px 24px rgba(0,0,0,0.35)" }}
-                  >
-                    <div style={{ padding: "8px 12px" }}>
-                      <p style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.3 }}>{user.name || "Account"}</p>
-                      <p style={{ fontSize: 11, color: "var(--c-text-tertiary)", wordBreak: "break-all" }}>{user.email}</p>
+                  <div className="absolute right-0 mt-2 w-56 rounded-xl bg-[var(--c-bg-elevated)] border border-[var(--c-hairline)] shadow-[var(--c-shadow)] overflow-hidden py-1" role="menu">
+                    <div className="px-3 py-2 border-b border-[var(--c-hairline)]">
+                      <p className="text-sm font-bold truncate">{user.name || "Account"}</p>
+                      <p className="text-xs text-[var(--c-text-tertiary)] truncate">{user.email}</p>
                     </div>
-                    <div style={{ height: 1, background: "var(--c-hairline)", margin: "4px 0" }} />
-                    <Link href="/profile" role="menuitem" className="flex items-center gap-2" style={{ padding: "9px 12px", borderRadius: 8, fontSize: 13 }}>
-                      <UserIcon size={15} /> Overview
-                    </Link>
-                    <Link href="/profile?tab=tabs" role="menuitem" className="flex items-center gap-2" style={{ padding: "9px 12px", borderRadius: 8, fontSize: 13 }}>
-                      <Bookmark size={15} /> My Tabs
-                    </Link>
-                    <Link href="/setlists" role="menuitem" className="flex items-center gap-2" style={{ padding: "9px 12px", borderRadius: 8, fontSize: 13 }}>
-                      <ListMusic size={15} /> My Setlists
-                    </Link>
-                    <Link href="/profile?tab=settings" role="menuitem" className="flex items-center gap-2" style={{ padding: "9px 12px", borderRadius: 8, fontSize: 13 }}>
-                      <Settings size={15} /> Settings
-                    </Link>
-                    <div style={{ height: 1, background: "var(--c-hairline)", margin: "4px 0" }} />
-                    <button
-                      role="menuitem"
-                      onClick={() => signOut({ callbackUrl: "/" })}
-                      className="flex items-center gap-2 w-full text-left"
-                      style={{ padding: "9px 12px", borderRadius: 8, fontSize: 13, color: "#f87171" }}
-                    >
-                      <LogOut size={15} /> Sign Out
-                    </button>
+                    <Link href="/profile" onClick={() => setOpen(false)} className="block px-3 py-2 text-sm hover:bg-[var(--c-overlay-soft)]" role="menuitem">Overview</Link>
+                    <Link href="/profile?tab=tabs" onClick={() => setOpen(false)} className="block px-3 py-2 text-sm hover:bg-[var(--c-overlay-soft)]" role="menuitem">My Tabs</Link>
+                    <Link href="/setlists" onClick={() => setOpen(false)} className="block px-3 py-2 text-sm hover:bg-[var(--c-overlay-soft)]" role="menuitem">Setlists</Link>
+                    <Link href="/profile?tab=settings" onClick={() => setOpen(false)} className="block px-3 py-2 text-sm hover:bg-[var(--c-overlay-soft)]" role="menuitem">Settings</Link>
+                    <button onClick={() => signOut({ callbackUrl: "/" })} className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--c-overlay-soft)] border-t border-[var(--c-hairline)]" role="menuitem">Sign Out</button>
                   </div>
                 )}
               </div>
             ) : (
-              <Link href="/auth/signin" className="bg-[var(--c-cta-bg)] text-[var(--c-cta-text)] px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base rounded-full font-bold hover:scale-105 transition">
-                Sign In
-              </Link>
+              <Link href="/auth/signin" className="px-4 py-2 rounded-full bg-[var(--c-cta-bg)] text-[var(--c-cta-text)] text-sm font-bold hover:scale-105 transition">Sign In</Link>
             )}
           </nav>
         </div>
 
-        {!isHome && (
-          <div className="sm:hidden mt-3">
-            <SearchBar />
-          </div>
+        {mobileOpen && (
+          <nav className="md:hidden mt-3 flex flex-col gap-1 border-t border-[var(--c-hairline)] pt-3">
+            <Link href="/learn" className="px-2 py-2 text-sm hover:text-brand-gold">Learn</Link>
+            <Link href="/tuner" className="px-2 py-2 text-sm hover:text-brand-gold">Tuner</Link>
+            <Link href="/browse" className="px-2 py-2 text-sm hover:text-brand-gold">Browse</Link>
+            <Link href="/request" className="px-2 py-2 text-sm hover:text-brand-gold">Request</Link>
+            <Link href="/about" className="px-2 py-2 text-sm hover:text-brand-gold">About</Link>
+          </nav>
         )}
       </div>
     </header>
+  );
+}
+
+function ThemeToggle() {
+  const { theme, toggleTheme } = useTheme();
+  return (
+    <button
+      onClick={toggleTheme}
+      className="p-2 rounded-full bg-[var(--c-overlay-soft)] hover:bg-[var(--c-overlay)] transition-colors"
+      title={theme === "dark" ? "Light mode" : "Dark mode"}
+      aria-label={theme === "dark" ? "Light mode" : "Dark mode"}
+    >
+      {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+    </button>
   );
 }
