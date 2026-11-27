@@ -47,9 +47,9 @@ export default function Navbar() {
             {/* "Learn" vem antes de Browse: é o começo de quem não sabe tocar,
                 e o site tinha ferramenta de sobra e nenhum ponto de entrada. */}
             <Link href="/learn" className="hover:text-brand-gold transition-colors">Learn</Link>
-            {/* Tuner logo depois de Learn: afinar é a primeira coisa que se faz,
-                antes de aprender acorde, e "guitar tuner" é busca própria de quem
-                ainda não lê cifra nenhuma. */}
+            {/* Tuner logo depois de Learn: afinar e a primeira coisa que se faz,
+                antes de aprender acorde, e "guitar tuner" e busca propria de quem
+                ainda nao le cifra nenhuma. */}
             <Link href="/tuner" className="hover:text-brand-gold transition-colors">Tuner</Link>
             <Link href="/browse" className="hover:text-brand-gold transition-colors">Browse</Link>
             <Link href="/request" className="hover:text-brand-gold transition-colors">Request</Link>
@@ -76,34 +76,52 @@ export default function Navbar() {
                   )}
                 </button>
                 {open && (
-                  <div className="absolute right-0 mt-2 w-56 rounded-xl bg-[var(--c-bg-elevated)] border border-[var(--c-hairline)] shadow-[var(--c-shadow)] overflow-hidden py-1" role="menu">
-                    <div className="px-3 py-2 border-b border-[var(--c-hairline)]">
-                      <p className="text-sm font-bold truncate">{user.name || "Account"}</p>
-                      <p className="text-xs text-[var(--c-text-tertiary)] truncate">{user.email}</p>
+                  <div
+                    role="menu"
+                    style={{ position: "absolute", top: "100%", right: 0, marginTop: 8, background: "var(--c-card)", border: "1px solid var(--c-hairline)", borderRadius: 12, padding: 6, minWidth: 210, zIndex: 60, boxShadow: "0 8px 24px rgba(0,0,0,0.35)" }}
+                  >
+                    <div style={{ padding: "8px 12px" }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.3 }}>{user.name || "Account"}</p>
+                      <p style={{ fontSize: 11, color: "var(--c-text-tertiary)", wordBreak: "break-all" }}>{user.email}</p>
                     </div>
-                    <Link href="/profile" onClick={() => setOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--c-overlay-soft)]" role="menuitem">
-                      <UserIcon size={14} /> Overview
+                    <div style={{ height: 1, background: "var(--c-hairline)", margin: "4px 0" }} />
+                    <Link href="/profile" role="menuitem" className="flex items-center gap-2" style={{ padding: "9px 12px", borderRadius: 8, fontSize: 13 }}>
+                      <UserIcon size={15} /> Overview
                     </Link>
-                    <Link href="/profile?tab=tabs" onClick={() => setOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--c-overlay-soft)]" role="menuitem">
-                      <Bookmark size={14} /> My Tabs
+                    <Link href="/profile?tab=tabs" role="menuitem" className="flex items-center gap-2" style={{ padding: "9px 12px", borderRadius: 8, fontSize: 13 }}>
+                      <Bookmark size={15} /> My Tabs
                     </Link>
-                    <Link href="/setlists" onClick={() => setOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--c-overlay-soft)]" role="menuitem">
-                      <ListMusic size={14} /> Setlists
+                    <Link href="/setlists" role="menuitem" className="flex items-center gap-2" style={{ padding: "9px 12px", borderRadius: 8, fontSize: 13 }}>
+                      <ListMusic size={15} /> My Setlists
                     </Link>
-                    <Link href="/profile?tab=settings" onClick={() => setOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--c-overlay-soft)]" role="menuitem">
-                      <Settings size={14} /> Settings
+                    <Link href="/profile?tab=settings" role="menuitem" className="flex items-center gap-2" style={{ padding: "9px 12px", borderRadius: 8, fontSize: 13 }}>
+                      <Settings size={15} /> Settings
                     </Link>
-                    <button onClick={() => signOut({ callbackUrl: "/" })} className="w-full flex items-center gap-2 text-left px-3 py-2 text-sm hover:bg-[var(--c-overlay-soft)] border-t border-[var(--c-hairline)]" role="menuitem">
-                      <LogOut size={14} /> Sign Out
+                    <div style={{ height: 1, background: "var(--c-hairline)", margin: "4px 0" }} />
+                    <button
+                      role="menuitem"
+                      onClick={() => signOut({ callbackUrl: "/" })}
+                      className="flex items-center gap-2 w-full text-left"
+                      style={{ padding: "9px 12px", borderRadius: 8, fontSize: 13, color: "#f87171" }}
+                    >
+                      <LogOut size={15} /> Sign Out
                     </button>
                   </div>
                 )}
               </div>
             ) : (
-              <Link href="/auth/signin" className="px-4 py-2 rounded-full bg-[var(--c-cta-bg)] text-[var(--c-cta-text)] text-sm font-bold hover:scale-105 transition">Sign In</Link>
+              <Link href="/auth/signin" className="bg-[var(--c-cta-bg)] text-[var(--c-cta-text)] px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base rounded-full font-bold hover:scale-105 transition">
+                Sign In
+              </Link>
             )}
           </nav>
         </div>
+
+        {!isHome && (
+          <div className="sm:hidden mt-3">
+            <SearchBar />
+          </div>
+        )}
       </div>
     </header>
   );
