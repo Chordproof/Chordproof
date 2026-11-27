@@ -173,17 +173,27 @@ export default function TabDetailComponent({
 
   useEffect(() => {
     // Se o servidor já mandou a cifra, o HTML veio completo: nada a buscar.
-    if (initialTab) { recordAction("OPEN_TAB"); return; }
+    if (initialTab) return;
     let active = true;
     (async () => {
       setLoading(true);
       const { data, error } = await supabase.from("tabs").select("*").eq("slug_artist", params.artist).eq("slug_song", params.song).maybeSingle();
       if (!active) return;
-      if (error || !data) { setNotFound(true); } else { setTab(data); recordAction("OPEN_TAB"); }
+      if (error || !data) { setNotFound(true); } else { setTab(data); }
       setLoading(false);
     })();
     return () => { active = false; };
   }, [params.artist, params.song, initialTab]);
+
+  /**
+   * Registra a visita SÓ com sessão ativa. Antes o recordAction rodava em toda
+   * abertura de cifra e o POST /api/stats voltava 401 para quem não estava
+   * logado — que é a maioria do tráfego, então sujava o console de todo mundo.
+   */
+  useEffect(() => {
+    if (authStatus !== "authenticated" || !tab) return;
+    recordAction("OPEN_TAB");
+  }, [authStatus, tab?.id]);
 
   useEffect(() => {
     if (!tab) return;
