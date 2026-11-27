@@ -17,18 +17,23 @@ export const dynamic = "force-dynamic";
 
 async function getTab(artist: string, song: string) {
   /**
-   * COLUNAS EXPLÍCITAS, não `select("*")`.
+   * COLUNAS EXPLÍCITAS, não `select("*")` — e SÓ as que existem de fato.
    *
-   * O `*` não trouxe `difficulty_auto`: o servidor recebia a linha sem a
-   * coluna e o rótulo caía no campo antigo `difficulty` ("Beginner"), enquanto
-   * /browse — que lista as colunas uma a uma — lia "Easy" da mesma tabela. Era
-   * essa diferença que fazia a cifra e a trilha discordarem sobre a MESMA
-   * música. Listar as colunas (como o /browse já faz) resolve na origem.
+   * HISTÓRICO (dois erros meus, nesta ordem):
+   *  1. `select("*")` não trouxe `difficulty_auto` na resposta, então o rótulo
+   *     caía no campo antigo e a cifra dizia "Beginner" enquanto /browse lia
+   *     "Easy" da mesma tabela;
+   *  2. ao listar as colunas, escrevi de memória nomes que NÃO existem
+   *     (youtube_id, video_url…) e a consulta passou a falhar em silêncio: a
+   *     página saiu SEM cifra e com "Difficulty: null".
+   *
+   * A lista abaixo veio de `information_schema.columns`. Não escrever nome de
+   * coluna de cabeça.
    */
   const { data } = await supabase
     .from("tabs")
     .select(
-      "id, song, artist, slug_artist, slug_song, content, tablature, capo, key_sig, genre, difficulty, difficulty_auto, difficulty_score, chords_used, is_verified, views, artist_image_url, youtube_id, video_id, youtube, video_url, yt_id"
+      "id, song, artist, slug_artist, slug_song, content, tablature, capo, key_sig, genre, market, difficulty, difficulty_auto, difficulty_score, difficulty_reasons, chords_used, is_verified, views, artist_image_url, created_at"
     )
     .eq("slug_artist", artist)
     .eq("slug_song", song)
@@ -46,8 +51,7 @@ async function getTab(artist: string, song: string) {
  * POR QUE NÃO CALCULAR EM JS: o `scoreDifficulty` em JS e a função SQL
  * divergem na FRONTEIRA de faixa (arredondamento). "Just The Way You Are" dá
  * 6.9 no JS (Beginner) e 8.0 no SQL (Easy). Com a cifra no JS e a trilha
- * /learn na coluna, a MESMA música aparecia com dois rótulos — foi o que
- * aconteceu: "Difficulty: Beginner" no cabeçalho e "Easy" na trilha.
+ * /learn na coluna, a MESMA música aparecia com dois rótulos.
  */
 function difficultyLabelOf(tab: any): string | null {
   return tab?.difficulty_auto || tab?.difficulty || null;
