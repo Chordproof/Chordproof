@@ -25,6 +25,23 @@ async function getTab(artist: string, song: string) {
   return data;
 }
 
+/**
+ * O RÓTULO DE DIFICULDADE TEM UMA FONTE SÓ: a coluna `difficulty_auto`.
+ *
+ * POR QUE NÃO O CAMPO `difficulty`: medi os 1.166 e ele não discrimina —
+ * "Beginner" tem média de 7,3 acordes distintos e "Advanced" 9,1, ou seja,
+ * praticamente o mesmo. É rótulo digitado à mão, não informação.
+ *
+ * POR QUE NÃO CALCULAR EM JS: o `scoreDifficulty` em JS e a função SQL
+ * divergem na FRONTEIRA de faixa (arredondamento). "Just The Way You Are" dá
+ * 6.9 no JS (Beginner) e 8.0 no SQL (Easy). Com a cifra no JS e a trilha
+ * /learn na coluna, a MESMA música aparecia com dois rótulos — foi o que
+ * aconteceu: "Difficulty: Beginner" no cabeçalho e "Easy" na trilha.
+ */
+function difficultyLabelOf(tab: any): string | null {
+  return tab?.difficulty_auto || tab?.difficulty || null;
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -35,7 +52,9 @@ export async function generateMetadata({
     song: tab?.song || params.song.replace(/-/g, " "),
     artist: tab?.artist || params.artist.replace(/-/g, " "),
     keySig: tab?.key_sig,
-    difficulty: tab?.difficulty,
+    // a meta description também: é o texto que aparece no Google, e dizia
+    // "Beginner" para uma música que o site classifica como Easy.
+    difficulty: difficultyLabelOf(tab),
   });
 
   return {
@@ -55,6 +74,17 @@ export default async function Page({
   const songName = tab?.song || params.song.replace(/-/g, " ");
   const artistName = tab?.artist || params.artist.replace(/-/g, " ");
   const tabUrl = `${SITE_URL}/tab/${params.artist}/${params.song}`;
+  const difficultyLabel = difficultyLabelOf(tab);
+
+  /**
+   * `initialTab` vai com o rótulo resolvido nas DUAS chaves. O componente
+   * cliente lê `difficulty_auto`; sobrescrever também `difficulty` garante que
+   * qualquer outro trecho que leia o campo antigo mostre o mesmo valor. Assim
+   * não existe caminho em que a página diga Beginner e a trilha diga Easy.
+   */
+  const initialTab = tab
+    ? { ...tab, difficulty_auto: difficultyLabel, difficulty: difficultyLabel }
+    : null;
 
   return (
     <div>
@@ -85,7 +115,7 @@ export default async function Page({
         </p>
       </div>
 
-      <TabDetail params={params} initialTab={tab} />
+      <TabDetail params={params} initialTab={initialTab} />
     </div>
   );
 }
