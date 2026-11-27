@@ -7,6 +7,7 @@ import { adaptShape, INSTRUMENTS, INSTRUMENT_VISUALS, type InstrumentKey } from 
 import { generateVoicing, suggestFingers } from "./fourStringVoicings";
 import PianoDiagramLazy from "@/components/PianoDiagram";
 import { MiniPiano } from "@/components/PianoDiagram";
+import { lessonFor } from "./chordLessons";
 
 export type ThemeKey = "amber" | "classic" | "emerald" | "crimson" | "ocean";
 export type Theme = {
@@ -207,6 +208,11 @@ function getVariations(chord: string, instrument: InstrumentKey = "guitar"): { s
 
 /**
  * Textos do diagrama no IDIOMA NATIVO do visitante.
+ *
+ * CUIDADO: o site é 100% inglês. Já misturei o idioma do NAVEGADOR do dono com
+ * o idioma do site e o diagrama passou a dizer "Variação"/"Capotraste" no meio
+ * de "Chords used in this tab" (corrigido em 26/11 com locale fixo "en" nos
+ * chamadores). Por isso a página de acorde e o BigChordDiagram passam "en".
  */
 export function diagramLabels(locale?: string) {
   const raw =
@@ -522,10 +528,56 @@ export function ChordDiagram({ chord, onClose, theme, instrument = "guitar", cap
             </button>
           </div>
         )}
+        <ChordLessonBlock chord={chord} instrument={instrument} />
+
         <div style={{ fontSize: "11px", color: "var(--c-text-tertiary)", textAlign: "center", marginTop: "12px" }}>
           {L.close}
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * ChordLessonBlock — a explicação que aparece quando a pessoa clica no acorde
+ * que não sabe fazer.
+ *
+ * POR QUE NO POPUP: é o único momento em que a dúvida é real. A pessoa abriu a
+ * cifra de uma música que QUER tocar e travou naquele shape. Uma página de
+ * curso genérica ("aula 3: o acorde de Dó") ensina fora de contexto.
+ *
+ * Só aparece no violão: as dicas falam de corda, pestana e da dobra do dedo,
+ * que não se aplicam a piano nem a bateria.
+ *
+ * SEM HOOK, de propósito: hooks fora de ordem acima do return do piano quebram
+ * o React ao trocar de instrumento — já aconteceu neste arquivo.
+ */
+function ChordLessonBlock({ chord, instrument }: { chord: string; instrument: InstrumentKey }) {
+  if (instrument !== "guitar") return null;
+  const licao = lessonFor(chord);
+  if (!licao) return null;
+  return (
+    <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid var(--c-hairline)", textAlign: "left", maxWidth: "320px" }}>
+      <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--c-gold)", marginBottom: "6px" }}>
+        How to play {chord}
+      </p>
+      <p style={{ fontSize: "11px", lineHeight: 1.5, color: "var(--c-text-secondary)", marginBottom: "6px" }}>
+        {licao.shape}
+      </p>
+      <p style={{ fontSize: "11px", lineHeight: 1.5, color: "var(--c-text-secondary)", marginBottom: "6px" }}>
+        <strong style={{ color: "var(--c-text)" }}>The trick: </strong>
+        {licao.tip}
+      </p>
+      <p style={{ fontSize: "11px", lineHeight: 1.5, color: "var(--c-text-secondary)", marginBottom: "6px" }}>
+        <strong style={{ color: "var(--c-text)" }}>If it buzzes: </strong>
+        {licao.mistake}
+      </p>
+      {licao.next && (
+        <p style={{ fontSize: "11px", lineHeight: 1.5, color: "var(--c-text-tertiary)" }}>
+          <strong style={{ color: "var(--c-text-secondary)" }}>After this: </strong>
+          {licao.next}
+        </p>
+      )}
     </div>
   );
 }
