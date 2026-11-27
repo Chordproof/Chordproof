@@ -3,6 +3,7 @@ import Link from "next/link";
 import ArtistAvatar from "@/components/ArtistAvatar";
 import Reveal from "@/components/Reveal";
 import TabMockup from "@/components/TabMockup";
+import ContinueBar from "@/components/ContinueBar";
 import {
   ArrowRight,
   Music,
@@ -209,6 +210,11 @@ export default async function HomePage() {
             <Reveal delay={200}>
               <div className="mt-7 max-w-xl">
                 <SearchBar />
+              </div>
+              {/* Continuar de onde parei + streak: é aqui que o hábito começa.
+                  Sem sessão a barra não renderiza nada. */}
+              <div className="mt-4">
+                <ContinueBar />
               </div>
             </Reveal>
 
