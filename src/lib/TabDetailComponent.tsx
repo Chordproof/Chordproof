@@ -18,8 +18,7 @@ import { MiniFretboard, ChordDiagram, THEMES, type ThemeKey } from "@/lib/fretbo
 import TabActionBar from "@/components/TabActionBar";
 import { renderContent, renderTablature, hasInlineTablature } from "@/lib/tabRenderer";
 import { usePlusAccess } from "@/components/PlusGate";
-import { audioEngine, chordMidiFromName, chordMidiFromShape, bassMidiForChord } from "@/lib/audio";
-import { CHORD_SHAPES } from "@/lib/chordData";
+import { audioEngine } from "@/lib/audio";
 import SoundToggle from "@/components/SoundToggle";
 import PlayProgression from "@/components/PlayProgression";
 
@@ -53,7 +52,28 @@ export default function TabDetailComponent({
   const [trainerOpen, setTrainerOpen] = useState(false);
   const [drumOpen, setDrumOpen] = useState(false);
   const [instrument, setInstrument] = useState<InstrumentKey>("guitar");
+  // linha (índice no content) que está tocando agora — vem do PlayProgression
+  const [activeLine, setActiveLine] = useState<number | null>(null);
+  // "Follow the tab": quando ligado, a página rola até a linha que está tocando
+  const [follow, setFollow] = useState(true);
   const plus = usePlusAccess();
+
+  /**
+   * Rolagem que acompanha a música. Quem toca tem as duas mãos no instrumento
+   * e não pode rolar a tela — é o motivo de existir. A linha fica 38% abaixo
+   * do topo (e não no meio), que é onde o olho lê adiante da mão.
+   */
+  useEffect(() => {
+    if (!follow || activeLine === null) return;
+    const el = document.querySelector(`[data-tab-body] [data-line="${activeLine}"]`);
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const alvo = window.scrollY + r.top - window.innerHeight * 0.38;
+    // só rola se saiu de uma faixa confortável: evita tremor a cada acorde
+    const fora = r.top < window.innerHeight * 0.18 || r.top > window.innerHeight * 0.72;
+    if (!fora) return;
+    window.scrollTo({ top: Math.max(0, alvo), behavior: "smooth" });
+  }, [activeLine, follow]);
 
   /**
    * Clique num acorde da cifra: abre o diagrama E toca o acorde.
@@ -219,7 +239,7 @@ export default function TabDetailComponent({
         tab={tab}
         stageChildren={
           <>
-            {renderContent(content, showTablature, transpose, handleChordClick, theme)}
+            {renderContent(content, showTablature, transpose, handleChordClick, theme, activeLine)}
             {showTablature && hasTab && !hasInlineTablature(content) && renderTablature(tablature)}
           </>
         }
@@ -231,8 +251,8 @@ export default function TabDetailComponent({
           colunas a partir de md. */}
       <div style={{display:"flex",gap:"24px",alignItems:"flex-start"}} className="flex-col md:flex-row md:items-start">
         <div style={{flex:"3 1 0%",minWidth:"0",width:"100%"}} className="order-2 md:order-1 md:w-auto">
-          <div id="tab-content" className="glass-card rounded-2xl p-8" style={{marginBottom:"24px"}}>
-            <div style={{fontFamily:"monospace",fontSize:"1rem",lineHeight:"1.6"}}>{renderContent(content, showTablature, transpose, handleChordClick, theme)}</div>
+          <div id="tab-content" data-tab-body className="glass-card rounded-2xl p-8" style={{marginBottom:"24px"}}>
+            <div style={{fontFamily:"monospace",fontSize:"1rem",lineHeight:"1.6"}}>{renderContent(content, showTablature, transpose, handleChordClick, theme, activeLine)}</div>
             {showTablature && hasTab && !hasInlineTablature(content) && renderTablature(tablature)}
           </div>
           {usedChords.length > 0 && (
@@ -265,6 +285,9 @@ export default function TabDetailComponent({
                 instrument={instrument}
                 artistSlug={params.artist}
                 songSlug={params.song}
+                onActiveLine={setActiveLine}
+                follow={follow}
+                onFollowChange={setFollow}
               />
             </div>
             {youtubeId ? (

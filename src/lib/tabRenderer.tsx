@@ -180,12 +180,29 @@ export function renderContent(
   showTablature: boolean,
   transpose: number,
   onChord: (c: string) => void,
-  themeData?: object
+  themeData?: object,
+  /** linha (índice no content) que o player está tocando agora */
+  activeLine?: number | null
 ): ReactNode[] {
   const theme = { ...DEFAULT_THEME, ...(themeData ?? {}) } as Required<TabTheme>;
   const lines = content.split("\n");
   const out: ReactNode[] = [];
   let k = 0;
+
+  /**
+   * Marca a linha que está tocando. O player avisa o ÍNDICE da linha no
+   * conteúdo; aqui ela ganha o atributo data-line e o fundo dourado. É o que
+   * permite a página rolar até ela (quem toca não pode rolar a tela).
+   */
+  const hl = (i: number): React.CSSProperties =>
+    activeLine === i
+      ? {
+          background: "var(--c-gold-soft)",
+          boxShadow: "inset 3px 0 0 var(--c-gold)",
+          borderRadius: 4,
+          transition: "background 120ms linear",
+        }
+      : { transition: "background 120ms linear" };
 
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i];
@@ -193,28 +210,43 @@ export function renderContent(
     if (!line) continue;
 
     if (SECTION_RE.test(line)) {
-      out.push(renderSection(line, theme, k++));
+      out.push(
+        <div key={k++} data-line={i} style={hl(i)}>
+          {renderSection(line, theme, k)}
+        </div>
+      );
       continue;
     }
 
     if (TAB_LINE_RE.test(line)) {
-      if (showTablature) out.push(renderTabLine(raw, theme, k++));
+      if (showTablature)
+        out.push(
+          <div key={k++} data-line={i} style={hl(i)}>
+            {renderTabLine(raw, theme, k)}
+          </div>
+        );
       continue;
     }
 
     if (isChordLine(line)) {
       const next = lines[i + 1]?.trim() ?? "";
       if (next && !SECTION_RE.test(next) && !TAB_LINE_RE.test(next) && !isChordLine(next)) {
-        out.push(renderPair(raw, lines[i + 1], transpose, theme, onChord, k++));
+        out.push(
+          <div key={k++} data-line={i} style={hl(i)}>
+            {renderPair(raw, lines[i + 1], transpose, theme, onChord, k)}
+          </div>
+        );
         i++;
       } else {
         out.push(
           <div
             key={k++}
+            data-line={i}
             style={{
               fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
               whiteSpace: "pre-wrap",
               marginBottom: "0.5rem",
+              ...hl(i),
             }}
           >
             {renderChordLine(raw, transpose, theme, onChord)}
@@ -227,12 +259,14 @@ export function renderContent(
     out.push(
       <div
         key={k++}
+        data-line={i}
         style={{
           fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
           whiteSpace: "pre-wrap",
           color: theme.lyricColor,
           lineHeight: 1.5,
           marginBottom: "0.5rem",
+          ...hl(i),
         }}
       >
         {line}
