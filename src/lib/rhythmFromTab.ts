@@ -1,10 +1,6 @@
 /**
  * rhythmFromTab.ts — a BATIDA vem da própria cifra, não do gênero.
  *
- * O PROBLEMA que isto resolve: o gênero dá uma batida genérica. "Rock" toca
- * igual em 423 músicas — e o dono apontou, com razão, que não é a batida da
- * música.
- *
  * TENTATIVA QUE FALHOU (registrada para não se repetir): extrair a batida
  * analisando o ÁUDIO da gravação (prévia do Deezer, envelope de onset, DP de
  * beat tracking). O BPM sai bom (7/10 dentro de 5%), mas o PADRÃO não: numa
@@ -19,10 +15,6 @@
  *   "one downstroke per chord" / "one downward sweep per beat" /
  *   "straight 8ths, no strumming pattern" / "do not strum" /
  *   "slow 6/8 feel inside 4/4"
- * É dado POR MÚSICA e é a instrução de quem toca. Prioridade:
- *   1. instrução escrita na cifra  -> source "tab"
- *   2. gênero (lib/strumPatterns)  -> source "genre"
- * A interface mostra de onde veio, para não vender chute como certeza.
  */
 import {
   STRUM_PATTERNS,
@@ -30,6 +22,7 @@ import {
   type StrumPattern,
   type Strum,
 } from "./strumPatterns";
+import { curatedRhythm } from "./rhythmCuration";
 
 export type RhythmMode = "strum" | "arpeggio";
 
@@ -37,8 +30,8 @@ export interface ChosenRhythm {
   pattern: StrumPattern;
   mode: RhythmMode;
   /** de onde a decisão veio */
-  source: "tab" | "genre";
-  /** o trecho da cifra que decidiu (transparência na interface) */
+  source: "curated" | "tab" | "genre";
+  /** observação/excerto que justifica a escolha (transparência na interface) */
   evidence?: string;
   label: string;
 }
@@ -166,11 +159,35 @@ export function rhythmFromTab(content: string | null | undefined): ChosenRhythm 
   return null;
 }
 
-/** Decisão final: cifra primeiro, gênero como reserva. */
+/**
+ * Decisão final. ORDEM DE PRIORIDADE:
+ *   1. CURADORIA — o padrão da gravação, escrito à mão (rhythmCuration.ts)
+ *   2. instrução escrita na CIFRA (este arquivo)
+ *   3. GÊNERO — reserva genérica, marcada como tal na interface
+ *
+ * A curadoria vem primeiro porque é a única fonte que descreve a GRAVAÇÃO.
+ * A instrução da cifra descreve como tocar sozinho (útil, mas às vezes
+ * simplifica: "one downstroke per chord" é um arranjo para violão solo, não
+ * o que o disco faz). O gênero é o último recurso.
+ */
 export function resolveRhythm(
   content: string | null | undefined,
-  genre: string | null | undefined
+  genre: string | null | undefined,
+  slugs?: { artist: string; song: string }
 ): ChosenRhythm {
+  if (slugs) {
+    const c = curatedRhythm(slugs.artist, slugs.song);
+    if (c) {
+      const p = patternById(c.pattern);
+      return {
+        pattern: p,
+        mode: c.mode,
+        source: "curated",
+        evidence: c.note,
+        label: c.mode === "arpeggio" ? "Fingerpicked" : p.label,
+      };
+    }
+  }
   const fromTab = rhythmFromTab(content);
   if (fromTab) return fromTab;
   const p = strumPatternForGenre(genre);
