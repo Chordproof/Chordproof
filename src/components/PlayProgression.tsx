@@ -18,25 +18,21 @@ import type { InstrumentKey } from "@/lib/instruments";
 /**
  * PlayProgression — "Hear the progression".
  *
- * A BATIDA VEM DA MÚSICA, NÃO DO GÊNERO: primeiro o que a própria cifra diz
- * sobre a execução (54% do catálogo traz instrução — ver lib/rhythmFromTab.ts),
- * só depois o gênero como reserva. A interface marca de onde veio.
+ * A BATIDA VEM DA MÚSICA. Ordem de prioridade (lib/rhythmFromTab.ts):
+ *   1. CURADORIA (lib/rhythmCuration.ts) — o padrão da gravação, escrito à mão
+ *   2. instrução escrita na cifra
+ *   3. gênero — reserva genérica
+ * O selo ao lado do ritmo diz de onde veio: "this song", "this tab" ou
+ * "genre". Nada de vender chute como certeza.
  *
  * O SOM SEGUE O INSTRUMENTO: `playChordFor` sintetiza no timbre escolhido na
- * barra (piano com envelope de martelo, baixo uma oitava abaixo com
- * fundamental+quinta, ukulele de nylon, cavaco curto e metálico). Ver
- * lib/instrumentTone.ts.
+ * barra (piano com martelo, baixo uma oitava abaixo, ukulele de nylon, cavaco
+ * curto e metálico). Ver lib/instrumentTone.ts.
  *
- * DEDILHADO: quando a cifra manda não bater, toca arpejo — uma corda por vez.
+ * DEDILHADO: quando a música é dedilhada, toca arpejo — uma corda por vez.
  */
 
 const MAX_CHORDS = 16;
-
-/**
- * Acordes que ainda precisam das notas MIDI do shape (usado só no caminho
- * antigo do playChord). Mantemos a extração porque o arpejo precisa da lista
- * de notas e o baixo precisa do número de cordas aproximado.
- */
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
 export default function PlayProgression({
@@ -46,6 +42,8 @@ export default function PlayProgression({
   artist = "",
   song = "",
   instrument = "guitar",
+  artistSlug = "",
+  songSlug = "",
 }: {
   content: string;
   transpose?: number;
@@ -54,6 +52,9 @@ export default function PlayProgression({
   song?: string;
   /** o instrumento do seletor da barra: define o TIMBRE e o voicing do som */
   instrument?: InstrumentKey;
+  /** slugs para achar a curadoria da batida (lib/rhythmCuration.ts) */
+  artistSlug?: string;
+  songSlug?: string;
 }) {
   const [playing, setPlaying] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(-1);
@@ -63,7 +64,7 @@ export default function PlayProgression({
   const [chordList, setChordList] = useState<string[]>([]);
   const [patternId, setPatternId] = useState<string>("standard");
   const [mode, setMode] = useState<RhythmMode>("strum");
-  const [source, setSource] = useState<"tab" | "genre">("genre");
+  const [source, setSource] = useState<"curated" | "tab" | "genre">("genre");
   const [evidence, setEvidence] = useState<string | undefined>(undefined);
   const [showWhy, setShowWhy] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -94,19 +95,19 @@ export default function PlayProgression({
   }, [content]);
 
   /**
-   * Decide o ritmo: primeiro o que a CIFRA diz, depois o gênero.
-   * Depende de content/genre — não roda a cada render, senão a escolha do
-   * usuário seria sobrescrita.
+   * Decide o ritmo: curadoria, depois cifra, depois gênero.
+   * Depende de content/genre/slugs — não roda a cada render, senão a escolha
+   * do usuário seria sobrescrita.
    */
   useEffect(() => {
-    const r = resolveRhythm(content, genre);
+    const r = resolveRhythm(content, genre, { artist: artistSlug, song: songSlug });
     setPatternId(r.pattern.id);
     setMode(r.mode);
     setSource(r.source);
     setEvidence(r.evidence);
     setBpm(r.pattern.typicalBpm);
     setBpmAuto(false);
-  }, [content, genre]);
+  }, [content, genre, artistSlug, songSlug]);
 
   // BPM real da gravação
   useEffect(() => {
@@ -145,11 +146,6 @@ export default function PlayProgression({
     [transpose]
   );
 
-  /**
-   * MIDI do shape de guitarra — só para o arpejo, que precisa da sequência de
-   * notas. O acorde em si vai por nome para `playChordFor`, que aplica o
-   * voicing e o timbre do instrumento escolhido.
-   */
   const midisFor = useCallback(
     (name: string): number[] => {
       const t = transposeChord(name);
@@ -188,12 +184,11 @@ export default function PlayProgression({
     const arpSteps = arpeggioSteps(6);
 
     chordList.forEach((name, i) => {
-      const tName = transposeChord(name);
       const midis = midisFor(name);
       const barStart = i * barMs;
-      const mono = isMonophonic(instrument);
 
       // O SOM SEGUE O INSTRUMENTO: playChordFor sintetiza no timbre escolhido
+      const mono = isMonophonic(instrument);
       if ((mode === "arpeggio" || mono) && midis.length) {
         // dedilhado (ou baixo, que é monofônico): uma corda por colcheia
         arpSteps.forEach((stringIdx, k) => {
@@ -201,7 +196,7 @@ export default function PlayProgression({
           const at = barStart + k * stepMs * 2;
           timersRef.current.push(
             window.setTimeout(
-              () => audioEngine.playChord([midi], `n${midi}`, { volume: 0.42 }),
+              () => audioEngine.playChord([midi], `${instrument}:n${midi}`, { volume: 0.42 }),
               at
             )
           );
@@ -214,7 +209,7 @@ export default function PlayProgression({
           timersRef.current.push(
             window.setTimeout(
               () =>
-                audioEngine.playChordFor(tName, instrument, {
+                audioEngine.playChordFor(name, instrument, {
                   direction: st === "U" ? "up" : "down",
                 }),
               at
@@ -238,7 +233,7 @@ export default function PlayProgression({
         setCurrentStep(-1);
       }, chordList.length * barMs)
     );
-  }, [playing, chordList, bpm, midisFor, pattern, mode, stop, instrument, transposeChord]);
+  }, [playing, chordList, bpm, midisFor, pattern, mode, stop, instrument]);
 
   if (chordList.length === 0) return null;
 
@@ -294,7 +289,7 @@ export default function PlayProgression({
         </label>
       </div>
 
-      {/* ritmo: o que a cifra manda, ou o gênero como reserva */}
+      {/* ritmo: curadoria, cifra ou gênero — com o selo dizendo qual */}
       <div style={{ position: "relative" }}>
         <button
           onClick={() => setPickerOpen((v) => !v)}
@@ -319,16 +314,18 @@ export default function PlayProgression({
             <span
               className="text-[8px] font-bold uppercase px-1 rounded"
               style={{
-                background: source === "tab" ? "var(--c-gold-soft)" : "var(--c-overlay)",
-                color: source === "tab" ? "var(--c-gold)" : "var(--c-text-tertiary)",
+                background: source !== "genre" ? "var(--c-gold-soft)" : "var(--c-overlay)",
+                color: source !== "genre" ? "var(--c-gold)" : "var(--c-text-tertiary)",
               }}
               title={
-                source === "tab"
+                source === "curated"
+                  ? "Pattern of the actual recording"
+                  : source === "tab"
                   ? "Comes from this tab's own performance notes"
-                  : "The tab has no performance note — this is the genre default"
+                  : "No note on this tab — this is the genre default"
               }
             >
-              {source === "tab" ? "this song" : "genre"}
+              {source === "curated" ? "this song" : source === "tab" ? "this tab" : "genre"}
             </span>
           </span>
           <span className="flex items-center gap-1.5 shrink-0">
@@ -409,7 +406,7 @@ export default function PlayProgression({
         )}
       </div>
 
-      {/* por que esse ritmo: mostra o trecho da cifra que decidiu */}
+      {/* por que esse ritmo: mostra o excerto/nota que decidiu */}
       {evidence && evidence.trim().length > 0 && (
         <div>
           <button
@@ -450,7 +447,7 @@ export default function PlayProgression({
               key={`${c}-${i}`}
               onClick={async () => {
                 await audioEngine.unlock();
-                audioEngine.playChordFor(transposeChord(c), instrument);
+                audioEngine.playChordFor(c, instrument);
               }}
               className="px-2 py-1 rounded text-xs font-bold transition-all"
               style={{
