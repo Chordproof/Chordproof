@@ -14,6 +14,7 @@ import { patternDisplay, type StrumPattern } from "@/lib/strumPatterns";
 import { allPatterns, arpeggioSteps, resolveRhythm, type RhythmMode } from "@/lib/rhythmFromTab";
 import { isMonophonic } from "@/lib/instrumentTone";
 import type { InstrumentKey } from "@/lib/instruments";
+import { bpmForSong } from "@/lib/songBpm";
 
 /**
  * PlayProgression — "Hear the progression".
@@ -24,6 +25,9 @@ import type { InstrumentKey } from "@/lib/instruments";
  *   3. gênero — reserva genérica
  * O selo ao lado do ritmo diz de onde veio: "this song", "this tab" ou
  * "genre". Nada de vender chute como certeza.
+ *
+ * O ANDAMENTO também vem da gravação quando conhecido (lib/songBpm.ts): a
+ * /api/bpm depende do campo `bpm` do Deezer, que vem nulo em quase tudo.
  *
  * O SOM SEGUE O INSTRUMENTO: `playChordFor` sintetiza no timbre escolhido na
  * barra (piano com martelo, baixo uma oitava abaixo, ukulele de nylon, cavaco
@@ -105,8 +109,10 @@ export default function PlayProgression({
     setMode(r.mode);
     setSource(r.source);
     setEvidence(r.evidence);
-    setBpm(r.pattern.typicalBpm);
-    setBpmAuto(false);
+    // BPM: gravação (tabela) > referência do padrão. O da API chega depois.
+    const fixed = bpmForSong(artistSlug, songSlug);
+    setBpm(fixed ?? r.pattern.typicalBpm);
+    setBpmAuto(Boolean(fixed));
   }, [content, genre, artistSlug, songSlug]);
 
   // BPM real da gravação
@@ -119,7 +125,8 @@ export default function PlayProgression({
           `/api/bpm?artist=${encodeURIComponent(artist)}&song=${encodeURIComponent(song)}`
         );
         const d = await r.json();
-        if (active && d?.bpm) {
+        // a tabela da gravação vence: /api/bpm devolve null em quase tudo
+        if (active && d?.bpm && !bpmForSong(artistSlug, songSlug)) {
           setBpm(d.bpm);
           setBpmAuto(true);
         }
@@ -130,7 +137,7 @@ export default function PlayProgression({
     return () => {
       active = false;
     };
-  }, [artist, song]);
+  }, [artist, song, artistSlug, songSlug]);
 
   const transposeChord = useCallback(
     (name: string) => {
