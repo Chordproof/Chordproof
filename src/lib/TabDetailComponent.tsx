@@ -24,6 +24,7 @@ import SoundToggle from "@/components/SoundToggle";
 import PlayProgression from "@/components/PlayProgression";
 import ContinueBar from "@/components/ContinueBar";
 import { scoreDifficulty } from "@/lib/difficulty";
+import SaveProgressPrompt from "@/components/SaveProgressPrompt";
 
 
 /**
@@ -65,6 +66,8 @@ export default function TabDetailComponent({
    * para não escrever no banco dezenas de vezes por minuto).
    */
   const [resumeAt, setResumeAt] = useState<number | null>(null);
+  // a progressão inteira terminou de tocar? dispara o convite para criar conta
+  const [finished, setFinished] = useState(false);
   const posGravarRef = useRef<number>(0);
   const plus = usePlusAccess();
   // sem sessão não há posição a buscar: /api/position devolveria 401 em toda
@@ -200,6 +203,10 @@ export default function TabDetailComponent({
     if (!tab) return;
     // Injeta info da música para o StageMode buscar o BPM automaticamente
     (window as any).__stageTrackInfo = { artist: tab.artist || params.artist.replace(/-/g, " "), song: tab.song || params.song.replace(/-/g, " "), keySig: tab.key_sig || "" };
+    // NOTA: a tabela `tabs` NÃO tem youtube_id/video_id/youtube. Isto é guarda
+    // para o caso de alguém adicionar a coluna. Fora de condicional, nome de
+    // coluna errado não quebra a página — é por isso que sobreviveu até aqui
+    // (o erro de verdade foi num `.select()`, em 27/11).
     const id = tab.youtube_id || tab.video_id || tab.youtube || tab.video_url || tab.yt_id || "";
     if (id) { setYoutubeId(id); return; }
     setYoutubeLoading(true);
@@ -378,6 +385,7 @@ export default function TabDetailComponent({
                 onChordPlayed={gravarPosicao}
                 follow={follow}
                 onFollowChange={setFollow}
+                onFinish={() => setFinished(true)}
               />
             </div>
             {youtubeId ? (
@@ -415,6 +423,9 @@ export default function TabDetailComponent({
       {activeChord && <ChordDiagram chord={activeChord} onClose={() => setActiveChord(null)} theme={theme} instrument={instrument} capo={capoFret} locale={locale} />}
       {trainerOpen && <ChordTransitionTrainer chords={usedChords} onClose={() => setTrainerOpen(false)} theme={theme} />}
       {drumOpen && <DrumMachine genre={tab.genre || null} artist={artistName} song={songName} onClose={() => setDrumOpen(false)} accentColor={theme.dot} />}
+      {/* Convite que só existe depois de tocar a música inteira, e só para
+          quem não está logado. Ver SaveProgressPrompt para o porquê. */}
+      <SaveProgressPrompt onScreen={finished} songName={songName} />
       <AutoScrollControl />
     </div>
   );
