@@ -1,12 +1,25 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Zap, X, Volume2, VolumeX, Play, ChevronRight, CheckCircle2, RotateCcw } from "lucide-react";
+import { Zap, X, Volume2, VolumeX, Play, ChevronRight, CheckCircle2, RotateCcw, Mic, MicOff, Eye, Ear } from "lucide-react";
 import { MiniFretboard } from "@/lib/fretboard";
+import {
+  cromaDoEspectro,
+  estadoInicial,
+  nomeClasse,
+  passoConferencia,
+  type EstadoConferencia,
+} from "@/lib/chordCheck";
 
 /**
  * ChordTransitionTrainer — ChordProof+ feature 2
  * Treina a troca entre 2 acordes (ou progressão da cifra) com metrônomo de 60s.
  * Conta trocas limpas por minuto (1DPS = one chord per second benchmark).
+ *
+ * DOIS MODOS DE PONTUAR (27/11):
+ *   "eye"  — a pessoa toca e regista com o dedo. E o sistema original; mede a
+ *            percepção dela, nao o som.
+ *   "ear"  — o microfone confere se as NOTAS DO ACORDE PEDIDO estao soando.
+ *            Nao adivinha o acorde: ver lib/chordCheck.ts.
  */
 
 export type TrainerChord = { name: string; shape: number[] };
@@ -41,9 +54,29 @@ export default function ChordTransitionTrainer({
   });
   const [soundOn, setSoundOn] = useState(true);
   const [targetChord, setTargetChord] = useState(0); // índice do acorde alvo no par atual
+  /**
+   * MODO DO ROUND:
+   *  "eye" = pratica livre. A pessoa toca e regista a troca com o dedo (o
+   *          sistema original). CONFIAVEL, nao depende de microfone.
+   *  "ear" = com microfone. O site ESCUTA e diz se as notas do acorde pedido
+   *          estao soando. A pergunta e "o acorde que eu pedi esta ai?", nunca
+   *          "que acorde e esse?" — ver lib/chordCheck.ts para o porque.
+   */
+  const [listenMode, setListenMode] = useState<"eye" | "ear">("eye");
+  const [micErro, setMicErro] = useState<string | null>(null);
+  const [ouvindo, setOuvindo] = useState(false);
+  const [veredito, setVeredito] = useState<EstadoConferencia>(() => estadoInicial());
 
   const audioRef = useRef<AudioContext | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // --- ouvinte (modo "ear") ---
+  const streamRef = useRef<MediaStream | null>(null);
+  const ctxMicRef = useRef<AudioContext | null>(null);
+  const rafRef = useRef<number | null>(null);
+  // o laco de audio roda a ~60 Hz: o estado da conferencia vive em ref para
+  // nao provocar um render por quadro (isso derrete a bateria do celular)
+  const estadoRef = useRef<EstadoConferencia>(estadoInicial());
+  const alvoRef = useRef<string>("");
 
   // Pares de treino: sequência de pares adjacentes da progressão
   const pairs = useMemo(() => {
@@ -57,7 +90,6 @@ export default function ChordTransitionTrainer({
   }, [chords]);
 
   const activePair = pairs[pairIdx] || null;
-  const progression = mode === "progression" ? chords : null;
 
   const beep = useCallback((freq: number, dur = 0.08) => {
     if (!soundOn) return;
@@ -77,6 +109,17 @@ export default function ChordTransitionTrainer({
 
   const stopTimer = () => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } };
 
+  /** Fecha o microfone e para o laco. Idempotente. */
+  const pararOuvido = useCallback(() => {
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    ctxMicRef.current?.close().catch(() => {});
+    ctxMicRef.current = null;
+    setOuvindo(false);
+  }, []);
+
   const startRound = () => {
     setSwitches(0);
     setTargetChord(0);
@@ -95,6 +138,16 @@ export default function ChordTransitionTrainer({
         setPhase("running");
       }
     }, 1000);
+  };
+
+  /** AVANÇA O ALVO. Chamado pelo dedo (modo eye) e pela conferencia (modo ear). */
+  const avancarAlvo = () => setTargetChord((t) => t + 1);
+
+  const registerSwitch = () => {
+    if (phase !== "running") return;
+    setSwitches((s) => s + 1);
+    avancarAlvo();
+    beep(990, 0.05);
   };
 
   // Timer principal do round
@@ -118,6 +171,8 @@ export default function ChordTransitionTrainer({
   // Persistir resultado
   useEffect(() => {
     if (phase !== "done") return;
+    // microfone nao fica aberto fora do round: privacidade e bateria
+    pararOuvido();
     const total = sessions + 1;
     setSessions(total);
     localStorage.setItem("chordproof-trainer-sessions", String(total));
@@ -135,15 +190,126 @@ export default function ChordTransitionTrainer({
   }, [onClose]);
 
   useEffect(() => () => stopTimer(), []);
+  useEffect(() => () => pararOuvido(), [pararOuvido]);
 
-  const registerSwitch = () => { if (phase === "running") { setSwitches((s) => s + 1); beep(990, 0.05); } };
+  /**
+   * Liga o microfone e comeca a conferir.
+   *
+   * PRIVACIDADE: igual ao afinador, o audio NAO sai do dispositivo. Nao ha
+   * fetch aqui — a leitura morre na mesma aba.
+   */
+  const iniciarOuvido = useCallback(async () => {
+    setMicErro(null);
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setMicErro("This browser does not allow the microphone. Try Safari on iPhone.");
+        return;
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: false },
+      });
+      streamRef.current = stream;
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const ctx = new AudioCtx();
+      ctxMicRef.current = ctx;
+      if (ctx.state === "suspended") await ctx.resume();
+
+      const fonte = ctx.createMediaStreamSource(stream);
+      // passa-alta em 70 Hz: tira o "rumble" de sala que viraria nota falsa
+      const hp = ctx.createBiquadFilter();
+      hp.type = "highpass";
+      hp.frequency.value = 70;
+      const analisador = ctx.createAnalyser();
+      // 4096 = ~93 ms a 44,1 kHz: janela curta o bastante para pegar a troca de
+      // acorde, longa o bastante para resolver o mi grave (82 Hz).
+      analisador.fftSize = 4096;
+      analisador.smoothingTimeConstant = 0.35;
+      fonte.connect(hp);
+      hp.connect(analisador);
+      // NAO conecta ao destination: nada e tocado de volta (sem microfonia).
+
+      const mags = new Float32Array(analisador.frequencyBinCount);
+      setOuvindo(true);
+
+      // marca de tempo do ultimo render da dica visual (2x/segundo e suficiente)
+      let ultimoRender = 0;
+
+      const laco = () => {
+        const alvo = alvoRef.current;
+        if (!alvo) {
+          rafRef.current = requestAnimationFrame(laco);
+          return;
+        }
+        analisador.getFloatFrequencyData(mags);
+        // getFloatFrequencyData devolve dB (de -Infinity a 0). Converte para
+        // magnitude linear: a croma precisa de energia, nao de decibeis.
+        for (let i = 0; i < mags.length; i++) {
+          mags[i] = Math.max(0, (mags[i] + 100) / 100);
+        }
+        const cr = cromaDoEspectro(mags, ctx.sampleRate, analisador.fftSize);
+        const r = passoConferencia(estadoRef.current, cr, alvo, performance.now());
+        estadoRef.current = r.estado;
+        if (r.evento) {
+          setVeredito({ ...r.estado });
+          if (r.evento === "acerto") {
+            beep(1320, 0.09);
+            // acertou: o proximo alvo entra em cena. O cronometro de
+            // estabilidade reinicia sozinho porque o alvo mudou.
+            setTargetChord((t) => t + 1);
+          } else {
+            beep(220, 0.13);
+          }
+        } else if (r.estado.atual !== null) {
+          const agora = performance.now();
+          if (agora - ultimoRender > 500) {
+            ultimoRender = agora;
+            setVeredito({ ...r.estado });
+          }
+        }
+        rafRef.current = requestAnimationFrame(laco);
+      };
+      rafRef.current = requestAnimationFrame(laco);
+    } catch (e: unknown) {
+      const nome = (e as { name?: string })?.name;
+      setMicErro(
+        nome === "NotAllowedError"
+          ? "Microphone permission was denied. Allow it and try again."
+          : "Could not open the microphone."
+      );
+      pararOuvido();
+    }
+  }, [beep, pararOuvido]);
+
+  /**
+   * Reinicia a conferencia no comeco de cada round. Sem isto, um acerto do
+   * round anterior impediria o primeiro acerto deste (chave repetida).
+   */
+  useEffect(() => {
+    if (phase !== "running") return;
+    estadoRef.current = estadoInicial();
+    setVeredito(estadoInicial());
+  }, [phase]);
+
+  /** Qual acorde a pessoa deve tocar AGORA (o alvo que o ouvinte confere). */
+  useEffect(() => {
+    if (mode === "pair" && activePair) {
+      alvoRef.current = activePair[targetChord % 2];
+    } else if (mode === "progression") {
+      alvoRef.current = chords[targetChord % chords.length] || "";
+    } else {
+      alvoRef.current = "";
+    }
+  }, [mode, activePair, targetChord, chords]);
 
   const nextPair = () => { setPairIdx((i) => (i + 1) % Math.max(pairs.length, 1)); setPhase("idle"); };
   const prevPair = () => { setPairIdx((i) => (i - 1 + pairs.length) % Math.max(pairs.length, 1)); setPhase("idle"); };
 
   // Níveis em INGLÊS: o site inteiro é em inglês. Antes vazava "Avançado",
   // "Intermediário", "Em progresso" e "Iniciante" para a tela do usuário.
-  const level = switches >= 30 ? "Guitar Hero 🎸" : switches >= 20 ? "Advanced" : switches >= 12 ? "Intermediate" : switches >= 6 ? "Getting there" : "Beginner";
+  const feitos = listenMode === "ear" ? veredito.acertos : switches;
+  const level = feitos >= 30 ? "Guitar Hero 🎸" : feitos >= 20 ? "Advanced" : feitos >= 12 ? "Intermediate" : feitos >= 6 ? "Getting there" : "Beginner";
 
   return (
     <div
@@ -232,8 +398,51 @@ export default function ChordTransitionTrainer({
                 </div>
               )}
 
+              {/* COMO O ROUND PONTUA: os dois modos fazem perguntas diferentes
+                  e nenhum dos dois mente sobre o que mede. */}
+              <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "20px", flexWrap: "wrap" }}>
+                {([
+                  ["eye", "Count my changes", "You tap after each chord. Counts your own timing."],
+                  ["ear", "Check my chords", "The mic listens and checks the notes of each chord."],
+                ] as const).map(([k, titulo, desc]) => (
+                  <button
+                    key={k}
+                    onClick={() => setListenMode(k)}
+                    style={{
+                      padding: "10px 16px", borderRadius: "14px", textAlign: "left", cursor: "pointer",
+                      maxWidth: "280px",
+                      border: "1px solid " + (listenMode === k ? "#f0b429" : "#333"),
+                      background: listenMode === k ? "rgba(240,180,41,0.12)" : "transparent",
+                      color: listenMode === k ? "#f0b429" : "#999",
+                    }}
+                  >
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontWeight: 700, fontSize: "13px" }}>
+                      {k === "eye" ? <Eye size={14} /> : <Ear size={14} />} {titulo}
+                    </span>
+                    <span style={{ display: "block", fontSize: "11px", color: "#777", marginTop: "3px", lineHeight: 1.4 }}>{desc}</span>
+                  </button>
+                ))}
+              </div>
+
+              {listenMode === "ear" && (
+                <div style={{ maxWidth: "460px", margin: "0 auto 20px", textAlign: "left" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: "8px", padding: "12px", borderRadius: "12px", background: "rgba(255,255,255,0.04)", fontSize: "11.5px", color: "#8a8a8a", lineHeight: 1.5 }}>
+                    <Mic size={13} style={{ flexShrink: 0, marginTop: "2px", color: "#f0b429" }} />
+                    <span>
+                      It checks whether the <strong style={{ color: "#ccc" }}>notes of the chord you are asked for</strong> are
+                      ringing — it does not guess which chord you played. Hold the chord for about half a second to score.
+                      Your audio is analysed in this tab only and never leaves the device.
+                    </span>
+                  </div>
+                  {micErro && <p style={{ color: "#e74c3c", fontSize: "12px", marginTop: "8px" }}>{micErro}</p>}
+                </div>
+              )}
+
               <button
-                onClick={startRound}
+                onClick={async () => {
+                  if (listenMode === "ear" && !ouvindo) await iniciarOuvido();
+                  startRound();
+                }}
                 style={{ padding: "16px 48px", borderRadius: "999px", background: "#f0b429", color: "#000", fontWeight: 700, fontSize: "18px", border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "10px" }}
               >
                 <Play size={20} /> Start ({ROUND_SECONDS}s)
@@ -267,9 +476,11 @@ export default function ChordTransitionTrainer({
 
           {mode === "pair" && activePair && (
             <>
-              <p style={{ color: "#888", fontSize: "14px", marginBottom: "8px" }}>Switch to:</p>
+              <p style={{ color: "#888", fontSize: "14px", marginBottom: "8px" }}>
+                {listenMode === "ear" ? "Play:" : "Switch to:"}
+              </p>
               <button
-                onClick={registerSwitch}
+                onClick={listenMode === "eye" ? registerSwitch : undefined}
                 style={{ background: "rgba(52,211,153,0.12)", border: "2px solid #34d399", borderRadius: "24px", padding: "24px 48px", cursor: "pointer", marginBottom: "16px" }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
@@ -277,7 +488,28 @@ export default function ChordTransitionTrainer({
                   <MiniFretboard chord={activePair[targetChord % 2]} theme={C} locale="en" />
                 </div>
               </button>
-              <p style={{ color: "#666", fontSize: "13px" }}>Tap the big button EVERY TIME you play the chord</p>
+              {listenMode === "eye" ? (
+                <p style={{ color: "#666", fontSize: "13px" }}>Tap the big button EVERY TIME you play the chord</p>
+              ) : (
+                <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "8px 16px", borderRadius: "999px", fontSize: "12.5px", fontWeight: 700,
+                  background: veredito.atual ? (veredito.atual.certo ? "rgba(52,211,153,0.15)" : "rgba(231,76,60,0.15)") : "rgba(255,255,255,0.06)",
+                  color: veredito.atual ? (veredito.atual.certo ? "#34d399" : "#e74c3c") : "#888" }}>
+                  <Mic size={13} />
+                  {!veredito.atual
+                    ? "Listening — strum the chord"
+                    : veredito.atual.certo
+                    ? "Those are the notes of " + activePair[targetChord % 2]
+                    : veredito.atual.faltando.length > 0
+                    ? "Missing " + veredito.atual.faltando.map(nomeClasse).join(" and ") + " — check that finger"
+                    : "That is a different chord — there is a note outside " + activePair[targetChord % 2]}
+                </div>
+              )}
+              {listenMode === "ear" && (
+                <p style={{ color: "#555", fontSize: "11.5px", marginTop: "10px" }}>
+                  Scored: <strong style={{ color: "#34d399" }}>{veredito.acertos}</strong> chords confirmed ·{" "}
+                  <strong style={{ color: "#e74c3c" }}>{veredito.erros}</strong> missed
+                </p>
+              )}
             </>
           )}
 
@@ -301,7 +533,17 @@ export default function ChordTransitionTrainer({
             </>
           )}
 
-          <div style={{ marginTop: "24px", fontSize: "20px", color: "#f0b429", fontWeight: 700 }}>{switches} changes</div>
+          <div style={{ marginTop: "24px", fontSize: "20px", color: "#f0b429", fontWeight: 700 }}>
+            {listenMode === "ear" ? veredito.acertos : switches} changes
+          </div>
+          {listenMode === "ear" && (
+            <button
+              onClick={pararOuvido}
+              style={{ marginTop: "10px", background: "none", border: "1px solid #333", color: "#888", fontSize: "11.5px", padding: "6px 14px", borderRadius: "999px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}
+            >
+              <MicOff size={12} /> Turn the microphone off
+            </button>
+          )}
         </div>
       )}
 
@@ -309,11 +551,17 @@ export default function ChordTransitionTrainer({
       {phase === "done" && (
         <div style={{ textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
           <CheckCircle2 size={56} color="#34d399" style={{ margin: "0 auto 16px" }} />
-          <h2 style={{ fontSize: "32px", fontWeight: 700, color: "#fff", marginBottom: "4px" }}>{switches} changes in {ROUND_SECONDS}s</h2>
+          <h2 style={{ fontSize: "32px", fontWeight: 700, color: "#fff", marginBottom: "4px" }}>
+            {listenMode === "ear" ? `${veredito.acertos} chords confirmed` : `${switches} changes in ${ROUND_SECONDS}s`}
+          </h2>
           <p style={{ color: "#f0b429", fontSize: "18px", fontWeight: 600, marginBottom: "8px" }}>{level}</p>
           {switches > best && <p style={{ color: "#34d399", fontSize: "14px", marginBottom: "8px" }}>🏆 New personal best!</p>}
           <p style={{ color: "#666", fontSize: "13px", marginBottom: "32px" }}>
-            {switches * 2} changes per minute — {switches >= 20 ? "you're ready for the stage" : "keep practicing!"}
+            {listenMode === "ear"
+              ? veredito.erros > 0
+                ? `${veredito.acertos} chords confirmed by ear · ${veredito.erros} did not ring right`
+                : "Every chord you played was confirmed by ear — clean run"
+              : `${switches * 2} changes per minute — ${switches >= 20 ? "you're ready for the stage" : "keep practicing!"}`}
           </p>
           <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
             <button onClick={startRound} style={{ padding: "14px 32px", borderRadius: "999px", background: "#f0b429", color: "#000", fontWeight: 700, border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "8px" }}>
